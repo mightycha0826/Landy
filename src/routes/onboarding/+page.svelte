@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Avatar from '$lib/ui/Avatar.svelte';
+	import PrivacySummary from '$lib/ui/PrivacySummary.svelte';
 	import PasswordFields from '$lib/ui/PasswordFields.svelte';
 	import { S, errMsg, saveMyName, saveOnboarding, setPassword, toast } from '$lib/state.svelte';
 
@@ -12,10 +13,9 @@
 	let password = $state('');
 	let passwordOk = $state(false);
 
-	// 기본값은 이성. 성별을 고르면 선호를 미리 채워 준다(바꿀 수 있음).
+	// 대화 상대의 선호는 성별과 독립적으로 직접 선택한다.
 	function pickGender(g: 'm' | 'f') {
 		gender = g;
-		want ??= g === 'm' ? 'f' : 'm';
 	}
 
 	// 이름 (Phase 23 이름 편지) — 학교 명단(학번)에서 자동. 명단에 없을 때만 한 번 적는다.
@@ -89,6 +89,7 @@
 
 	<section>
 		<h2>이런 사람과 이야기하고 싶어요</h2>
+		<p class="hint muted">친구와 이야기하고 싶은 범위를 직접 골라 주세요. 나중에 프로필에서 바꿀 수 있어요.</p>
 		<div class="opts">
 			<button class="opt" class:on={want === 'm'} onclick={() => (want = 'm')}>남자</button>
 			<button class="opt" class:on={want === 'f'} onclick={() => (want = 'f')}>여자</button>
@@ -97,6 +98,7 @@
 	</section>
 	{/if}
 
+	<PrivacySummary expanded />
 	<div class="rules">
 		<h2>세 가지만 지켜 주세요</h2>
 		<ul>

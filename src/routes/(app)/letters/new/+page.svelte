@@ -7,6 +7,7 @@
 	 */
 	import { onDestroy, onMount } from 'svelte';
 	import BackButton from '$lib/ui/BackButton.svelte';
+	import PrivacySummary from '$lib/ui/PrivacySummary.svelte';
 	import Avatar from '$lib/ui/Avatar.svelte';
 	import Badge from '$lib/ui/Badge.svelte';
 	import { reloadApp } from '$lib/reload';
@@ -104,6 +105,7 @@
 	{/await}
 {:else}
 	<div class="page pick">
+		<PrivacySummary mode="letter" />
 		<label class="search">
 			<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
 				<circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.8" />

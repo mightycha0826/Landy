@@ -232,6 +232,7 @@
 						/>
 					</label>
 					<p class="sign-hint">서명을 비우면 <b>{from}</b>(으)로 보여요 · 연락처나 실명은 적지 마세요</p>
+					<p class="sign-hint">상대에게는 내 성별·서명·본문이 보여요. 글 내용으로 나를 짐작할 수도 있어요. <a href="/legal/privacy">권한 있는 운영자는 신원과 내용을 볼 수 있어요.</a></p>
 				{:else}
 					<p class="lp-from">From. {from}</p>
 				{/if}

@@ -29,6 +29,8 @@ export function waitingPollMs(base: number, waitedMs: number): number {
  * 백그라운드에서는 부르지 않으므로(PollSeeker) seek_ttl_sec 안에 서버 풀에서 자동으로 빠진다.
  */
 export class Seeker extends PollSeeker<MatchRes> {
+	#stopping: Promise<void> | null = null;
+	#epoch = 0;
 	constructor(
 		private onMatched: (roomId: string) => void,
 		onStopped: (message: string) => void
@@ -36,14 +38,29 @@ export class Seeker extends PollSeeker<MatchRes> {
 		super(onStopped);
 	}
 
+	/** 계정이 바뀐 뒤 새 계정의 대기를 취소하는 RPC를 보내지 않는다. 이전 풀 항목은 TTL로 정리된다. */
+	reset() {
+		this.#epoch++;
+		super.cancel();
+		this.#stopping = null;
+	}
+
 	/** 그만 찾기 — 서로가 서로를 찾는 풀이라 서버에서도 바로 빠진다 */
 	override cancel() {
 		if (!this.seeking) return;
+		this.#epoch++;
 		super.cancel();
-		void supabase.rpc('stop_seeking');
+		// PostgrestBuilder는 thenable이다. void만 붙이면 fetch를 시작하지 않는다.
+		this.#stopping = (async () => {
+			try { await supabase.rpc('stop_seeking'); } catch { /* 네트워크 장애 시 기존 TTL로 정리 */ }
+		})();
 	}
 
 	protected async request() {
+		const epoch = this.#epoch;
+		// 이전 취소가 새 찾기 뒤에 도착해 새 대기를 지우지 않게 순서를 지킨다.
+		await this.#stopping;
+		if (!this.seeking || epoch !== this.#epoch) return null;
 		const { data, error } = await supabase.rpc('request_match');
 		return error ? null : (data as MatchRes);
 	}

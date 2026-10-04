@@ -46,7 +46,7 @@ try {
 	await page.goto(U('/dev/bot?fast'));
 	await page.locator('textarea').waitFor();
 	check('★ 봇이라는 표시 (이름 옆 "봇")', (await page.locator('.bot header .tag').innerText()).trim() === '봇');
-	check('★ 첫 안내 줄: 찾는 사람이 없어서 봇이 왔다 · 사람을 찾으면 연결', (await page.locator('.bot .sys').first().innerText()).includes('대화 봇이 먼저 왔어요'));
+	check('★ 첫 안내 줄: 직접 선택한 AI · 학생 아님 · 사람 찾기는 계속', (await page.locator('.bot .sys').first().innerText()).includes('직접 선택해 시작한 AI 대화예요'));
 	await page.locator('.bot header').getByText('사람 찾는 중', {exact:false}).waitFor({timeout:5000});
 	check('찾는 중 표시 (머리글)', (await page.locator('.bot header').innerText()).includes('사람 찾는 중'));
 	await page.locator('.bot .row:not(.mine) .bubble:not(.typing)').first().waitFor({ timeout: 3000 });

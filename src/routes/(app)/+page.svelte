@@ -1,14 +1,13 @@
 <script lang="ts">
 	import { surface } from '$lib/transitions';
-	import { untrack } from 'svelte';
+	import { getContext, onDestroy, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { navigateFromOverlay } from '$lib/overlay.svelte';
 	import { page } from '$app/state';
 	import Avatar from '$lib/ui/Avatar.svelte';
 	import { INBOX, type InboxRoom } from '$lib/inbox.svelte';
 	import { S, UI, toast } from '$lib/state.svelte';
 	import { touring } from '$lib/tour.svelte';
-	import { Seeker } from '$lib/seeker.svelte';
+	import { MATCHING_CONTEXT, type Matching } from '$lib/matching';
 	import { isRestricted } from '$lib/restriction';
 	import { mmss } from '$lib/time';
 	import { scrollBehavior } from '$lib/motion';
@@ -47,41 +46,26 @@
 	// 앱 틀이 켜 둔 대화 목록 — 다른 탭에 다녀와도 기억해 둔 목록을 바로 그리고 뒤에서 새로 읽는다
 	const inbox = INBOX;
 
-	const seeker = new Seeker(
-		// 대화 봇 · 시트가 열려 있었으면 그 기록 자리를 대화방으로 바꿔 끼운다 (대화방에서 뒤로 → 홈, lib/overlay.svelte.ts)
-		(roomId) => void navigateFromOverlay(`/chat/${roomId}`, { state: { matched: true } }),
-		(msg) => toast(msg)
-	);
+	const seeker = getContext<Matching>(MATCHING_CONTEXT);
 
-	// ── 대화 봇 (Phase 43) — 찾기를 시작하고 20초가 지나도 상대가 없으면 홈 위에 저절로 뜬다 ──
-	// 홈이 살아 있어야 찾기가 계속된다 — 사람을 찾으면 onMatched 가 봇 창의 기록 칸을 대화방으로 바꿔 끼운다.
-	// 한 번 찾는 동안 한 번만 (닫으면 그 찾기에서는 다시 오지 않는다). 한도가 없으면(ai_chat_start) 조용히 계속 찾는다.
-	// 앱을 내려 둔 동안에는 부르지 않는다 — 다시 보이면 그때.
+	// AI는 대기 20초 뒤 선택할 수 있다. 클릭하기 전에는 세션·대화를 만들지 않는다.
 	let bot = $state<{ chat: BotStart; alias: string } | null>(null);
-	let botFor = 0; // 봇을 이미 부른 찾기 (seeker.since)
-	$effect(() => {
-		if (!seeker.seeking || !S.settings?.ai_chat) return;
+	let botBusy = $state(false);
+	let alive = true;
+	onDestroy(() => { alive = false; });
+	const offerBot = $derived(seeker.seeking && !!S.settings?.ai_chat && S.now - seeker.since >= BOT_AFTER_MS);
+	async function startBot() {
+		if (!offerBot || botBusy) return;
 		const since = seeker.since;
-		let timer: ReturnType<typeof setTimeout> | null = null;
-		const arm = () => (timer = setTimeout(summon, Math.max(0, since + BOT_AFTER_MS - Date.now())));
-		const onVis = () => {
-			if (document.visibilityState === 'visible' && !timer) arm();
-		};
-		async function summon() {
-			timer = null;
-			if (document.visibilityState !== 'visible' || botFor === since) return;
-			botFor = since;
+		botBusy = true;
+		try {
 			const r = await botApi.start();
-			if (r.status !== 'ok' || !seeker.seeking || seeker.since !== since) return;
+			if (!alive || !seeker.seeking || seeker.since !== since || !S.settings?.ai_chat) return;
+			if (r.status !== 'ok') { toast('지금은 AI와 대화할 수 없어요. 사람은 계속 찾고 있어요'); return; }
 			bot = { chat: r, alias: randomAlias(S.profile?.nickname) };
-		}
-		arm();
-		document.addEventListener('visibilitychange', onVis);
-		return () => {
-			if (timer) clearTimeout(timer);
-			document.removeEventListener('visibilitychange', onVis);
-		};
-	});
+		} catch { if (alive && seeker.seeking && seeker.since === since) toast('AI 대화를 시작하지 못했어요. 다시 시도해 주세요'); }
+		finally { if (alive) botBusy = false; }
+	}
 	// 찾기가 끝나면(매칭 · 상한 · 서비스 닫힘) 봇 창도 접는다
 	$effect(() => {
 		if (!seeker.seeking) untrack(() => (bot = null));
@@ -103,7 +87,6 @@
 	//   seeker.seeking(start 가 읽고 쓴다)을 추적해서 다시 돌았고, 그때 cleanup 이 찾기를 말없이 멈췄다 (Phase 39)
 	$effect(() => {
 		untrack(() => {
-			inbox.start();
 			void inbox.load();
 			// 대화가 끝나고 "새 대화 찾기"로 왔으면 바로 찾기 시작
 			if (UI.seekOnHome) {
@@ -115,10 +98,7 @@
 				seeker.start();
 			}
 		});
-		return () => {
-			inbox.stop();
-			seeker.cancel(); // 화면을 떠나면 찾기 목록에서 빠진다
-		};
+		// 목록과 찾기의 수명은 앱 공통 레이아웃이 관리한다.
 	});
 
 	const elapsed = $derived(seeker.seeking ? mmss(Math.floor((S.now - seeker.since) / 1000)) : '');
@@ -189,6 +169,12 @@
 
 	<!-- 새 상대 찾기 — 엄지가 닿는 아래쪽에 고정 (탭바 바로 위) -->
 	<div class="cta">
+		{#if offerBot && !bot}
+			<div class="bot-choice">
+				<p>기다리는 동안 AI와 이야기할 수 있어요.<br /><span class="muted">사람 찾기는 계속돼요 · AI에 입력한 대화는 Cloudflare로 전달돼요</span></p>
+				<button class="btn-ghost" onclick={startBot} disabled={botBusy} aria-busy={botBusy}>{botBusy ? 'AI 대화 준비 중…' : 'AI와 대화하기'}</button>
+			</div>
+		{/if}
 		{#if seeker.seeking}
 			<div class="seek">
 				<div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -248,6 +234,9 @@
 <PushAsk bind:open={askPush} />
 
 <style>
+	.bot-choice { padding: 12px; margin-bottom: 8px; border-radius: 16px; background: var(--cell); }
+	.bot-choice p { margin: 0 0 8px; font-size: 13px; line-height: 1.5; }
+	.bot-choice button { width: 100%; min-height: 44px; }
 	.cta {
 		position: sticky;
 		bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));

@@ -70,6 +70,7 @@
 	<img class="appicon" src="/icon-192.png" alt="" width="56" height="56" />
 	<div class="mark wordmark">Landy</div>
 	<p>우리 학교에서 만나는 익명친구.<br />짧은 대화와 익명편지로 시작해 봐요.</p>
+	<a class="preview-link" href="/welcome">설치 전에 대화와 편지 둘러보기 →</a>
 	<nav aria-label="약관 및 정책" class="legal-links"><a href="/legal/terms">이용약관</a> · <a href="/legal/privacy">개인정보 처리방침</a> · <a href="/legal/policy">운영정책</a></nav>
 
 	{#if env.inApp}
@@ -149,6 +150,7 @@
 </div>
 
 <style>
+	.preview-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 10px; color: var(--accent); font-size: 14px; font-weight: 700; text-decoration: underline; }
 	.legal-links { font-size: 14px; line-height: 1.8; }
 	.legal-links a { display: inline-block; padding-block: 10px; text-decoration: underline; }
 	.gate {

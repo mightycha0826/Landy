@@ -12,7 +12,7 @@
 		"test": "npm run test:unit && npm run test:schema",
 		"test:unit": "npm run test:core && npm run test:chat && npm run test:aichat && npm run test:admin && npm run test:toast && npm run test:account && npm run test:letters && npm run test:server && npm run test:uiprocess && npm run test:platform && npm run test:push && npm run test:security",
 		"test:security": "node --no-warnings scripts/_security-audit-probe.mjs && node --no-warnings --test scripts/badge-photo-cleanup.test.mjs",
-		"test:core": "node --no-warnings --test scripts/core-refactor.test.mjs scripts/script-env.test.mjs scripts/review-upgrade.test.mjs scripts/motion.test.mjs",
+		"test:core": "node --no-warnings --test scripts/core-refactor.test.mjs scripts/script-env.test.mjs scripts/review-upgrade.test.mjs scripts/motion.test.mjs scripts/account-deletion.test.mjs",
 		"test:motion": "node --no-warnings --test scripts/motion.test.mjs",
 		"test:letters": "node --no-warnings --conditions=browser scripts/letters-state.test.mjs",
 		"test:server": "node --no-warnings --experimental-strip-types scripts/server-refactor.test.mjs",

@@ -1,4 +1,5 @@
 import { rpc } from './rpc';
+import { isDeletionInquiry } from './accountDeletion';
 
 /**
  * 운영진에게 문의하기 (Phase 37) — 설정 › 운영진에게 문의하기.
@@ -19,6 +20,7 @@ export const INQUIRY_MIN = 5;
 export const INQUIRY_MAX = 1000;
 
 export type Inquiry = { id: number; kind: InquiryKind; body: string; created_at: string; answer: string | null; answered_at: string | null };
+export const inquiryLabel = (q: { kind: string; body: string }) => isDeletionInquiry(q) ? '계정 삭제 요청' : kindLabel(q.kind);
 type SendStatus = 'ok' | 'bad_input' | 'too_many' | 'rate';
 
 export const fetchMyInquiries = () => rpc<Inquiry[] | null>('my_inquiries').then((r) => r ?? []);

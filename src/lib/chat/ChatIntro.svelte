@@ -5,6 +5,7 @@
 	 * 대표 업적 메달을 누르면 어떻게 얻는지 (Phase 44, BadgeSheet).
 	 */
 	import Avatar from '$lib/ui/Avatar.svelte';
+	import PrivacySummary from '$lib/ui/PrivacySummary.svelte';
 	import MannerTemp from '$lib/ui/MannerTemp.svelte';
 	import Badge from '$lib/ui/Badge.svelte';
 	import { openBadge } from '$lib/badgeSheet.svelte';
@@ -37,6 +38,7 @@
 		</span>
 	{/if}
 	<button class="intro-btn" onclick={onprofile}>프로필 보기</button>
+	<PrivacySummary mode="chat" />
 </div>
 
 <style>

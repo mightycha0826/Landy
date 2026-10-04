@@ -16,7 +16,7 @@ export type LegalDoc = {
 export const LEGAL_IDS = ['terms', 'privacy', 'policy'] as const;
 export type LegalId = (typeof LEGAL_IDS)[number];
 
-const UPDATED = '2026년 10월 3일';
+const UPDATED = '2026년 10월 4일';
 
 export const LEGAL: Record<LegalId, LegalDoc> = {
 	terms: {
@@ -25,7 +25,7 @@ export const LEGAL: Record<LegalId, LegalDoc> = {
 		updated: UPDATED,
 		sections: [
 			{ h: '가입', body: ['학교 이메일(@cnsa.hs.kr)로 인증한 학생만, 한 사람 한 계정.'] },
-			{ h: '서비스', body: ['익명 랜덤 채팅 · 익명편지 · 대화 봇(AI — 상대를 못 찾았을 때, "봇" 표시). 운영진이 기능과 운영 시간을 바꿀 수 있어요.'] },
+			{ h: '서비스', body: ['익명 랜덤 채팅 · 익명편지 · 대화 봇(AI — 찾는 동안 직접 선택해 시작, "봇" 표시). 운영진이 기능과 운영 시간을 바꿀 수 있어요.'] },
 			{ h: '책임', body: ['쓴 글의 책임은 쓴 사람에게 있어요. 운영정책을 어기면 이용이 제한돼요.'] },
 			{ h: '변경', body: ['약관이 바뀌면 공지사항으로 알려요.'] }
 		]
@@ -52,6 +52,7 @@ export const LEGAL: Record<LegalId, LegalDoc> = {
 					'신원 열람 권한이 있는 운영자는 안전을 위해 신원과 내용을 볼 수 있고(지운 메시지 원문 포함), 볼 때마다 기록돼요. 채팅을 CSV로 내려받으면 서버 삭제 이후에도 운영자가 보관한 파일에 내용이 남을 수 있어요.'
 				]
 			},
+			{ h: '삭제 요청', body: ['설정 › 계정 삭제 요청에서 운영진에게 요청하고 접수 내역과 답변을 확인할 수 있어요. 접수나 답변 도착만으로 삭제가 완료되는 것은 아니에요. 계정·편지와 상대에게 전달된 정보, 신고 증거·백업·내보낸 파일의 처리 범위와 보관 예외는 운영진에게 확인해 주세요. 요청 철회는 계정 문의로 전달해 주세요.'] },
 			{ h: '맡기는 곳', body: ['Supabase(데이터 · 로그인 · 증빙 사진), Cloudflare(서버 · AI). AI 콘텐츠 검토에는 작성한 글과 주변 대화 맥락을, 대화 봇에는 최근 대화 기록을 보내요.'] }
 		]
 	},

@@ -3,7 +3,7 @@
 	import { fmtTime } from '$lib/adminTypes';
 	import { confirmed } from '$lib/admin/confirm';
 	import FormMsg from '$lib/admin/FormMsg.svelte';
-	import { kindLabel } from '$lib/inquiry';
+	import { inquiryLabel } from '$lib/inquiry';
 
 	let { data, form } = $props();
 	// 실패하면 쓰던 답변을 되살린다
@@ -31,7 +31,7 @@
 		{#each waiting as q (q.id)}
 			<li class="a-card">
 				<div class="row">
-					<span class="kind">{kindLabel(q.kind)}</span>
+					<span class="kind">{inquiryLabel(q)}</span>
 					<a class="who" href="/admin/users/{q.user_id}">{data.students[q.user_id] ?? '보낸 학생 보기'}</a>
 					<span class="muted num">{fmtTime(q.created_at)}</span>
 				</div>
@@ -56,7 +56,7 @@
 		{#each answered as q (q.id)}
 			<li class="a-card done">
 				<div class="row">
-					<span class="kind">{kindLabel(q.kind)}</span>
+					<span class="kind">{inquiryLabel(q)}</span>
 					<a class="who" href="/admin/users/{q.user_id}">보낸 학생 보기</a>
 					<span class="muted num">{fmtTime(q.created_at)}</span>
 				</div>

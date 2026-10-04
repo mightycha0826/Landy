@@ -18,7 +18,7 @@ const ALL = readdirSync(DIR)
 	.filter((f) => f.endsWith('.mjs') && !f.startsWith('_') && f !== 'run.mjs')
 	.map((f) => f.replace(/\.mjs$/, ''))
 	.sort();
-const NEEDS_SERVER = new Set(['back', 'login', 'notices', 'letters']);
+const NEEDS_SERVER = new Set(['back', 'login', 'notices', 'letters', 'product']);
 const pick = process.argv.slice(2);
 const unknown = pick.filter((p) => !ALL.includes(p));
 if (unknown.length) {

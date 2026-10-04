@@ -6,6 +6,7 @@
 	import BackButton from '$lib/ui/BackButton.svelte';
 	import { toast } from '$lib/toast.svelte';
 	import { S } from '$lib/state.svelte';
+	import { page } from '$app/state';
 	import { agoText } from '$lib/time';
 	import {
 		INQUIRY_KINDS,
@@ -13,13 +14,14 @@
 		INQUIRY_MIN,
 		SEND_ERROR,
 		fetchMyInquiries,
-		kindLabel,
+		inquiryLabel,
 		sendInquiry,
 		type Inquiry,
 		type InquiryKind
 	} from '$lib/inquiry';
 
-	let kind = $state<InquiryKind>('use');
+	// svelte-ignore state_referenced_locally
+	let kind = $state<InquiryKind>(page.url.searchParams.get('kind') === 'account' ? 'account' : 'use');
 	let body = $state('');
 	let busy = $state(false);
 	let error = $state('');
@@ -100,7 +102,7 @@
 			{#each list as q (q.id)}
 				<li class="g-card q">
 					<div class="q-head">
-						<span class="tag">{kindLabel(q.kind)}</span>
+						<span class="tag">{inquiryLabel(q)}</span>
 						<span class="when">{agoText(q.created_at, S.now)}</span>
 						<span class="st" class:done={!!q.answer}>{q.answer ? '답변 완료' : '답변 대기'}</span>
 					</div>

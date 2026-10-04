@@ -1,8 +1,8 @@
 <script lang="ts">
 	/**
 	 * 대화 봇 (Phase 43 — 예전 "AI 와 얘기하기" 창을 대신한다).
-	 * 새 대화를 찾기 시작하고 20초가 지나도 상대가 없으면 홈 위에 저절로 뜬다. 그동안 홈은 살아 있어서 찾기가 계속되고,
-	 * 사람을 찾으면 홈이 대화방으로 넘어가면서 이 창도 같이 사라진다.
+	 * 상대를 찾는 동안 학생이 AI 대화 버튼을 눌러 연다. 공통 레이아웃이 사람 찾기를 계속하고,
+	 * 사람을 찾으면 대화방으로 넘어가면서 이 창도 같이 사라진다.
 	 *
 	 * 익명 채팅에서 처음 만난 또래처럼 — 먼저 짧게 인사하고, 내 말을 읽고(읽음) → 잠깐 생각하고 → "입력 중…" →
 	 * 짧은 말풍선 한두 개. 연달아 보낸 말은 다 읽고 한 번에 답한다 (lib/bot/persona.ts).
@@ -47,7 +47,7 @@
 	// 저절로 뜨는 창 — 안드로이드 뒤로가기로 닫힌다 (창 하나 = 기록 한 칸, lib/overlay.svelte.ts)
 	backClose(() => onclose(), { auto: true });
 
-	const NOTICE = '지금은 찾는 사람이 없어서 대화 봇이 먼저 왔어요. 사람을 찾으면 바로 연결해 드릴게요';
+	const NOTICE = '직접 선택해 시작한 AI 대화예요. 실제 학생이 아니에요. 사람을 찾는 중이라면 연결될 때 대화방으로 이동해요';
 
 	let lines = $state<Line[]>([]);
 	let phase = $state<'live' | 'ended'>('live');
@@ -256,7 +256,7 @@
 			<span class="names">
 				<span class="alias">{alias}<span class="tag">봇</span></span>
 				<span class="sub">
-					{#if typing}입력 중…{:else if seeking}사람 찾는 중 <span class="num">{seeking}</span>{:else}대화 봇{/if}
+					{#if typing}입력 중…{#if seeking} · {/if}{/if}{#if seeking}사람 찾는 중 <span class="num">{seeking}</span>{:else if !typing}대화 봇{/if}
 				</span>
 			</span>
 		</div>

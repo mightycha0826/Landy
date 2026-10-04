@@ -941,6 +941,46 @@ try {
 		await sleep(5);
 		check('새 요청의 결과만 반영한다', seeker.handled.join(',') === 'current-match' && !seeker.seeking);
 	}
+	console.log('\n[29] 계정 전환 — 이전 매칭 응답을 폐기하고 새 계정에 취소 요청을 보내지 않는다');
+	{
+		const { Seeker } = await import(modules.get('seeker'));
+		const { supabase } = await import(modules.get('supabase'));
+		const calls = [];
+		supabase.rpc = (fn) => { calls.push(fn); return Promise.resolve({ data: null }); };
+		class AccountSeeker extends Seeker {
+			requests = [];
+			request() { return new Promise((resolve) => this.requests.push(resolve)); }
+		}
+		const matched = [];
+		const seeker = new AccountSeeker((id) => matched.push(id), () => {});
+		seeker.start(); await sleep(5);
+		seeker.reset();
+		seeker.requests[0]({ status: 'matched', room_id: 'previous-account' }); await sleep(5);
+		check('계정 전환 후 늦은 매칭으로 화면을 이동하지 않는다', !seeker.seeking && matched.length === 0);
+		check('계정 전환 정리는 새 인증 세션으로 RPC를 보내지 않는다', calls.length === 0);
+		seeker.start(); await sleep(5);
+		seeker.requests[1]({ status: 'matched', room_id: 'current-account' }); await sleep(5);
+		check('새 계정 찾기는 정상적으로 연결된다', matched.join(',') === 'current-account' && !seeker.seeking);
+	}
+	console.log('\n[30] 실제 서버 취소 — thenable 실행과 재시작 순서');
+	{
+		const { Seeker } = await import(modules.get('seeker'));
+		const { supabase } = await import(modules.get('supabase'));
+		const calls = []; let release;
+		supabase.rpc = (fn) => ({ then(resolve) {
+			calls.push(fn);
+			if (fn === 'stop_seeking') release = () => resolve({ data: null });
+			else resolve({ data: { status: 'waiting', reason: 'empty', poll_ms: 4000 } });
+		} });
+		const seeker = new Seeker(() => {}, () => {});
+		seeker.start(); await sleep(5); seeker.cancel(); await sleep(5);
+		check('취소 RPC thenable을 실제 실행한다', calls.join(',') === 'request_match,stop_seeking');
+		seeker.start(); await sleep(5);
+		check('취소 응답 전에는 새 찾기 요청을 보내지 않는다', calls.length === 2);
+		release(); await sleep(5);
+		check('취소 완료 후 새 대기를 갱신한다', calls.join(',') === 'request_match,stop_seeking,request_match' && seeker.seeking);
+		seeker.reset();
+	}
 } catch (e) {
 	fail++;
 	console.error(e);

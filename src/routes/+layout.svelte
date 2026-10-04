@@ -40,7 +40,7 @@
 		loadPrefs();
 	}
 
-	const isPublic = $derived(page.url.pathname.startsWith('/legal/'));
+	const isPublic = $derived(page.url.pathname.startsWith('/legal/') || page.url.pathname === '/welcome');
 	const isPreview = $derived(import.meta.env.DEV && page.url.pathname.startsWith('/dev/'));
 	const isAdmin = $derived(page.url.pathname === '/admin' || page.url.pathname.startsWith('/admin/'));
 
@@ -159,7 +159,7 @@
 		if (!S.booted) return;
 
 		const path = page.url.pathname;
-		if (path.startsWith('/legal/')) return;
+		if (isPublic) return;
 		if (path.startsWith('/admin')) return; // 운영자 대시보드는 자체 가드를 쓴다
 		if (import.meta.env.DEV && path.startsWith('/dev')) return; // 개발용 미리보기는 로그인 불필요
 

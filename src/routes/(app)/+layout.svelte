@@ -1,9 +1,15 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { setContext, untrack } from 'svelte';
 	import { page } from '$app/state';
 	import { useTabBack } from '$lib/tabBack.svelte';
 	import { checkGate, lettersState } from '$lib/letters/gate.svelte';
-	import { S } from '$lib/state.svelte';
+	import { S, toast } from '$lib/state.svelte';
+	import { Seeker } from '$lib/seeker.svelte';
+	import { MATCHING_CONTEXT } from '$lib/matching';
+	import { onAccountChange } from '$lib/accountScope';
+	import { navigateFromOverlay } from '$lib/overlay.svelte';
+	import { isRestricted } from '$lib/restriction';
+	import { mmss } from '$lib/time';
 	import Tour from '$lib/ui/Tour.svelte';
 	import CnsaBadgeTour from '$lib/ui/CnsaBadgeTour.svelte';
 	import { whileVisible } from '$lib/visible';
@@ -22,6 +28,19 @@
 	 * 탭이 있는 동안 아래쪽 안전영역(아이폰 홈 막대)은 탭바가 맡는다.
 	 */
 	let { children } = $props();
+	const seeker = setContext(MATCHING_CONTEXT, new Seeker(
+		(roomId) => void navigateFromOverlay(`/chat/${roomId}`, { state: { matched: true } }),
+		toast
+	));
+	$effect(() => {
+		const unsubscribe = onAccountChange(() => seeker.reset());
+		return () => { unsubscribe(); seeker.cancel(); };
+	});
+	$effect(() => {
+		if (seeker.seeking && (!S.session || S.settings?.is_open === false || (S.profile && isRestricted(S.profile, S.now))))
+			untrack(() => seeker.cancel());
+	});
+	const elapsed = $derived(seeker.seeking ? mmss(Math.floor((S.now - seeker.since) / 1000)) : '');
 
 	const path = $derived(page.url.pathname);
 	const showTabs = $derived(path === '/' || path === '/letters' || path === '/me');
@@ -77,6 +96,13 @@
 
 {@render children()}
 
+{#if seeker.seeking && showTabs && !onChat}
+	<aside class="matching-bar" aria-label="매칭 대기">
+		<a href="/" class="matching-status"><span class="matching-dot" aria-hidden="true"></span><span>상대 찾는 중 <span class="num muted">{elapsed}</span><small>연결되면 대화방으로 이동해요</small></span></a>
+		<button class="u-tap" onclick={() => seeker.cancel()}>그만 찾기</button>
+	</aside>
+{/if}
+
 <!-- 당겨서 새로고침 (Phase 37) — 탭 첫 화면 맨 위에서 -->
 {#if showTabs}<PullRefresh />{/if}
 
@@ -91,7 +117,7 @@
 
 {#if showTabs}
 	<!-- 탭바에 가려지지 않게 같은 높이만큼 비워 둔다 -->
-	<div class="tabbar-space" aria-hidden="true"></div>
+	<div class="tabbar-space" class:matching-space={seeker.seeking && !onChat} aria-hidden="true"></div>
 	<nav class="tabbar" aria-label="주 메뉴" style:--tab-index={onLetters ? 0 : onChat ? 1 : 2}>
 		<span class="tab-indicator" aria-hidden="true"></span>
 		<a class="tab" class:on={onLetters} href="/letters" onclick={(e) => switchTab(e, '/letters')} aria-current={onLetters ? 'page' : undefined}>
@@ -131,3 +157,12 @@
 		</a>
 	</nav>
 {/if}
+
+<style>
+	.matching-bar { position: fixed; z-index: 30; left: max(12px, calc((100vw - 536px) / 2)); right: max(12px, calc((100vw - 536px) / 2)); bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 8px); display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 18px; background: var(--cell); box-shadow: var(--shadow-2); }
+	.matching-status { display: flex; flex: 1; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; font-weight: 700; }
+	.matching-status small { display: block; margin-top: 3px; color: var(--text-2); font-size: 12px; font-weight: 400; }
+	.matching-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--accent); }
+	.matching-bar button { min-height: 44px; flex: none; color: var(--accent); font-weight: 700; }
+	.matching-space { height: calc(var(--tabbar-h) + 84px); }
+</style>

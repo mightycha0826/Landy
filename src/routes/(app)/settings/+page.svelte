@@ -369,6 +369,9 @@
 		</div>
 	</div>
 
+	<div class="g-card"><a class="g-row" href="/settings/delete"><span>계정 삭제 요청</span><Chevron /></a></div>
+	<p class="g-foot">운영진에게 삭제를 요청하고 접수 내역과 답변을 확인할 수 있어요.</p>
+
 	<!-- 운영진에게 문의하기 (Phase 37) — 답변은 개인 공지로 온다 -->
 	<h2 class="g-head">도움</h2>
 	<div class="g-card">

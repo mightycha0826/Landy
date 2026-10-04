@@ -103,8 +103,12 @@ try {
 		const bot = page.getByRole('dialog', { name: '대화 봇과 대화' });
 		await page.waitForTimeout(8000);
 		check('20초 전에는 봇이 오지 않는다', (await bot.count()) === 0 && count('rpc/ai_chat_start') === 0);
-		await bot.waitFor({ timeout: 25000 }).catch(() => {});
-		check('★ 20초가 지나면 봇이 저절로 뜬다', (await bot.count()) === 1 && count('rpc/ai_chat_start') === 1, `${count('rpc/ai_chat_start')} · ${errs.join(' | ')}`);
+		const chooseAI = page.getByRole('button', { name: 'AI와 대화하기', exact: true });
+		await chooseAI.waitFor({ timeout: 25000 });
+		check('★ 20초가 지나도 선택 전에는 봇 세션을 만들지 않는다', (await bot.count()) === 0 && count('rpc/ai_chat_start') === 0);
+		await chooseAI.click();
+		await bot.waitFor();
+		check('★ 직접 선택하면 AI 대화가 열린다', (await bot.count()) === 1 && count('rpc/ai_chat_start') === 1, `${count('rpc/ai_chat_start')} · ${errs.join(' | ')}`);
 		check('★ 봇이라는 표시', (await bot.locator('header .tag').innerText()).trim() === '봇');
 		await bot.locator('.row:not(.mine) .bubble:not(.typing)').first().waitFor({ timeout: 6000 });
 		check('봇이 먼저 인사한다', true);
@@ -114,7 +118,7 @@ try {
 		check('★ 닫은 뒤에도 계속 찾는다 (request_match 가 이어진다)', count('rpc/request_match', m0) >= 1, String(count('rpc/request_match', m0)));
 		check('★ 그만 찾기(stop_seeking)를 보내지 않는다', count('rpc/stop_seeking') === 0, String(count('rpc/stop_seeking')));
 		check('찾는 중 표시가 남아 있다 ("그만" 버튼)', await page.getByRole('button', { name: '그만' }).isVisible());
-		check('같은 찾기에서는 봇이 다시 오지 않는다', (await bot.count()) === 0 && count('rpc/ai_chat_start') === 1);
+		check('닫은 뒤에는 다시 선택해야 열린다', (await bot.count()) === 0 && count('rpc/ai_chat_start') === 1 && await chooseAI.isVisible());
 		check('페이지 오류 없음', errs.length === 0, errs.join(' | '));
 		await ctx.close();
 	}
@@ -205,13 +209,15 @@ try {
 		await ctx.close();
 	}
 
-	console.log('[대화 봇을 뒤로가기로 닫아도]');
+	console.log('[선택한 대화 봇을 뒤로가기로 닫아도]');
 	{
 		const { ctx, page, log, count } = await open();
 		await login(page);
 		await page.getByRole('button', { name: '새 대화 찾기' }).click();
 		const bot = page.getByRole('dialog', { name: '대화 봇과 대화' });
-		await bot.waitFor({ timeout: 30000 });
+		await page.getByRole('button', { name: 'AI와 대화하기', exact: true }).waitFor({ timeout: 30000 });
+		await page.getByRole('button', { name: 'AI와 대화하기', exact: true }).click();
+		await bot.waitFor();
 		await page.waitForTimeout(800);
 		await page.goBack();
 		await page.waitForTimeout(600);

@@ -11,6 +11,7 @@
 	 * 표를 던지는 일 · 적은 값 확인은 ChatView(vote) 가 한다.
 	 */
 	import Banner from './Banner.svelte';
+	import { S } from '$lib/state.svelte';
 	import { isDiploma, searchDiplomas } from './diplomas';
 	import type { RoomSnap } from './types';
 
@@ -45,6 +46,7 @@
 		return { title: `${snap.extend_minutes}분 더 얘기할까요?`, sub, want };
 	});
 	const asking = $derived(snap.my_vote !== true);
+	const disclosure = $derived(nextHint?.typed ? hintDraft.trim() : nextHint?.kind === 'grade' && S.me?.grade ? `${S.me.grade}학년` : null);
 
 	// 디플로마 검색 칸 (Phase 35) — 고른 값만 hintDraft 로 (목록에 없는 글은 보낼 수 없다)
 	// svelte-ignore state_referenced_locally
@@ -54,6 +56,9 @@
 </script>
 
 <Banner title={view.title} sub={view.sub} want={view.want}>
+	{#if !pinNext && nextHint}
+		<p class="disclosure"><b>둘 다 동의하면 공개:</b> {nextHint.label}{disclosure ? ` · ${disclosure}` : nextHint.typed ? ' · 아래에 적는 내용' : ' · 학교에 등록된 정보'}<br /><span>공개한 정보로 나를 짐작할 수 있어요. 원하지 않으면 그만해도 괜찮아요.</span></p>
+	{/if}
 	{#if asking && nextHint?.kind === 'diploma' && !pinNext}
 		<!-- 디플로마 — 학교 목록에서만: 적으면 맞는 것이 아래에 뜨고, 눌러서 고른다 (Phase 35) -->
 		<div class="dip">
@@ -109,6 +114,8 @@
 </Banner>
 
 <style>
+	.disclosure { order: 3; flex-basis: 100%; margin: 4px 0 0; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+	.disclosure span { color: var(--text-2); }
 	/* 공통 질문 — 띠 아래 한 줄 전체, 적는 칸 바로 위 */
 	.question {
 		order: 3;
