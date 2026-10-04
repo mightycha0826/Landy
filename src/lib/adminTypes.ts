@@ -256,6 +256,9 @@ export const shortId = (id: string | null | undefined) => (id ? id.slice(0, 6) :
 
 /** 활동 기록(audit_log.action) 표시 이름 */
 export const ACTION_LABEL: Record<string, string> = {
+	account_delete_started: '계정 삭제 시작',
+	account_delete_failed: '계정 삭제 실패',
+	account_delete_complete: '계정 삭제 완료',
 	view_identity: '신원 열람',
 	search_email: '이메일 검색',
 	view_room: '대화 열람',

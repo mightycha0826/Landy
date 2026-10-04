@@ -83,7 +83,13 @@ const DB_ERR: Record<string, string> = {
 	bad_answer: '답변을 적어 주세요 (2000자까지)',
 	not_grantable: '운영진이 줄 수 있는 업적이 아님',
 	too_many: '한 번에 500명까지',
-	bad_nos: '학번을 적어 주세요'
+	bad_nos: '학번을 적어 주세요',
+	staff_delete_forbidden: '자기 계정과 운영진 계정은 이 경로에서 삭제할 수 없어요',
+	bad_delete_confirmation: '삭제 확인 문구와 처리 사유를 확인해 주세요',
+	deletion_target_mismatch: '삭제 요청과 대상 계정이 일치하지 않아요',
+	not_deletion_request: '학생의 계정 삭제 요청에서만 실행할 수 있어요',
+	already_deleted: '이미 삭제가 완료된 계정이에요',
+	deletion_busy: '다른 삭제 처리가 진행 중이에요. 내역을 새로고침해 주세요'
 };
 
 /** adminRpc 에러를 화면용 문구로. 모르는 에러는 그대로 던진다. */

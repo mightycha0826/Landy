@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
-import { adminRpc } from '$lib/server/supabaseAdmin';
+import { adminRpc, supabaseAdmin } from '$lib/server/supabaseAdmin';
+import { deleteRequestedAccount, type AccountDeletionRow } from '$lib/server/accountDeletion';
 import { friendly, guard, studentLabels } from '$lib/server/adminAuth';
 import { notifyPersonalNotice } from '$lib/server/pushSend';
 import type { InquiryRow } from '$lib/adminTypes';
@@ -14,10 +15,38 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	guard(locals, url); // 문의 권한 (Phase 51 표)
 	const r = await adminRpc<{ open: number; items: InquiryRow[] }>('admin_inquiries', { p_staff: locals.staff!.id });
 	const students = await studentLabels(locals, r.items.filter((x) => !x.answered_at).map((x) => x.user_id));
-	return { open: r.open, items: r.items, students };
+	let deletions: (AccountDeletionRow & { retryable: boolean })[] = [];
+	let deletionReady = false;
+	if (locals.staff?.role === 'admin') {
+		try {
+			const jobs = await adminRpc<AccountDeletionRow[]>('admin_account_deletions', { p_staff: locals.staff.id });
+			deletions = jobs.map((job) => ({ ...job, retryable: job.status === 'failed' || (job.status === 'processing' && Date.parse(job.lease_until ?? '') <= Date.now()) }));
+			deletionReady = true;
+		} catch { /* 연결 또는 마이그레이션 문제: 실제 삭제를 제공하지 않고 재조회 안내 */ }
+	}
+	return { open: r.open, items: r.items, students, deletions, deletionReady, canDelete: locals.staff?.role === 'admin' };
 };
 
 export const actions: Actions = {
+	deleteAccount: async ({ request, locals }) => {
+		if (locals.staff?.role !== 'admin') return fail(403, { error: '계정 삭제는 관리자만 실행할 수 있어요' });
+		const f = await request.formData();
+		const id = Number(f.get('id'));
+		const user = String(f.get('user') ?? '');
+		const confirmation = String(f.get('confirmation') ?? '').trim();
+		const note = String(f.get('note') ?? '').trim();
+		if (!Number.isSafeInteger(id) || id < 1 || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user))
+			return fail(400, { error: '삭제 대상과 요청 번호를 확인해 주세요' });
+		if (confirmation !== `삭제 ${id}` || f.get('acknowledged') !== 'yes' || note.length < 5 || note.length > 1000)
+			return fail(400, { error: `처리 사유와 확인 문구 “삭제 ${id}”, 확인 체크를 입력해 주세요` });
+		try {
+			const result = await deleteRequestedAccount(supabaseAdmin(), { staff: locals.staff.id, inquiry: id, user, confirmation, note });
+			return 'error' in result ? fail(503, result) : result;
+		} catch (e) {
+			try { return friendly(e); }
+			catch { return fail(503, { error: '계정 삭제 준비를 완료하지 못했어요. DB 업데이트와 연결을 확인한 뒤 다시 시도해 주세요' }); }
+		}
+	},
 	answer: async ({ request, locals, platform }) => {
 		const f = await request.formData();
 		const id = Number(f.get('id'));
