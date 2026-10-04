@@ -20,7 +20,9 @@
 	const clubs = $derived(data.badges.filter((b) => b.code.startsWith('club_')));
 	let big = $state<string | null>(null);
 	let photoErrors = $state<Record<string, boolean>>({});
-	let retryVersion = $state(0);
+	// 다시 불러오기는 그 사진만 — 다른 사진까지 새로 받지 않는다
+	let retries = $state<Record<string, number>>({});
+	const photoUrl = (p: string) => data.urls[p] + (retries[p] ? `&retry=${retries[p]}` : '');
 
 	const askOk = confirmed((f) => {
 		const r = data.items.find((x) => x.id === Number(f.get('id')));
@@ -71,9 +73,9 @@
 						{#each r.photos as p, i (p)}
 							{#if data.urls[p]}
 								{#if photoErrors[p]}
-									<button class="ph" onclick={() => { photoErrors[p] = false; retryVersion++; }}>사진 다시 불러오기</button>
+									<button class="ph" onclick={() => { photoErrors[p] = false; retries[p] = (retries[p] ?? 0) + 1; }}>사진 다시 불러오기</button>
 								{:else}
-									<button class="ph" onclick={() => (big = data.urls[p] + '&retry=' + retryVersion)} aria-label="사진 {i + 1} 크게"><img src={data.urls[p] + '&retry=' + retryVersion} alt="제출 사진 {i + 1}" loading="lazy" onerror={() => (photoErrors[p] = true)} /></button>
+									<button class="ph" onclick={() => (big = photoUrl(p))} aria-label="사진 {i + 1} 크게"><img src={photoUrl(p)} alt="제출 사진 {i + 1}" loading="lazy" onerror={() => (photoErrors[p] = true)} /></button>
 								{/if}
 							{:else}
 								<span class="ph none">사진을 못 불러옴</span>

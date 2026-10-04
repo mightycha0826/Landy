@@ -266,13 +266,13 @@ try {
   await db.exec('drop trigger badge_photo_insert on storage.objects');
   const legacy = other+'/old arbitrary filename.jpg';
   await db.query("insert into storage.objects(bucket_id,name) values('badge-proofs',$1)",[legacy]);
-  const migration = readFileSync(new URL('../supabase/migrations/20261002_security_hardening.sql',import.meta.url),'utf8');
+  const migration = readFileSync(new URL('../supabase/migrations/20261004020711_security_hardening_20261002.sql',import.meta.url),'utf8');
   const functions = () => db.query("select proname,prosrc from pg_proc join pg_namespace on pg_namespace.oid=pronamespace where nspname='public' and proname=any($1::text[]) order by proname",[['mod_claim','ai_chat_start','ai_chat_turn','badge_request_submit','admin_ai_usage']]);
   const expectedFunctions = (await functions()).rows;
   await db.query('update private.badge_photos set delete_after=null where path=$1',[keep]);
   await db.exec(migration);
   await db.exec(migration);
-  await db.exec(readFileSync(new URL('../supabase/migrations/20261003063750_project_review_upgrade.sql',import.meta.url),'utf8'));
+  await db.exec(readFileSync(new URL('../supabase/migrations/20261004020721_project_review_upgrade.sql',import.meta.url),'utf8'));
   assert.deepEqual((await functions()).rows,expectedFunctions);
   assert.ok((await one('select delete_after from private.badge_photos where path=$1',[legacy])).delete_after);
   assert.equal((await one('select delete_after from private.badge_photos where path=$1',[keep])).delete_after,null);

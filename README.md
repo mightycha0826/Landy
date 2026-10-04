@@ -869,7 +869,7 @@ node scripts/dev-user.mjs simbun-test3@cnsa.hs.kr 비밀번호 m      # 성별�
 
 로컬 코드와 테스트를 수정한 상태다. 운영 반영은 다음 순서로 진행한다.
 
-1. Phase 88까지 설치된 기존 Supabase DB의 SQL Editor에서 `supabase/migrations/20261002_security_hardening.sql`을 실행한다. 전체 `schema.sql`을 기존 DB에 다시 실행할 필요는 없다. 새 DB는 전체 스키마로 설치한다. 마이그레이션은 트랜잭션이며 재실행할 수 있다.
+1. Phase 88까지 설치된 기존 Supabase DB의 SQL Editor에서 `supabase/migrations/20261004020711_security_hardening_20261002.sql`을 실행한다. 전체 `schema.sql`을 기존 DB에 다시 실행할 필요는 없다. 새 DB는 전체 스키마로 설치한다. 마이그레이션은 트랜잭션이며 재실행할 수 있다.
 2. `npm ci`, `npm run check`, `npm test`, `npm run build`로 확인하고 `npx wrangler deploy --dry-run`으로 Worker 번들을 검사한다. `npm audit`도 확인한다.
 3. 기존 Cloudflare Secret인 `SUPABASE_URL`과 `SUPABASE_SERVICE_ROLE_KEY`를 유지하고 Worker를 배포한다. `PUBLIC_SUPABASE_URL`이 있으면 같은 Supabase 프로젝트를 가리켜야 한다. 새 비밀 값은 필요 없다. `wrangler.jsonc`의 15분 간격 Cron Trigger도 함께 반영한다.
 4. Cloudflare 예약 작업 실행 기록에서 성공 여부를 확인한다. 배포 어댑터는 앱 Worker를 비공개 빌드 폴더에 보존하고, 최종 진입점에 `fetch`와 사진 정리 `scheduled`를 함께 넣는다. 정리 대상 경로와 service_role 키를 정적 assets에 넣지 않는다.

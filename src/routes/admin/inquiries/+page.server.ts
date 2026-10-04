@@ -4,6 +4,7 @@ import { deleteRequestedAccount, type AccountDeletionRow } from '$lib/server/acc
 import { friendly, guard, studentLabels } from '$lib/server/adminAuth';
 import { notifyPersonalNotice } from '$lib/server/pushSend';
 import type { InquiryRow } from '$lib/adminTypes';
+import { isDeletionInquiry } from '$lib/accountDeletion';
 import type { Actions, PageServerLoad } from './$types';
 
 /**
@@ -14,7 +15,8 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ locals, url }) => {
 	guard(locals, url); // 문의 권한 (Phase 51 표)
 	const r = await adminRpc<{ open: number; items: InquiryRow[] }>('admin_inquiries', { p_staff: locals.staff!.id });
-	const students = await studentLabels(locals, r.items.filter((x) => !x.answered_at).map((x) => x.user_id));
+	// 답변한 삭제 요청도 삭제를 처리하므로 이름을 함께 받는다
+	const students = await studentLabels(locals, r.items.filter((x) => !x.answered_at || isDeletionInquiry(x)).map((x) => x.user_id));
 	let deletions: (AccountDeletionRow & { retryable: boolean })[] = [];
 	let deletionReady = false;
 	if (locals.staff?.role === 'admin') {

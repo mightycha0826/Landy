@@ -44,6 +44,14 @@
 
 	const path = $derived(page.url.pathname);
 	const showTabs = $derived(path === '/' || path === '/letters' || path === '/me');
+	// 찾기는 탭(홈 · 익명편지 · 프로필) 사이에서만 이어진다. 탭 밖 화면(편지 쓰기 · 다른 대화방 · 설정)에는 찾는 중 표시가 없어
+	// 매칭되면 쓰던 화면에서 예고 없이 빠져나가므로 그 화면으로 가면 멈춘다. 매칭으로 대화방에 갈 때는 찾기가 이미 끝나 있다.
+	$effect(() => {
+		if (seeker.seeking && !showTabs) untrack(() => {
+			seeker.cancel();
+			toast('다른 화면으로 이동해서 상대 찾기를 멈췄어요');
+		});
+	});
 	const onLetters = $derived(path === '/letters');
 	const onChat = $derived(path === '/');
 	const onMe = $derived(path === '/me');

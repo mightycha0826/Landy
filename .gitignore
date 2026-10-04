@@ -22,6 +22,9 @@ Thumbs.db
 *roster*.xlsx
 roster-전학년.csv
 
+# 로컬 빌드·테스트 출력 기록
+*.log
+
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*

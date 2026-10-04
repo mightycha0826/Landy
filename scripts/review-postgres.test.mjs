@@ -10,7 +10,9 @@ const sql = async (query) => (await exec('psql', [...base, '-c', query], { maxBu
 const file = async (path) => exec('psql', [...base, '-f', path], { maxBuffer: 10 * 1024 * 1024, windowsHide: true });
 await file('supabase/test-bootstrap.sql');
 await file('supabase/schema.sql');
-await file('supabase/migrations/20261003063750_project_review_upgrade.sql');
+await file('supabase/migrations/20261004020721_project_review_upgrade.sql');
+await file('supabase/migrations/20261004141539_admin_account_deletion.sql');
+await file('supabase/migrations/20261004150534_review_fixes_20261004.sql');
 
 const uid = (await sql("insert into auth.users(email,email_confirmed_at) values('review-concurrency@cnsa.hs.kr',now()) returning id")).split('\n').at(-1);
 assert.match(uid, /^[0-9a-f-]{36}$/);
@@ -35,6 +37,6 @@ assert.equal(await sql('select count(*) from (select room_id from public.room_me
 assert.ok(Number(await sql('select count(*) from public.room_members where open')) >= 2);
 console.log('PASS 실제 다중 연결 매칭 → 중복 열린 방 없음');
 
-const funcs = [...readFileSync('supabase/migrations/20261003063750_project_review_upgrade.sql', 'utf8').matchAll(/create or replace function ([\w.]+)/g)].map((m) => m[1]);
+const funcs = [...readFileSync('supabase/migrations/20261004020721_project_review_upgrade.sql', 'utf8').matchAll(/create or replace function ([\w.]+)/g)].map((m) => m[1]);
 assert.ok(funcs.includes('public.ai_chat_claim'));
 console.log('PASS 실제 PostgreSQL에서 snapshot·업그레이드 마이그레이션 실행');

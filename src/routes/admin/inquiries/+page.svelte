@@ -18,6 +18,15 @@
 	const askAnswer = confirmed(() => '이 답변을 보낼까요? 학생에게 개인 공지로 가고, 보낸 뒤에는 고칠 수 없어요.');
 </script>
 
+<!-- 계정 삭제 요청 — 답변 전후 모두 처리한다 (삭제 뒤에는 학생이 답변을 볼 수 없어 안내를 먼저 보낼 수 있다) -->
+{#snippet deletion(q: (typeof data.items)[number])}
+	{#if isDeletionInquiry(q)}
+		{#if data.canDelete && data.deletionReady && !deletionUsers.has(q.user_id)}
+			<AccountDeleteForm id={q.id} user={q.user_id} label={data.students[q.user_id] ?? '요청한 학생'} />
+		{:else if !data.canDelete}<p class="muted">계정 삭제 요청입니다. 실제 삭제는 관리자에게 전달해 주세요.</p>{/if}
+	{/if}
+{/snippet}
+
 <header class="a-head">
 	<div>
 		<h1 class="a-h1">문의 <span class="muted">답변 대기 {data.open}개</span></h1>
@@ -65,11 +74,7 @@
 					>
 					<button class="btn">답변 보내기</button>
 				</form>
-				{#if isDeletionInquiry(q)}
-					{#if data.canDelete && data.deletionReady && !deletionUsers.has(q.user_id)}
-						<AccountDeleteForm id={q.id} user={q.user_id} label={data.students[q.user_id] ?? '요청한 학생'} />
-					{:else if !data.canDelete}<p class="muted">계정 삭제 요청입니다. 실제 삭제는 관리자에게 전달해 주세요.</p>{/if}
-				{/if}
+				{@render deletion(q)}
 			</li>
 		{/each}
 	</ul>
@@ -89,6 +94,7 @@
 				</div>
 				<p class="body">{q.body}</p>
 				<p class="ans"><b>답변</b> <span class="muted num">{fmtTime(q.answered_at ?? '')}</span><br />{q.answer}</p>
+				{@render deletion(q)}
 			</li>
 		{/each}
 	</ul>

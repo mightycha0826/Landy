@@ -6766,12 +6766,11 @@ begin
   if not found then return jsonb_build_object('status','not_found'); end if;
   if c.expires_at <= now() then return jsonb_build_object('status','expired'); end if;
   if char_length(btrim(coalesce(p_text,''))) not between 1 and 10019 then return jsonb_build_object('status','bad_text'); end if;
-  update private.ai_requests set reply=null where reply is not null and completed_at < now()-interval '15 minutes';
   select * into r from private.ai_requests where chat_id=p_chat and request_id=p_request;
   if found then
     if r.input_hash <> encode(sha256(convert_to(p_text,'UTF8')),'hex') then return jsonb_build_object('status','bad_text'); end if;
     if r.state='succeeded' then
-      if r.reply is null then return jsonb_build_object('status','expired'); end if;
+      if r.reply is null or r.completed_at < now()-interval '15 minutes' then return jsonb_build_object('status','expired'); end if;
       return jsonb_build_object('status','ok','cached',true,'reply',r.reply,'turns',c.turns,'max_turns',cfg.ai_chat_max_turns);
     end if;
     if r.state='pending' and r.leased_until > clock_timestamp() then return jsonb_build_object('status','pending'); end if;
@@ -7053,7 +7052,6 @@ begin
     if q.user_id <> p_user then raise exception 'deletion_target_mismatch'; end if;
     if q.kind <> 'account' or left(q.body,char_length('[계정 삭제 요청]' || chr(10))) <> '[계정 삭제 요청]' || chr(10)
       then raise exception 'not_deletion_request'; end if;
-    if q.answered_at is not null then raise exception 'already_answered'; end if;
     if not exists(select 1 from public.profiles where id=p_user) then raise exception 'user_not_found'; end if;
   end if;
   insert into private.account_deletions(user_id,inquiry_id,staff_id,note,status,lease,lease_until)
@@ -7108,4 +7106,18 @@ revoke all on function public.admin_account_delete_prepare(uuid,bigint,uuid,text
   public.admin_account_delete_finish(uuid,uuid,uuid,text),public.admin_account_deletions(uuid) from public,anon,authenticated;
 grant execute on function public.admin_account_delete_prepare(uuid,bigint,uuid,text,text),
   public.admin_account_delete_finish(uuid,uuid,uuid,text),public.admin_account_deletions(uuid) to service_role;
+
+-- 뱃지 사진 한 장 (2026-10-04 리뷰 수정)
+create or replace function public.admin_badge_request_photo(p_staff uuid, p_id bigint, p_index int)
+returns text language plpgsql security definer set search_path = '' stable as $fn$
+declare v text;
+begin
+  perform private.require_staff(p_staff, true);
+  if p_id is null or p_index is null or p_index not between 0 and 2 then return null; end if;
+  select r.photos[p_index + 1] into v from private.badge_requests r where r.id = p_id and r.status = 'pending';
+  return v;
+end
+$fn$;
+revoke all on function public.admin_badge_request_photo(uuid,bigint,int) from public,anon,authenticated;
+grant execute on function public.admin_badge_request_photo(uuid,bigint,int) to service_role;
 notify pgrst, 'reload schema';

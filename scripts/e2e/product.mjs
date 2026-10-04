@@ -84,7 +84,9 @@ try {
 		await page.goto(`${BASE}/install?gate`);
 		await page.getByRole('link', { name: /설치 전에 대화와 편지/ }).click();
 		await page.waitForURL(`${BASE}/welcome`);
-		check('설치 안내에서 공개 소개 화면으로 진입', await page.getByRole('heading', { name: '먼저 둘러보세요' }).isVisible());
+		// 주소가 바뀐 뒤 화면 넘김이 끝나야 새 화면이 그려진다 — 바로 isVisible 로 보면 이전 화면을 본다
+		const welcomed = await page.getByRole('heading', { name: '먼저 둘러보세요' }).waitFor({ timeout: 5000 }).then(() => true, () => false);
+		check('설치 안내에서 공개 소개 화면으로 진입', welcomed);
 		check('소개 화면 런타임 오류 없음', st.errors.length === 0);
 		await ctx.close();
 	}
@@ -153,11 +155,13 @@ try {
 		await login(page);
 		await page.getByRole('button', { name: '새 대화 찾기', exact: true }).click();
 		await page.locator('.seek').waitFor();
-		const seekingBeforeSettings = count('request_match');
 		await page.locator('button.settings').click();
 		await page.waitForURL(`${BASE}/settings`);
+		await page.waitForFunction(() => document.body.innerText.includes('상대 찾기를 멈췄어요'));
+		const seekingInSettings = count('request_match');
 		await page.waitForTimeout(1800);
-		check('설정으로 앱 안 이동해도 찾기 유지', count('request_match') > seekingBeforeSettings);
+		// 탭 밖 화면에는 찾는 중 표시가 없다 — 예고 없이 대화방으로 넘어가지 않게 멈추고 알린다
+		check('탭 밖 화면(설정)으로 가면 찾기를 멈추고 알린다', count('request_match') === seekingInSettings && count('stop_seeking') === 1);
 		await page.getByRole('button', { name: '로그아웃', exact: true }).click();
 		await page.waitForURL(`${BASE}/login`);
 		const before = count('request_match');

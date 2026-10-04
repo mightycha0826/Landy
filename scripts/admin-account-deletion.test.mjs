@@ -56,9 +56,12 @@ test('실제 PostgreSQL에서 권한·요청 연결·중복 실행·부분 실�
 	try {
 		await db.exec(readFileSync(new URL('../supabase/test-bootstrap.sql', import.meta.url), 'utf8'));
 		await db.exec(readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8'));
-		const migration = readFileSync(new URL('../supabase/migrations/20261004135321_admin_account_deletion.sql', import.meta.url), 'utf8');
-		assert.ok(readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8').includes(migration.trim()));
-		await db.exec(migration); // 전체 스키마 뒤 재실행 안전성
+		// 전체 스키마 뒤에 운영 순서대로 다시 실행해도 안전하고, 결과 함수가 스키마와 같다
+		const defs = async () => JSON.stringify(await sql("select p.oid::regprocedure::text name, pg_get_functiondef(p.oid) body from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.prokind='f' order by 1"));
+		const before = await defs();
+		for (const file of ['20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql'])
+			await db.exec(readFileSync(new URL('../supabase/migrations/' + file, import.meta.url), 'utf8'));
+		assert.equal(await defs(), before);
 		const user = async (email) => (await one('insert into auth.users(email,email_confirmed_at) values($1,now()) returning id', [email])).id;
 		const admin = await user('29991@cnsa.hs.kr'), mod = await user('29992@cnsa.hs.kr'), target = await user('29993@cnsa.hs.kr'), other = await user('29994@cnsa.hs.kr');
 		await sql("insert into private.staff(user_id,role) values($1,'admin'),($2,'moderator')", [admin, mod]);
@@ -71,9 +74,8 @@ test('실제 PostgreSQL에서 권한·요청 연결·중복 실행·부분 실�
 		await assert.rejects(prepare(admin, id, target, '삭제'), /bad_delete_confirmation/);
 		await assert.rejects(prepare(admin, await inquiry(mod), mod), /staff_delete_forbidden/);
 		await assert.rejects(prepare(admin, await inquiry(admin), admin), /staff_delete_forbidden/);
-		await sql('update private.inquiries set answered_at=now() where id=$1', [id]);
-		await assert.rejects(prepare(), /already_answered/);
-		await sql('update private.inquiries set answered_at=null where id=$1', [id]);
+		// 안내 답변을 먼저 보낸 요청도 삭제할 수 있다 (삭제 뒤에는 학생이 앱에서 답변을 볼 수 없다)
+		await sql("update private.inquiries set answered_at=now(), answer='처리 안내' where id=$1", [id]);
 		for (const role of ['anon', 'authenticated']) {
 			await db.exec(`set role ${role}`);
 			try { await assert.rejects(prepare(), /permission denied/); } finally { await db.exec('reset role'); }

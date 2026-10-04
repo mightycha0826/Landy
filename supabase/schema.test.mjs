@@ -3432,11 +3432,18 @@ console.log('\n[96] CNSA 뱃지 — 기본 뱃지 열림 · 5칸 · 랜덤채팅
 	const p1 = pend.find((x) => x.id === r1.id), p2 = pend.find((x) => x.id === r2.id);
 	check('★ 기다리는 요청 — 이름 · 학번 · 사진 · 부원 학번 (거둔 것은 없다)', p1?.name === '기장' && String(p1.no) === String(no - 2) && p1.photos[0] === `${S1}/proof0001.jpg` && p2?.member_nos.length === 3 && !pend.some((x) => x.id === r3.id), JSON.stringify(p1));
 	check('열람은 기록에 남는다', Number((await one(`select count(*) n from private.audit_log where action = 'view_identity' and detail->>'via' = 'badge_requests'`)).n) === logs0 + 1);
+	// 사진 한 장 (리뷰 수정 2026-10-04) — 사진마다 목록 RPC를 부르면 열람 기록이 사진 수만큼 쌓였다
+	check('★ 사진 한 장 — 기다리는 요청의 경로만 · 범위 밖은 없음', (await svc('admin_badge_request_photo', adm, r1.id, 0)) === `${S1}/proof0001.jpg`
+		&& (await svc('admin_badge_request_photo', adm, r1.id, 2)) === null && (await svc('admin_badge_request_photo', adm, r1.id, 3)) === null);
+	check('사진 한 장은 열람 기록을 더 남기지 않는다', Number((await one(`select count(*) n from private.audit_log where action = 'view_identity' and detail->>'via' = 'badge_requests'`)).n) === logs0 + 1);
+	await expectError('★ 사진 한 장도 관리자만', () => svc('admin_badge_request_photo', mod, r1.id, 0), 'admin_only');
+	await expectError('사진 한 장 — 학생은 부를 수 없다', () => rowsAs(S1, `select public.admin_badge_request_photo($1, $2, 0)`, [S1, r1.id]), 'permission denied');
 	const d1 = await svc('admin_badge_request_decide', adm, r1.id, true, '확인했어요', null);
 	check('★ 승인 — 뱃지를 주고 사진 경로를 돌려준다 · 요청에서는 비운다', d1.status === 'approved' && d1.given === 1 && (await has(S1, 'msmp_gold')) && d1.photos[0] === `${S1}/proof0001.jpg`
 		&& (await one('select photos from private.badge_requests where id = $1', [r1.id])).photos.length === 0, JSON.stringify(d1));
 	const note = await one(`select title, body from private.personal_notices where id = $1`, [d1.notice]);
 	check('결과는 개인 공지로 (운영진 메모 포함)', note.title === '뱃지 요청을 승인했어요' && note.body.includes('MSMP 우수 금뱃지') && note.body.includes('확인했어요'), JSON.stringify(note));
+	check('결정한 요청의 사진은 주지 않는다', (await svc('admin_badge_request_photo', adm, r1.id, 0)) === null);
 	await expectError('한 번 결정한 요청은 다시 못 한다', () => svc('admin_badge_request_decide', adm, r1.id, false, '', null), 'already_decided');
 	const d2 = await svc('admin_badge_request_decide', adm, r2.id, true, '', null);
 	check('★ 동아리 승인 — 기장 + 부원 모두에게 · 못 찾은 학번을 돌려준다', d2.given === 3 && (await has(S1, 'club_beatus')) && (await has(n1, 'club_beatus')) && (await has(n2, 'club_beatus'))
@@ -3606,7 +3613,9 @@ console.log('\n[100] 마이그레이션과 스키마 snapshot 일치');
 {
 	const defs = async () => (await db.query("select n.nspname || '.' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' name, pg_get_functiondef(p.oid) body from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.prokind='f' order by 1")).rows;
 	const before = JSON.stringify(await defs());
-	await db.exec(readFileSync(here + 'migrations/20261003063750_project_review_upgrade.sql', 'utf8'));
+	// 운영에 적용한 순서대로 다시 실행하면 snapshot과 같아야 한다 (뒤 마이그레이션이 앞의 함수를 고쳐 쓴다)
+	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql'])
+		await db.exec(readFileSync(here + 'migrations/' + file, 'utf8'));
 	check('업그레이드 마이그레이션의 함수가 snapshot과 같음', JSON.stringify(await defs()) === before);
 }
 
@@ -3626,6 +3635,12 @@ console.log('\n[99] 프로젝트 검토 개선 회귀');
 	await svc('ai_chat_finish', c.id, rid, first.lease, '반가워');
 	const cached = await svc('ai_chat_claim', c.id, u, rid, '안녕');
 	check('성공 응답 재전송은 캐시·같은 턴 수', cached.cached && cached.reply === '반가워' && cached.turns === 1);
+	// 15분이 지난 응답은 정기 정리(review_cleanup) 전이라도 돌려주지 않는다 — 승인 함수는 테이블 전체를 고치지 않는다
+	await db.query(`update private.ai_requests set completed_at = now() - interval '16 minutes' where request_id = $1`, [rid]);
+	check('15분 지난 응답은 정리 전에도 만료', (await svc('ai_chat_claim', c.id, u, rid, '안녕')).status === 'expired'
+		&& (await one(`select reply from private.ai_requests where request_id = $1`, [rid])).reply === '반가워');
+	await svc('review_cleanup');
+	check('정기 정리가 15분 지난 응답을 지운다', (await one(`select reply from private.ai_requests where request_id = $1`, [rid])).reply === null);
 	const retryId = crypto.randomUUID(), a = await svc('ai_chat_claim', c.id, u, retryId, '오늘 어때');
 	await svc('ai_chat_finish', c.id, retryId, a.lease, null);
 	const b = await svc('ai_chat_claim', c.id, u, retryId, '오늘 어때');

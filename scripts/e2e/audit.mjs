@@ -90,6 +90,7 @@ const RPC = {
 	admin_grant_badge_by_no: (a) => ({ given: 1, found: 1, missing: a.p_nos.filter((n) => n !== 29999) }),
 	admin_grant_badge_all: () => 3,
 	admin_badge_requests: (a) => BREQ.filter((r) => (r.status === 'pending') === (a.p_pending !== false)),
+	admin_badge_request_photo: (a) => BREQ.find((r) => r.id === a.p_id && r.status === 'pending')?.photos[a.p_index] ?? null,
 	admin_badge_request_decide: (a) => {
 		const r = BREQ.find((x) => x.id === a.p_id);
 		if (r.kind === 'club' && a.p_ok && !a.p_code && !r.code) throw { status: 400, body: { message: 'need_code' } };

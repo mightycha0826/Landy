@@ -384,7 +384,7 @@ P1 = 다음 개선 작업에서 우선 처리 · P2 = 계획된 개선에 포함
 | 운영 Auth/CSP/cron/secret 및 migration 적용 여부 | 운영 설정 확인 필요 |
 | Supabase 플러그인 메타데이터 | **설치됨·ENABLED·GLOBAL 확인.** 현재 도구 목록에 Supabase 조회 도구 없음. 프로젝트/OAuth 연결 성공은 미확인 |
 | 로컬 PostgreSQL 카탈로그 및 추가 재현 | PGlite에 현행 SQL과 Supabase 테스트 스텁을 실행. 권한/RLS/함수/인덱스·R24/R25/R26/R29 확인. 실제 Supabase 서비스 결과와 구분 |
-| snapshot → 보안 migration 함수 비교 | `schema.sql` 실행 후 `20261002_security_hardening.sql`을 적용해 기존 함수의 `pg_get_functiondef` 비교. 변경 함수 **0개**. 운영 적용 여부·전체 데이터 이행의 증거는 아님 |
+| snapshot → 보안 migration 함수 비교 | `schema.sql` 실행 후 `20261004020711_security_hardening_20261002.sql`을 적용해 기존 함수의 `pg_get_functiondef` 비교. 변경 함수 **0개**. 운영 적용 여부·전체 데이터 이행의 증거는 아님 |
 
 테스트 통과는 기존 회귀 조건이 유지된다는 증거다. R01의 사진 표시, R03의 초안, 실제 PostgreSQL 경쟁 조건처럼 테스트가 직접 다루지 않는 흐름까지 증명하지는 않는다. 이번 문서의 보안 항목 중 서버 설정/세션 탈취/모델 응답을 전제로 하는 것은 그 조건을 함께 적었으며, 이를 이미 악용된 사고로 표현하지 않았다.
 
@@ -591,7 +591,7 @@ Supabase changelog와 현재 공식 문서를 추가 확인했다. changelog.md 
 - [프로젝트 UX 지침](./UX-GUIDELINES.md)
 - [보안 정책 및 점검 기록](../SECURITY.md)
 - [2026-10-02 보안 검토 및 후속 수정](../SECURITY-REVIEW-2026-10-02.md)
-- [DB 스키마](../supabase/schema.sql), [보안 마이그레이션](../supabase/migrations/20261002_security_hardening.sql)
+- [DB 스키마](../supabase/schema.sql), [보안 마이그레이션](../supabase/migrations/20261004020711_security_hardening_20261002.sql)
 - [Supabase Realtime 권한](https://supabase.com/docs/guides/realtime/authorization) — 비공개 채널 권한 동작을 확인할 때 참고
 
 문서 유지 시 각 R 항목에 구현 PR/커밋, 검증 결과, 운영 반영일을 추가한다. 해결된 항목은 최초 지적을 지우기보다 해결 상태와 증거를 남기면 같은 문제의 재발과 오래된 감사 결과의 오해를 줄일 수 있다.

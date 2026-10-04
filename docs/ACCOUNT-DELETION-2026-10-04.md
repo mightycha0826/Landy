@@ -4,7 +4,7 @@
 
 ## 운영 방법
 
-1. 문의 목록의 **계정 삭제 요청**에서 요청자와 처리 범위를 확인한다. 삭제 후 학생이 앱의 답변을 볼 수 없으므로 필요한 안내는 먼저 전달한다. 요청을 거절하거나 추가 확인이 필요하면 기존 답변 기능을 사용한다. 답변한 요청에서는 삭제를 시작할 수 없다.
+1. 문의 목록의 **계정 삭제 요청**에서 요청자와 처리 범위를 확인한다. 삭제 후 학생이 앱의 답변을 볼 수 없으므로 필요한 안내는 이 문의에 답변으로 먼저 보낸 뒤 삭제한다. 답변한 요청도 답변한 문의 목록에서 삭제를 시작할 수 있다(2026-10-04 리뷰 수정). 요청을 거절하거나 추가 확인이 필요하면 기존 답변 기능을 사용하고 삭제는 실행하지 않는다.
 2. **요청한 계정 삭제**를 펼쳐 대상 이름표·계정 ID·문의 번호를 확인한다.
 3. 처리 사유와 요청 확인 내용을 5~1000자로 입력하고 **삭제 {문의 번호}**를 입력한다. 삭제 범위 확인 체크 후 최종 확인창에서 실행한다.
 4. 완료 여부는 **삭제 처리 내역**과 활동 기록에서 확인한다. 문의 자체는 계정 삭제에 따라 함께 삭제된다. 실패하면 중단 단계와 재시도 폼이 표시된다. 응답 없이 처리가 중단됐으면 10분의 실행 임대가 만료된 후 새로고침해 재시도한다.
@@ -29,12 +29,12 @@ Auth·Storage와 DB는 하나의 트랜잭션으로 묶을 수 없다. 삭제 �
 
 ## 반영과 검증
 
-- 새 마이그레이션: `supabase/migrations/20261004135321_admin_account_deletion.sql`. 전체 스키마에도 같은 정의를 추가했다. 기존 DB에 전체 `schema.sql`을 다시 실행하지 않는다.
+- 새 마이그레이션: `supabase/migrations/20261004141539_admin_account_deletion.sql`. 전체 스키마에도 같은 정의를 추가했다. 기존 DB에 전체 `schema.sql`을 다시 실행하지 않는다.
 - 로컬 PostgreSQL(PGlite)에서 권한·요청/대상 연결·완료 전 상태 확인·실행 임대·실패 재시도·FK 삭제와 상대 계정 보존을 확인했다. 테스트 DB의 API 삭제 결과만 SQL로 재현하며 운영 코드는 Auth/Storage API를 사용한다.
 - `npm run test:unit` 통과, `npm run test:schema` 1126개 통과, `npm run test:deletion` 5개 통과.
 - 브라우저: `admin-deletion` 17개, 기존 `admin-notices` 15개 통과. 확인창 취소·권한 거절·실패 직후 내역 갱신·재시도·완료 후 새로고침·모바일 가로 넘침·페이지 오류를 확인했다.
 - 최종 타입 검사 오류 0·경고 0, Cloudflare 어댑터 배포용 빌드 성공.
-- 앱·서버가 연결하는 `LOVE` 프로젝트(`nweugmldhugosrrcdhkh`)에 `admin_account_deletion` 마이그레이션을 적용했다. 운영 이력 버전은 `20261004141539`이며 로컬 생성 파일 버전과 다르므로 이후 CLI 동기화 시 중복 적용하지 않는다.
+- 앱·서버가 연결하는 `LOVE` 프로젝트에 `admin_account_deletion` 마이그레이션을 적용했다. 운영 이력 버전은 `20261004141539`이며, 저장소 파일명도 이 버전에 맞췄다(처음 만든 파일은 `20261004135321`).
 - 운영 DB에서 새 RPC 3개의 `anon`/`authenticated` 실행 권한 없음·`service_role` 실행 가능·빈 `search_path`, 원장의 RLS·학생 직접 조회 차단을 확인했다. 등록되지 않은 가상 운영자 ID의 준비 요청은 `not_staff`로 거절됐다. 이 확인은 실제 학생 데이터를 변경하지 않았다.
 - 보안 Advisor의 기존 학생용 SECURITY DEFINER 실행 권한·유출 비밀번호 차단 미설정 경고가 유지됐다. 새 삭제 RPC는 학생에게 노출되지 않는다. 원장의 RLS 정책 없음은 직접 접근을 막고 서버 RPC로만 접근하는 의도된 설계다. [실행 권한 점검](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable), [비밀번호 설정](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
 - 실제 학생의 파일·계정 삭제, 학생에게 알림/문의 전송, Cloudflare 앱 재배포는 수행하지 않는다.
