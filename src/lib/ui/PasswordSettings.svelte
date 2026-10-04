@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { expand } from '$lib/transitions';
 	import { onDestroy, onMount } from 'svelte';
 	import { accountIsCurrent, accountToken } from '$lib/accountScope';
 	import { S, errMsg, recentlyVerified, sendOtpToMe, setPassword, toast, verifyCurrentPassword, verifyOtpForMe } from '$lib/state.svelte';
@@ -74,7 +75,7 @@
 	<Chevron />
 </button>
 {#if step !== 'idle'}
-	<div class="g-more">
+	<div class="g-more" in:expand out:expand>
 		{#if step === 'current'}
 			<p class="step muted">먼저 지금 쓰는 비밀번호를 확인할게요.</p>
 			<input class="field" type="password" autocomplete="current-password" placeholder="지금 비밀번호" bind:value={current} onkeydown={(e) => e.key === 'Enter' && checkCurrent()} />

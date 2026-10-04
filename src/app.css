@@ -438,12 +438,13 @@ a {
 	letter-spacing: -0.02em;
 	box-shadow: var(--glow);
 	transition:
-		transform 0.15s cubic-bezier(0.3, 0.7, 0.3, 1.4),
-		box-shadow 0.15s,
-		filter 0.12s;
+		transform var(--dur-3) var(--ease-settle),
+		box-shadow var(--dur-2) var(--ease-out),
+		filter var(--dur-1);
 }
 .btn:active:not(:disabled) {
 	transform: scale(0.97);
+	transition-duration: var(--dur-press);
 	box-shadow: 0 4px 14px -6px color-mix(in srgb, var(--g-coral) 60%, transparent);
 }
 /* 비활성은 그라디언트 · 빛을 빼고 흑백으로 — 누를 수 있는 것만 색을 갖는다 */
@@ -465,10 +466,11 @@ a {
 	background: var(--field);
 	font-weight: 700;
 	font-size: 15px;
-	transition: transform 0.15s;
+	transition: transform var(--dur-3) var(--ease-settle);
 }
-.btn-ghost:active {
+.btn-ghost:active:not(:disabled) {
 	transform: scale(0.97);
+	transition-duration: var(--dur-press);
 }
 
 /* 텍스트 버튼 — 글자는 작아도 누름 높이는 44 (docs/UX-GUIDELINES.md G1) */
@@ -521,13 +523,25 @@ a {
 
 /* ── 누름 영역 · 누름 반응 · 모션 토큰 (Phase 39 · docs/UX-GUIDELINES.md G1 · G2 · G7) ── */
 :root {
+	--dur-press: 80ms;
 	--dur-1: 120ms;
 	--dur-2: 220ms;
 	--dur-3: 360ms;
+	--dur-sheet: 440ms;
+	--dur-exit: 160ms;
+	--dur-sheet-exit: 280ms;
 	--ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
 	--ease-in: cubic-bezier(0.4, 0, 1, 1);
+	/* Quiet spring for everyday UI; the expressive reward spring stays separate. */
+	--ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
 	/* 튀어나오는 보상 — Badge 의 동전 곡선과 같은 스프링 */
 	--ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%, 1.159, 1.163, 1.161, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, 0.991, 0.977 51%, 0.974 53.8%, 0.975 57.1%, 0.997 69.8%, 1.003 76.9%, 1.004 83.8%, 1);
+}
+@supports (transition-timing-function: linear(0, 1)) {
+	:root {
+		/* Sampled from motion.ts settle(): 0.82 damping, 12 rad/s. */
+		--ease-settle: linear(0, 0.0642, 0.2059, 0.3714, 0.5301, 0.6668, 0.7764, 0.8591, 0.9184, 0.9586, 0.9843, 0.9994, 1.0074, 1.0106, 1.0111, 1.0101, 1.0084, 1.0066, 1.0049, 1.0034, 1.0023, 1.0014, 1.0009, 1.0005, 1.0002, 1.0001, 1, 1, 1, 1, 1);
+	}
 }
 /* 누를 것 — 두 번 톡 확대를 기다리지 않고 바로. 끌기를 직접 다루는 요소는 자기 touch-action 이 이긴다(:where = 0점) */
 :where(button, a[href], [role='button'], summary, label) {
@@ -555,12 +569,12 @@ a {
 /* .u-tap — 글자 · 아이콘 버튼의 누름 반응 (G2.2). 아이콘이면 .icon 을 같이 */
 :where(.u-tap) {
 	transition:
-		opacity 0.2s var(--ease-out),
-		transform 0.2s var(--ease-out);
+		opacity var(--dur-2) var(--ease-out),
+		transform var(--dur-3) var(--ease-settle);
 }
 :where(.u-tap):active:not(:disabled) {
 	opacity: 0.55;
-	transition-duration: 0.08s;
+	transition-duration: var(--dur-press);
 }
 :where(.u-tap.icon):active:not(:disabled) {
 	transform: scale(0.9);
@@ -823,7 +837,7 @@ button.g-row:active:not(:disabled) {
 	border-radius: 16px;
 	background: var(--switch-off);
 	cursor: pointer;
-	transition: background 0.2s;
+	transition: background var(--dur-2) var(--ease-out);
 }
 .switch::before {
 	content: '';
@@ -835,13 +849,19 @@ button.g-row:active:not(:disabled) {
 	border-radius: 50%;
 	background: #fff;
 	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
-	transition: transform 0.2s;
+	transition: transform var(--dur-3) var(--ease-settle), width var(--dur-1) var(--ease-out);
 }
 .switch:checked {
 	background: var(--accent);
 }
 .switch:checked::before {
 	transform: translateX(20px);
+}
+.switch:active:not(:disabled)::before {
+	width: 31px;
+}
+.switch:checked:active:not(:disabled)::before {
+	transform: translateX(16px);
 }
 .switch:disabled {
 	opacity: 0.5;
@@ -882,35 +902,36 @@ button.g-row:active:not(:disabled) {
 	color: var(--text-2);
 	font-size: 11px;
 	font-weight: 600;
-	transition: color 0.2s;
+	transition: color var(--dur-2) var(--ease-out);
 }
 .tab svg {
 	position: relative;
 	width: 25px;
 	height: 25px;
-	transition: transform 0.2s cubic-bezier(0.3, 0.7, 0.3, 1.5);
+	transition: transform var(--dur-3) var(--ease-settle);
 }
 .tab > span:not(.tab-dot) {
 	position: relative;
 }
 /* 고른 탭 — 뒤에 옅은 브랜드색 알약 */
-.tab.on::before {
-	content: '';
+.tab-indicator {
 	position: absolute;
-	inset: 5px 14px;
+	top: 5px;
+	bottom: calc(5px + env(safe-area-inset-bottom));
+	left: 24px;
+	width: calc((100% - 20px) / 3 - 28px);
 	border-radius: 999px;
 	background: color-mix(in srgb, var(--accent) 12%, transparent);
-	animation: tab-in 0.25s cubic-bezier(0.3, 0.7, 0.3, 1.3);
-}
-@keyframes tab-in {
-	from {
-		transform: scale(0.6);
-		opacity: 0;
-	}
+	transform: translateX(calc(var(--tab-index) * (100% + 28px)));
+	transition: transform var(--dur-3) var(--ease-settle);
+	pointer-events: none;
+	view-transition-name: tab-indicator;
 }
 .tab:active svg {
 	transform: scale(0.88);
+	transition-duration: var(--dur-press);
 }
+:root[data-nav] .tab-indicator { transition: none; }
 /* 안 읽은 편지 — 아이콘 오른쪽 위 빨간 점 */
 .tab {
 	position: relative;
@@ -975,10 +996,10 @@ html.kb-open .toasts {
 	box-shadow: var(--shadow-2);
 	opacity: 1;
 	text-align: center;
-	animation: toast-in 0.32s cubic-bezier(0.3, 0.7, 0.3, 1.25);
+	animation: toast-in var(--dur-3) var(--ease-settle);
 	transition:
-		opacity 0.14s ease-out,
-		transform 0.14s ease-out;
+		opacity var(--dur-exit) var(--ease-in),
+		transform var(--dur-exit) var(--ease-in);
 }
 @keyframes toast-in {
 	from {
@@ -994,13 +1015,16 @@ html.kb-open .toasts {
 /* ── 화면 넘김 (View Transitions, Phase 35 · +layout.svelte onNavigate) ──
    하위 화면으로 들어가면 새 화면이 오른쪽에서 밀려 들어오고, 돌아오면 왼쪽에서. 탭끼리는 겹쳐 사라지기만.
    탭바 · 토스트 · 앱 안 알림은 제자리 (각자 view-transition-name) */
+::view-transition { pointer-events: none; }
 ::view-transition-old(root),
 ::view-transition-new(root) {
-	animation-duration: 0.3s;
-	animation-timing-function: cubic-bezier(0.3, 0.75, 0.25, 1);
+	animation-duration: var(--dur-3);
+	animation-timing-function: var(--ease-out);
+	mix-blend-mode: normal;
 }
 ::view-transition-old(root) {
 	animation-name: vt-fade-out;
+	animation-duration: var(--dur-2);
 }
 ::view-transition-new(root) {
 	animation-name: vt-fade-in;
@@ -1017,11 +1041,21 @@ html.kb-open .toasts {
 :root[data-nav='pop']::view-transition-new(root) {
 	animation-name: vt-in-left;
 }
+:root[data-nav='tab-right']::view-transition-old(root) { animation-name: vt-tab-out-left; }
+:root[data-nav='tab-right']::view-transition-new(root) { animation-name: vt-tab-in-right; }
+:root[data-nav='tab-left']::view-transition-old(root) { animation-name: vt-tab-out-right; }
+:root[data-nav='tab-left']::view-transition-new(root) { animation-name: vt-tab-in-left; }
+::view-transition-group(tab-indicator) {
+	animation-duration: var(--dur-3);
+	animation-timing-function: var(--ease-settle);
+}
 ::view-transition-group(tabbar),
 ::view-transition-group(toasts),
 ::view-transition-group(inapp) {
 	animation: none;
 }
+::view-transition-old(tabbar), ::view-transition-old(toasts), ::view-transition-old(inapp), ::view-transition-old(tab-indicator) { display: none; }
+::view-transition-new(tabbar), ::view-transition-new(toasts), ::view-transition-new(inapp), ::view-transition-new(tab-indicator) { animation: none; }
 @keyframes vt-fade-out {
 	to {
 		opacity: 0;
@@ -1057,6 +1091,10 @@ html.kb-open .toasts {
 		transform: translateX(-16%);
 	}
 }
+@keyframes vt-tab-in-right { from { opacity: 0; transform: translateX(18px); } }
+@keyframes vt-tab-out-left { to { opacity: 0; transform: translateX(-10px); } }
+@keyframes vt-tab-in-left { from { opacity: 0; transform: translateX(-18px); } }
+@keyframes vt-tab-out-right { to { opacity: 0; transform: translateX(10px); } }
 
 /* 부팅 스플래시 — 리다이렉트 플리커 방지.
    Phase 83 — 앱 아이콘 + 이름만 있는 이 화면은 테마와 상관없이 늘 같은 색: 어두운 바탕(시스템이 먼저 띄우는 시작 화면 ·

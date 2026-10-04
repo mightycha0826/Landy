@@ -5,6 +5,7 @@
 	 * 버튼은 actions 에 .no(글자) · .yes(채운 알약) 로 넣는다. children 은 아래 한 줄 전체(적는 칸 등).
 	 */
 	import type { Snippet } from 'svelte';
+	import { expand } from '$lib/transitions';
 
 	let {
 		title,
@@ -15,7 +16,7 @@
 	}: { title: string; sub?: string; want?: boolean; children?: Snippet; actions?: Snippet } = $props();
 </script>
 
-<div class="extend">
+<div class="extend" in:expand out:expand>
 	<div class="q">
 		<strong>{title}</strong>
 		{#if sub}<span class:want>{sub}</span>{/if}

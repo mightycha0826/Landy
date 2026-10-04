@@ -20,7 +20,7 @@
 	import { closeBadge } from '$lib/badgeSheet.svelte';
 	import { afterNavigate, beforeNavigate, onNavigate } from '$app/navigation';
 	import { markNavigating, navigateFromOverlay } from '$lib/overlay.svelte';
-	import { reducedMotion } from '$lib/motion';
+	import { MOTION, navigationMotion, reducedMotion } from '$lib/motion';
 	import { holdKnock, knockFresh, viaMailbox } from '$lib/letters/mailbox.svelte';
 	import { dismissKeyboard, dismissOnTap, trackKeyboard } from '$lib/keyboard.svelte';
 
@@ -119,24 +119,37 @@
 
 	// ── 화면 넘김 (Phase 35) — 새 화면이 뜰 때 이전 화면이 부드럽게 겹쳐 사라진다 (View Transitions, 지원 브라우저만).
 	//    데이터를 받는 동안에도 이전 화면이 남아 있다가 넘어가서, 빈 화면이 번쩍이지 않는다.
+	let activeTransition: ViewTransition | undefined;
+	let motionRevision = 0;
 	onNavigate((nav) => {
-		if (!document.startViewTransition || reducedMotion() || isAdmin) return;
+		activeTransition?.skipTransition();
+		const revision = ++motionRevision;
+		delete document.documentElement.dataset.nav;
+		if (reducedMotion() || isAdmin) return;
 		const from = nav.from?.url.pathname ?? '';
 		const to = nav.to?.url.pathname ?? '';
 		if (from === to) return;
 		// 우체통에서 편지를 꺼낼 때(Phase 79)는 넘김 없이 — 편지 화면이 같은 자리의 같은 우체통으로 이어 받는다
 		if (from === '/letters' && to.startsWith('/letters/m/') && knockFresh()) return;
-		// 하위 화면으로 들어가면 오른쪽에서, 돌아오면 왼쪽에서 (탭끼리는 겹쳐 사라지기만)
-		const depth = (p: string) => (p === '/' || p === '/letters' || p === '/me' ? 0 : p.split('/').filter(Boolean).length);
-		const dir = depth(to) > depth(from) ? 'push' : depth(to) < depth(from) ? 'pop' : 'fade';
+		// Older browsers still get an arrival, without remounting pages or touching scroll restoration.
+		if (!document.startViewTransition) return () => {
+			if (reducedMotion() || revision !== motionRevision) return;
+			document.querySelector('.page, .chat')?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MOTION.enter, easing: 'ease-out' });
+		};
+		const dir = navigationMotion(from, to, nav.type === 'popstate' ? nav.delta : undefined);
 		document.documentElement.dataset.nav = dir;
-		return new Promise((resolve) => {
+		return new Promise<void>((resolve) => {
 			const vt = document.startViewTransition(async () => {
 				resolve();
 				await nav.complete.catch(() => {}); // 다른 곳으로 곧바로 옮겨 가 이 이동이 취소돼도 오류로 남기지 않는다
 			});
+			activeTransition = vt;
 			vt.ready.catch(() => {});
-			void vt.finished.catch(() => {}).finally(() => delete document.documentElement.dataset.nav);
+			void vt.finished.catch(() => {}).finally(() => {
+				if (revision !== motionRevision) return;
+				activeTransition = undefined;
+				delete document.documentElement.dataset.nav;
+			});
 		});
 	});
 

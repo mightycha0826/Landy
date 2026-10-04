@@ -5,8 +5,7 @@
 	 */
 	import { REACTIONS, type ReactionKey } from './types';
 	import { backClose } from '$lib/overlay.svelte';
-	import { fade } from 'svelte/transition';
-	import { reducedMotion } from '$lib/motion';
+	import { surface } from '$lib/transitions';
 
 	let {
 		at,
@@ -45,7 +44,8 @@
 <div
 	class="rx-pick"
 	data-keep-kb
-	out:fade={{ duration: reducedMotion() ? 0 : 120 }}
+	in:surface={{ y: 4, scale: 0.94 }}
+	out:surface={{ y: 4, scale: 0.97 }}
 	role="menu"
 	aria-label="공감"
 	tabindex="-1"
@@ -85,13 +85,6 @@
 		border-radius: 999px;
 		background: var(--bg);
 		box-shadow: 0 4px 20px rgb(0 0 0 / 0.18), 0 0 0 1px var(--line);
-		animation: rx-in 0.14s ease-out;
-	}
-	@keyframes rx-in {
-		from {
-			opacity: 0;
-			transform: scale(0.9);
-		}
 	}
 	.rx {
 		display: grid;
@@ -101,10 +94,11 @@
 		border-radius: 50%;
 		font-size: 23px;
 		line-height: 1;
-		transition: transform 0.1s;
+		transition: transform var(--dur-3) var(--ease-settle);
 	}
 	.rx:active {
 		transform: scale(1.25);
+		transition-duration: var(--dur-press);
 	}
 	.rx.on {
 		background: var(--field);

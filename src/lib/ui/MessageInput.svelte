@@ -6,6 +6,8 @@
 	 * 글자는 16px — 아이폰이 입력칸에 들어갈 때 화면을 확대하지 않게 (G6.8).
 	 */
 	import { PREFS } from '$lib/prefs.svelte';
+	import { onDestroy } from 'svelte';
+	import { motionDuration, MOTION } from '$lib/motion';
 
 	let {
 		value = $bindable(''),
@@ -40,11 +42,20 @@
 		}
 	}
 	// 자동 높이
+	let resizing: Animation | undefined;
+	onDestroy(() => resizing?.cancel());
 	$effect(() => {
 		void value;
 		if (!el) return;
+		const previous = el.getBoundingClientRect().height;
+		resizing?.cancel();
 		el.style.height = 'auto';
-		el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+		const height = Math.min(el.scrollHeight, 120);
+		el.style.height = height + 'px';
+		const duration = motionDuration(MOTION.enter);
+		if (previous > 0 && previous !== height && duration) {
+			resizing = el.animate([{ height: `${previous}px` }, { height: `${height}px` }], { duration, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+		}
 	});
 </script>
 
@@ -96,7 +107,7 @@
 		min-height: 44px;
 		margin: -5px -4px -5px 0;
 		padding: 0 10px;
-		transition: opacity 0.2s, transform 0.2s;
+		transition: opacity var(--dur-2) var(--ease-out), transform var(--dur-3) var(--ease-settle), color var(--dur-2);
 		color: var(--accent);
 		font-weight: 600;
 		font-size: 15px;

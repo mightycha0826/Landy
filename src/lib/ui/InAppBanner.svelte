@@ -5,13 +5,17 @@
 	 */
 	import { navigateFromOverlay } from '$lib/overlay.svelte';
 	import { fly } from 'svelte/transition';
-	import { reducedMotion } from '$lib/motion';
+	import { depart, MOTION, motionDuration } from '$lib/motion';
+	import { surface } from '$lib/transitions';
 	import { INAPP, dismissInApp, holdInApp } from '$lib/inapp.svelte';
 	import Avatar from './Avatar.svelte';
 
 	let dy = $state(0);
 	let startY = 0;
 	let dragging = $state(false);
+	let pointerId = -1;
+	let suppressClick = false;
+	let sample = { y: 0, t: 0, velocity: 0 };
 
 	function open() {
 		const n = INAPP.cur;
@@ -20,36 +24,59 @@
 		void navigateFromOverlay(n.url); // 시트가 열려 있어도 이동이 취소되지 않게
 	}
 	function down(e: PointerEvent) {
+		if (e.button !== 0 || dragging) return;
 		startY = e.clientY;
+		pointerId = e.pointerId;
+		suppressClick = false;
+		sample = { y: startY, t: performance.now(), velocity: 0 };
 		dragging = true;
+		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 		holdInApp(true);
 	}
 	function move(e: PointerEvent) {
-		if (!dragging) return;
-		dy = Math.min(8, e.clientY - startY);
+		if (!dragging || e.pointerId !== pointerId) return;
+		const distance = e.clientY - startY;
+		dy = distance < 0 ? distance : distance / (1 + distance / 8);
+		if (Math.abs(distance) > 4) suppressClick = true;
+		const now = performance.now();
+		if (now > sample.t) sample = { y: e.clientY, t: now, velocity: (e.clientY - sample.y) / (now - sample.t) };
 	}
-	function up() {
+	function up(e: PointerEvent) {
+		if (!dragging || e.pointerId !== pointerId) return;
+		dragging = false;
+		const el = e.currentTarget as HTMLElement;
+		if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+		const velocity = performance.now() - sample.t < 100 ? sample.velocity : 0;
+		if (e.type !== 'pointercancel' && (dy < -28 || (dy < -12 && velocity < -0.6))) dismissInApp();
+		else { holdInApp(false); dy = 0; }
+	}
+	function cancel() {
 		if (!dragging) return;
 		dragging = false;
-		if (dy < -28) dismissInApp();
-		else holdInApp(false);
+		suppressClick = true;
+		holdInApp(false);
 		dy = 0;
+	}
+	function bannerIn(node: Element) {
+		dy = 0;
+		return surface(node, { y: -node.getBoundingClientRect().height - 24, scale: 1 }, { direction: 'in' });
 	}
 </script>
 
 {#if INAPP.cur}
 	{@const n = INAPP.cur}
 	{#key n.key}
-		<div class="wrap inapp" role="status" aria-live="polite" out:fly={{ y: -24, duration: reducedMotion() ? 0 : 180 }}>
+		<div class="wrap inapp" role="status" aria-live="polite" in:bannerIn|global out:fly|global={{ y: -48, duration: motionDuration(MOTION.exit), easing: depart }}>
 			<button
 				class="card"
 				class:drag={dragging}
 				style:transform="translateY({dy}px)"
-				onclick={() => Math.abs(dy) < 4 && open()}
+				onclick={(e) => (e.detail === 0 || !suppressClick) && open()}
 				onpointerdown={down}
 				onpointermove={move}
 				onpointerup={up}
 				onpointercancel={up}
+				onlostpointercapture={cancel}
 			>
 				{#key n.n}<span class="bump" aria-hidden="true"></span>{/key}
 				<span class="ico {n.kind}" aria-hidden="true">
@@ -82,13 +109,6 @@
 		padding: 0 10px;
 		pointer-events: none;
 		view-transition-name: inapp;
-		animation: drop 0.5s cubic-bezier(0.2, 0.9, 0.25, 1.1) both;
-	}
-	@keyframes drop {
-		from {
-			transform: translateY(calc(-100% - 20px - var(--safe-top)));
-			opacity: 0.4;
-		}
 	}
 	.card:active:not(.drag) {
 		filter: brightness(0.94);
@@ -110,7 +130,7 @@
 		text-align: left;
 		pointer-events: auto;
 		touch-action: none;
-		transition: transform 0.3s cubic-bezier(0.3, 0.8, 0.25, 1);
+		transition: transform var(--dur-3) var(--ease-settle);
 	}
 	.card.drag {
 		transition: none;

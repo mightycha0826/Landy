@@ -10,7 +10,7 @@
 	import { fade } from 'svelte/transition';
 	import { focustrap } from '$lib/focustrap';
 	import { backClose } from '$lib/overlay.svelte';
-	import { reducedMotion } from '$lib/motion';
+	import { depart, MOTION, motionDuration, settle } from '$lib/motion';
 
 	let { onclose, label, children }: { onclose?: () => void; label?: string; children: Snippet } = $props();
 
@@ -22,10 +22,12 @@
 	let dy = $state(0);
 	let dragging = $state(false);
 	let start = { y: 0, t: 0, id: -1 };
+	let sample = { y: 0, t: 0, velocity: 0 };
 	function down(e: PointerEvent) {
 		// 손잡이 띠(.grab)에서 시작한 끌기만 — 시트 안의 스크롤 · 버튼과 헷갈리지 않게
 		if (!onclose || e.button !== 0 || !sheetEl || !(e.target as Element).closest('.grab')) return;
 		start = { y: e.clientY, t: performance.now(), id: e.pointerId };
+		sample = { y: e.clientY, t: start.t, velocity: 0 };
 		dragging = true;
 		sheetEl.setPointerCapture(e.pointerId);
 	}
@@ -33,21 +35,37 @@
 		if (!dragging || e.pointerId !== start.id) return;
 		const d = e.clientY - start.y;
 		dy = d > 0 ? d : d / 4; // 위로는 살짝만 (고무줄)
+		const now = performance.now();
+		const dt = now - sample.t;
+		if (dt > 0) sample = { y: e.clientY, t: now, velocity: (e.clientY - sample.y) / dt };
 	}
 	function up(e: PointerEvent) {
 		if (!dragging || e.pointerId !== start.id) return;
 		dragging = false;
-		const v = dy / Math.max(1, performance.now() - start.t);
-		if (dy > 80 || (dy > 24 && v > 0.6)) onclose?.();
+		if (sheetEl?.hasPointerCapture(e.pointerId)) sheetEl.releasePointerCapture(e.pointerId);
+		const v = performance.now() - sample.t < 100 ? sample.velocity : 0;
+		if (e.type !== 'pointercancel' && (dy > 80 || (dy > 24 && v > 0.6))) onclose?.();
 		else dy = 0;
+	}
+	function cancel() {
+		if (!dragging) return;
+		dragging = false;
+		dy = 0;
+	}
+	function slideIn(node: Element) {
+		const h = node.getBoundingClientRect().height;
+		return { duration: motionDuration(MOTION.sheet), easing: settle, css: (t: number) => `transform: translateY(${(1 - t) * h}px)` };
 	}
 
 	/** 사라질 때 — 시트는 아래로 미끄러지고(끌던 자리에서 이어서) 바탕은 흐려진다 (G7.1) */
 	function slideOut(node: Element) {
-		const from = dy;
+		// Closing during entrance or spring-back continues from the rendered position.
+		const transform = getComputedStyle(node).transform;
+		const from = transform === 'none' ? 0 : new DOMMatrixReadOnly(transform).m42;
 		const h = node.getBoundingClientRect().height;
 		return {
-			duration: reducedMotion() ? 0 : 200,
+			duration: motionDuration(MOTION.sheetExit),
+			easing: depart,
 			css: (t: number) => `transform: translateY(${from + (1 - t) * (h - from)}px)`
 		};
 	}
@@ -56,7 +74,7 @@
 <svelte:window onkeydown={(e) => e.key === 'Escape' && onclose?.()} />
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
-<div class="scrim" role="presentation" onclick={() => onclose?.()} out:fade={{ duration: reducedMotion() ? 0 : 200 }}>
+<div class="scrim" role="presentation" onclick={() => onclose?.()} in:fade={{ duration: motionDuration(MOTION.enter) }} out:fade={{ duration: motionDuration(MOTION.sheetExit) }}>
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div
 		class="sheet"
@@ -72,7 +90,9 @@
 		onpointermove={move}
 		onpointerup={up}
 		onpointercancel={up}
+		onlostpointercapture={cancel}
 		use:focustrap
+		in:slideIn
 		out:slideOut
 	>
 		{#if onclose}<div class="grab" aria-hidden="true"></div>{/if}
@@ -93,7 +113,6 @@
 		background: rgb(14 6 9 / 0.48);
 		-webkit-backdrop-filter: blur(3px);
 		backdrop-filter: blur(3px);
-		animation: fade 0.2s ease-out;
 	}
 	/* 아래에서 튀어 오르는 둥근 판 — 위에 손잡이 */
 	.sheet {
@@ -107,9 +126,8 @@
 		background: var(--surface);
 		box-shadow: var(--shadow-2);
 		outline: none;
-		animation: rise 0.34s cubic-bezier(0.2, 0.9, 0.3, 1.04);
 		/* 끌기를 놓으면 스프링으로 제자리 (끄는 동안은 손가락을 바로 따라간다) */
-		transition: transform 0.36s var(--ease-spring);
+		transition: transform var(--dur-3) var(--ease-settle);
 		touch-action: pan-y;
 	}
 	.sheet.dragging {
@@ -135,16 +153,6 @@
 		margin-left: -20px;
 		border-radius: 999px;
 		background: var(--line);
-	}
-	@keyframes fade {
-		from {
-			opacity: 0;
-		}
-	}
-	@keyframes rise {
-		from {
-			transform: translateY(100%);
-		}
 	}
 	.sheet :global(.item) {
 		display: block;

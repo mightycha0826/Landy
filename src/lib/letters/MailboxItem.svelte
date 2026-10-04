@@ -101,10 +101,11 @@
 		margin: 0 auto;
 		perspective: 1200px;
 		transform: rotate(var(--tilt));
-		transition: transform 0.2s cubic-bezier(0.3, 0.7, 0.3, 1.3);
+		transition: transform var(--dur-3) var(--ease-settle);
 	}
 	.item:active {
 		transform: rotate(0deg) scale(0.97);
+		transition-duration: var(--dur-press);
 	}
 	.item.unread {
 		animation: nudge 3.2s ease-in-out infinite;

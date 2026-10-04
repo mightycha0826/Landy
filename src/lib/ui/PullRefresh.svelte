@@ -8,6 +8,7 @@
 	 */
 	import { select } from '$lib/haptics';
 	import { reloadApp } from '$lib/reload';
+	import { rubberBand } from '$lib/motion';
 
 	const MAX = 120; // 당길 수 있는 최대 거리 (px)
 	const GO = 72; // 이만큼 당기면 놓았을 때 새로고침
@@ -37,7 +38,7 @@
 		};
 		const move = (e: TouchEvent) => {
 			if (!armed) return;
-			if (e.touches.length !== 1) return end();
+			if (e.touches.length !== 1 || blocked()) return cancel();
 			const t = e.touches[0];
 			const dy = t.clientY - y0;
 			const dx = t.clientX - x0;
@@ -50,7 +51,7 @@
 			}
 			dragging = true;
 			// 당길수록 무거워진다 (고무줄)
-			const next = Math.min(MAX, dy * 0.55 - (dy * dy) / 9000);
+			const next = rubberBand(dy, MAX);
 			if (next >= GO && pull < GO) select();
 			pull = Math.max(0, next);
 		};
@@ -64,16 +65,21 @@
 				void reloadApp();
 			} else pull = 0;
 		};
+		const cancel = () => {
+			armed = false;
+			dragging = false;
+			if (!busy) pull = 0;
+		};
 
 		window.addEventListener('touchstart', start, { passive: true });
 		window.addEventListener('touchmove', move, { passive: true });
 		window.addEventListener('touchend', end);
-		window.addEventListener('touchcancel', end);
+		window.addEventListener('touchcancel', cancel);
 		return () => {
 			window.removeEventListener('touchstart', start);
 			window.removeEventListener('touchmove', move);
 			window.removeEventListener('touchend', end);
-			window.removeEventListener('touchcancel', end);
+			window.removeEventListener('touchcancel', cancel);
 		};
 	});
 </script>
@@ -115,8 +121,8 @@
 		transform: translate(-50%, var(--pull)) scale(calc(0.6 + var(--p) * 0.4));
 		opacity: var(--o);
 		transition:
-			transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2),
-			opacity 0.2s;
+			transform var(--dur-3) var(--ease-settle),
+			opacity var(--dur-2) var(--ease-out);
 	}
 	.ptr.dragging {
 		transition: none;

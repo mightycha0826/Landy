@@ -121,6 +121,18 @@ try {
 	await page.locator('a.tab', { hasText: '채팅' }).click(); await page.waitForURL(`${BASE}/`); await page.waitForTimeout(400);
 	await page.locator('a.tab', { hasText: '익명편지' }).click(); await page.waitForURL('**/letters'); await page.waitForTimeout(400);
 	check('여러 번 오가도 그대로', (await idx()) === 1, String(await idx()));
+	const tabCenters = await page.evaluate(() => {
+		const pill = document.querySelector('.tab-indicator').getBoundingClientRect();
+		const selected = document.querySelector('.tab.on').getBoundingClientRect();
+		return { pill: pill.x + pill.width / 2, selected: selected.x + selected.width / 2, nav: document.documentElement.dataset.nav };
+	});
+	check('탭 표시가 선택한 탭의 중앙에 정착하고 전환 상태 정리', Math.abs(tabCenters.pill - tabCenters.selected) < 1 && !tabCenters.nav, JSON.stringify(tabCenters));
+	// Also exercise the ordinary CSS arrival when View Transitions are unavailable.
+	await page.evaluate(() => { window.__viewTransition = document.startViewTransition; document.startViewTransition = undefined; });
+	await page.locator('a.tab', { hasText: '프로필' }).click(); await page.waitForURL('**/me'); await page.waitForTimeout(400);
+	check('View Transitions 미지원에서도 탭 내용과 표시 정상', await page.locator('a.tab.on').innerText() === '프로필' && await page.locator('.page').first().evaluate((el) => Number(getComputedStyle(el).opacity)) === 1);
+	await page.locator('a.tab', { hasText: '익명편지' }).click(); await page.waitForURL('**/letters'); await page.waitForTimeout(400);
+	await page.evaluate(() => { document.startViewTransition = window.__viewTransition; delete window.__viewTransition; });
 	await back(); await page.waitForTimeout(300);
 	check('★ 익명편지에서 뒤로 → 채팅 홈', new URL(page.url()).pathname === '/' && (await idx()) === 1, `${page.url()} ${await idx()}`);
 	await back();
@@ -181,7 +193,8 @@ try {
 	const pwRow = page.getByRole('button', { name: /^비밀번호 (바꾸기|만들기)$/ });
 	await pwRow.click(); await page.waitForTimeout(150);
 	check('비밀번호 줄 → 카드 안에서 펼침 (›가 아래로)', (await pwRow.getAttribute('aria-expanded')) === 'true' && (await page.getByPlaceholder('지금 비밀번호').count()) === 1);
-	await pwRow.click(); await page.waitForTimeout(150);
+	await pwRow.click();
+	await page.getByPlaceholder('지금 비밀번호').waitFor({ state: 'detached' });
 	check('다시 누르면 접힘', (await pwRow.getAttribute('aria-expanded')) === 'false' && (await page.getByPlaceholder('지금 비밀번호').count()) === 0);
 	await pwRow.click(); await page.getByPlaceholder('지금 비밀번호').fill('abcd1234');
 	let releaseVerification;

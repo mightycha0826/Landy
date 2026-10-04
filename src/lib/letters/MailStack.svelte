@@ -100,7 +100,7 @@
 	}
 	/* 도착 — 위에서 살짝 떨어져 내려앉는다 (한 통씩 조금 늦게) */
 	.arrive {
-		animation: arrive 0.6s calc(var(--i) * 60ms) cubic-bezier(0.2, 0.9, 0.3, 1.08) both;
+		animation: arrive var(--dur-3) calc(min(var(--i), 7) * 40ms) var(--ease-settle) both;
 	}
 	@keyframes arrive {
 		from {

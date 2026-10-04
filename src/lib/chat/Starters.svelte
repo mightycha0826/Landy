@@ -32,6 +32,7 @@
 </script>
 
 <script lang="ts">
+	import { expand } from '$lib/transitions';
 	/**
 	 * 대화 첫마디 도우미 — 내가 아직 한 마디도 안 했을 때 입력창 위에 질문 세 개.
 	 * 누르면 입력창에 채워질 뿐 바로 보내지 않는다 (고쳐서 보내도 된다).
@@ -60,7 +61,7 @@
 	});
 </script>
 
-<div class="starters" aria-label="첫마디 도우미">
+<div class="starters" aria-label="첫마디 도우미" in:expand out:expand>
 	{#each chips as c (c)}
 		<button class="chip" onclick={() => onpick(c)}>{c}</button>
 	{/each}
@@ -84,7 +85,7 @@
 	.chip,
 	.more {
 		position: relative;
-		transition: opacity 0.2s, transform 0.2s;
+		transition: opacity var(--dur-2) var(--ease-out), transform var(--dur-3) var(--ease-settle);
 	}
 	.chip::after,
 	.more::after {

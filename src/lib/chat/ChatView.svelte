@@ -30,7 +30,8 @@
 	import Sheet from '$lib/ui/Sheet.svelte';
 	import { backToSeek, goBack } from '$lib/nav';
 	import { mmss as fmtClock } from '$lib/time';
-	import { scrollBehavior } from '$lib/motion';
+	import { MOTION, scrollBehavior } from '$lib/motion';
+	import { expand, surface } from '$lib/transitions';
 	import { clearNotifications } from '$lib/push';
 	import { isDiploma } from './diplomas';
 
@@ -55,6 +56,24 @@
 	let listEl: HTMLDivElement | undefined = $state();
 	let inputEl: HTMLTextAreaElement | undefined = $state();
 	let atBottom = true;
+	// Existing history stays still. Only messages mounted after the first batch arrive.
+	let historyRoom: ChatRoom | null = null;
+	const initialMessages = new Set<string>();
+	$effect.pre(() => {
+		const current = room;
+		if (loading || !current) return;
+		untrack(() => {
+			if (historyRoom === current) return;
+			historyRoom = current;
+			initialMessages.clear();
+			for (const message of current.msgs) initialMessages.add(message.client_msg_id);
+		});
+	});
+	function messageArrival(node: HTMLElement, key: string) {
+		const last = room?.msgs.at(-1)?.client_msg_id;
+		const duration = !initialMessages.has(key) && atBottom && key === last ? MOTION.settle : 0;
+		return surface(node, { y: 12, scale: 0.97, duration }, { direction: 'in' });
+	}
 
 	// 이 대화의 알림이 알림 센터에 남아 있으면 지운다 (지금 보고 있으니까, Phase 35)
 	$effect(() => {
@@ -649,6 +668,7 @@
 						class:mine
 						class:gap={p.first || m.reply_to != null}
 						data-mid={m.id}
+						in:messageArrival|global={m.client_msg_id}
 						onpointerdown={(e) => {
 							if (m.id != null && !locked) swipe.down(e, m);
 						}}
@@ -725,7 +745,7 @@
 			{/each}
 
 			{#if partnerTyping && !locked}
-				<div class="row gap">
+				<div class="row gap" in:surface={{ y: 4, scale: 0.96 }} out:surface={{ y: 4, scale: 1 }}>
 					<div class="bubble first last typing"><i></i><i></i><i></i></div>
 				</div>
 			{/if}
@@ -766,7 +786,7 @@
 				<Starters roomId={room.roomId} mine={S.profile?.interests ?? []} theirs={profile?.interests ?? []} onpick={useStarter} />
 			{/if}
 			{#if replyTo}
-				<div class="replying">
+				<div class="replying" in:expand out:expand>
 					<div class="replying-text">
 						<b>{replyTo.sender_seat === room?.seat ? '내 메시지에 답장' : `${room?.snap?.partner_alias ?? '상대'}에게 답장`}</b>
 						<span>{replyTo.body}</span>
@@ -1132,7 +1152,7 @@
 		position: relative;
 		max-width: 75%;
 		min-width: 0;
-		transition: transform 0.2s ease-out; /* 놓으면 제자리로 */
+		transition: transform var(--dur-3) var(--ease-settle); /* 놓으면 제자리로 */
 	}
 	.bwrap.swiping {
 		transition: none; /* 끄는 동안은 손가락을 바로 따라간다 */

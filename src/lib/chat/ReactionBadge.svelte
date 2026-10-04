@@ -1,6 +1,7 @@
 <script lang="ts">
 	/** 말풍선 아래 모서리의 공감 표시 — 내 말풍선은 오른쪽, 상대는 왼쪽. 누르면 공감 고르기. */
 	import type { ReactionSummary } from './reactions';
+	import { surface } from '$lib/transitions';
 
 	let { summary, mine, onclick }: { summary: ReactionSummary; mine: boolean; onclick: (e: MouseEvent) => void } =
 		$props();
@@ -10,6 +11,8 @@
 	class="reacts"
 	class:mine
 	{onclick}
+	in:surface={{ y: -3, scale: 0.7 }}
+	out:surface={{ y: -3, scale: 0.9 }}
 	aria-label="공감 {summary.emojis.join(' ')}{summary.count ? ' 2개' : ''}"
 >
 	<span class="pill">
@@ -48,9 +51,11 @@
 		background: var(--field);
 		font-size: 12px;
 		line-height: 1;
+		transition: transform var(--dur-3) var(--ease-settle);
 	}
 	.reacts:active .pill {
 		transform: scale(0.9);
+		transition-duration: var(--dur-press);
 	}
 	.n {
 		margin-left: 2px;

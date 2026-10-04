@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { surface } from '$lib/transitions';
 	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { navigateFromOverlay } from '$lib/overlay.svelte';
@@ -167,13 +168,13 @@
 		<RoomList rooms={liveRooms} count={openCount} max={maxRooms} onmenu={(r) => (menuFor = r)} />
 	{:else if inbox.loaded && seeker.seeking}
 		<!-- 찾는 중 — 내 얼굴을 가운데 두고 퍼져 나가는 물결 (틴더식 레이더) -->
-		<div class="radar" aria-hidden="true">
+		<div class="radar" aria-hidden="true" in:surface={{ y: 0, scale: 0.96 }}>
 			<i></i><i></i><i></i>
 			<span class="me-ring"><Avatar name={S.profile?.nickname ?? '나'} size={96} /></span>
 		</div>
 	{:else if inbox.loaded}
 		<!-- 빈 홈 (Phase 44) — 숫자(10:00) 대신 말을 건네는 두 말풍선. 시간 규칙은 처음 사용법 안내(튜토리얼)가 알려 준다 -->
-		<div class="hero">
+		<div class="hero" in:surface={{ y: 14, scale: 1 }}>
 			<div class="orb" aria-hidden="true"></div>
 			<div class="hero-card">
 				<div class="talk" aria-hidden="true">

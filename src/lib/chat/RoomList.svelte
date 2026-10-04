@@ -9,6 +9,9 @@
 	import { INBOX as inbox, type InboxRoom } from '$lib/inbox.svelte';
 	import { S } from '$lib/state.svelte';
 	import { mmss } from '$lib/time';
+	import { flip } from 'svelte/animate';
+	import { MOTION, motionDuration, settle } from '$lib/motion';
+	import { surface } from '$lib/transitions';
 
 	let {
 		rooms,
@@ -35,9 +38,9 @@
 	<span class="muted num">{count}/{max}</span>
 </div>
 <ul class="rooms">
-	{#each rooms as r (r.room_id)}
+	{#each rooms as r, i (r.room_id)}
 		{@const t = remain(r)}
-		<li>
+		<li animate:flip={{ duration: () => motionDuration(MOTION.settle), easing: settle }} in:surface={{ y: 10, scale: 1, delay: Math.min(i, 7) * 40 }} out:surface={{ y: -4, scale: 1 }}>
 			<!-- 아직 안 열어 본 새 대화(상대가 나를 잡아감)면 연결 화면부터 -->
 			<button
 				class="room"
@@ -102,10 +105,12 @@
 		width: 100%;
 		padding: 9px 14px;
 		text-align: left;
-		transition: background 0.15s;
+		transition: background var(--dur-2) var(--ease-out), transform var(--dur-3) var(--ease-settle);
 	}
 	.room:active {
 		background: var(--field);
+		transform: scale(0.985);
+		transition-duration: var(--dur-press);
 	}
 	.mid {
 		flex: 1;

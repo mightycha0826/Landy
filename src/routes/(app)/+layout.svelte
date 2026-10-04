@@ -92,7 +92,8 @@
 {#if showTabs}
 	<!-- 탭바에 가려지지 않게 같은 높이만큼 비워 둔다 -->
 	<div class="tabbar-space" aria-hidden="true"></div>
-	<nav class="tabbar" aria-label="주 메뉴">
+	<nav class="tabbar" aria-label="주 메뉴" style:--tab-index={onLetters ? 0 : onChat ? 1 : 2}>
+		<span class="tab-indicator" aria-hidden="true"></span>
 		<a class="tab" class:on={onLetters} href="/letters" onclick={(e) => switchTab(e, '/letters')} aria-current={onLetters ? 'page' : undefined}>
 			<svg viewBox="0 0 24 24" aria-hidden="true">
 				{#if onLetters}
