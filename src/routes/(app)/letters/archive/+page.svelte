@@ -14,6 +14,8 @@
 	import { untrack } from 'svelte';
 	import MailStack from '$lib/letters/MailStack.svelte';
 	import FolderPicker from '$lib/letters/FolderPicker.svelte';
+	import FolderRule from '$lib/letters/FolderRule.svelte';
+	import type { FolderAsk } from '$lib/letters/api';
 	import SelectBar from '$lib/letters/SelectBar.svelte';
 	import DeleteLettersSheet from '$lib/letters/DeleteLettersSheet.svelte';
 	import { MailSelection } from '$lib/letters/selection.svelte';
@@ -24,9 +26,13 @@
 	$effect(() => untrack(refreshMailbox));
 
 	const selection = new MailSelection(filed);
-	const done = (name: string) => selection.complete((ids) => {
+	// 한 사람의 받은 편지를 모두 한 폴더에 넣었으면 — 앞으로도 그 폴더에 넣을지 묻는다 (한 사람씩)
+	let asks = $state<FolderAsk[]>([]);
+	const done = (name: string, ask: FolderAsk[]) => selection.complete((ids) => {
 		filed(ids);
-		toast(name ? `'${name}' 폴더에 ${ids.length}통을 넣었어요` : '폴더에 넣었어요');
+		// 묻는 시트가 뜨면 알림은 생략 — 알림이 시트의 단추를 가린다
+		if (!ask.length) toast(name ? `'${name}' 폴더에 ${ids.length}통을 넣었어요` : '폴더에 넣었어요');
+		asks = ask;
 	});
 
 	const tab = $derived(LIST.tab);
@@ -95,6 +101,9 @@
 {/if}
 {#if selection.dialog === 'folder'}
 	<FolderPicker ids={selection.picked} folders={BOX.folders} onclose={() => (selection.dialog = null)} ondone={done} />
+{/if}
+{#if asks[0]}
+	{#key asks[0].thread}<FolderRule ask={asks[0]} onclose={() => (asks = asks.slice(1))} />{/key}
 {/if}
 {#if selection.dialog === 'delete'}
 	<DeleteLettersSheet count={selection.picked.length} busy={selection.deleting} ondelete={() => selection.remove()} onclose={() => (selection.dialog = null)} />

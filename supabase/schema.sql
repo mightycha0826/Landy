@@ -4862,6 +4862,10 @@ begin
     update private.dm_msgs set opened_at = now() where id = p_msg returning * into m;
     if t.sender_id = me then update private.dm_threads set sender_read = greatest(sender_read, p_msg) where id = t.id;
     else update private.dm_threads set recipient_read = greatest(recipient_read, p_msg) where id = t.id; end if;
+    -- 이 사람의 편지를 폴더에 넣기로 했으면 (dm_folder_rule, 2026-10-06) 열어 본 편지가 그 폴더로
+    insert into private.dm_folder_items (owner_id, msg_id, folder_id)
+    select me, p_msg, r.folder_id from private.dm_folder_rules r where r.owner_id = me and r.thread_id = t.id
+    on conflict (owner_id, msg_id) do nothing;
   end if;
   return jsonb_build_object(
     'status', 'ok', 'id', m.id, 'thread_id', t.id,
@@ -5535,6 +5539,7 @@ declare
   fid bigint;
   fname text;
   n int;
+  v_offer jsonb;
 begin
   if me is null then raise exception 'unauthenticated'; end if;
   perform pg_advisory_xact_lock(hashtextextended('dm_folder:' || me::text,0));
@@ -5561,7 +5566,25 @@ begin
      and case private.dm_box_of(m, t, me) when 'sent' then true when 'received' then m.opened_at is not null else false end
   on conflict (owner_id, msg_id) do update set folder_id = excluded.folder_id, added_at = now();
   get diagnostics n = row_count;
-  return jsonb_build_object('status', 'ok', 'folder', jsonb_build_object('id', fid, 'name', fname), 'moved', n);
+  -- 자동 넣기 (2026-10-06): 다른 폴더로 옮긴 사람의 규칙은 끈다
+  delete from private.dm_folder_rules r
+   where r.owner_id = me and r.folder_id <> fid
+     and r.thread_id in (select m.thread_id from private.dm_msgs m where m.id = any(p_msgs));
+  -- offer = 이번에 넣어서 받은 편지가 모두 이 폴더에 들어간 사람 (열린 줄기 · 아직 규칙 없음) — 화면이 "앞으로도 여기에 넣을까요?"를 묻는다
+  select coalesce(jsonb_agg(jsonb_build_object('thread_id', x.thread_id, 'from_gender', l.from_gender,
+           'from_name', case when not l.from_sender then (select name from private.person(x.recipient_id)) end,
+           'from_nick', case when l.from_sender then l.from_nick end)), '[]'::jsonb)
+    into v_offer
+    from (select t.id as thread_id, t.recipient_id, max(m.id) as last_id
+            from private.dm_msgs m join private.dm_threads t on t.id = m.thread_id
+            left join private.dm_folder_items fi on fi.owner_id = me and fi.msg_id = m.id
+           where t.id in (select o.thread_id from private.dm_msgs o where o.id = any(p_msgs))
+             and t.status = 'open' and m.is_letter and private.dm_box_of(m, t, me) = 'received'
+             and not exists (select 1 from private.dm_folder_rules r where r.owner_id = me and r.thread_id = t.id)
+           group by t.id, t.recipient_id
+          having bool_and(coalesce(fi.folder_id = fid, false))) x
+    join private.dm_msgs l on l.id = x.last_id;
+  return jsonb_build_object('status', 'ok', 'folder', jsonb_build_object('id', fid, 'name', fname), 'moved', n, 'offer', v_offer);
 end
 $fn$;
 
@@ -5573,6 +5596,9 @@ begin
   if me is null then raise exception 'unauthenticated'; end if;
   delete from private.dm_folder_items where owner_id = me and msg_id = any(coalesce(p_msgs, '{}'));
   get diagnostics n = row_count;
+  -- 자동 넣기 (2026-10-06): 폴더에서 뺀 사람의 규칙은 끈다
+  delete from private.dm_folder_rules r
+   where r.owner_id = me and r.thread_id in (select m.thread_id from private.dm_msgs m where m.id = any(coalesce(p_msgs, '{}')));
   return jsonb_build_object('status', 'ok', 'moved', n);
 end
 $fn$;
@@ -7120,4 +7146,43 @@ end
 $fn$;
 revoke all on function public.admin_badge_request_photo(uuid,bigint,int) from public,anon,authenticated;
 grant execute on function public.admin_badge_request_photo(uuid,bigint,int) to service_role;
+notify pgrst, 'reload schema';
+
+
+-- ════════════════════════════════════════════════════════════════════
+-- 2026-10-06 — 편지 폴더 자동 넣기
+-- 한 사람(편지 줄기)에게서 받은 편지를 모두 한 폴더에 넣으면 화면이 "앞으로 ○○님의 모든 편지를 이 폴더 안에 넣을까요?"를 묻는다
+-- (dm_folder_put 의 offer). 그러겠다고 하면(dm_folder_rule) 그 사람에게서 온 편지는 봉투를 열어 볼 때 그 폴더로 들어간다 (dm_open —
+-- 안 연 편지는 폴더에 못 넣는 규칙 그대로). 그 사람의 편지를 폴더에서 빼거나 다른 폴더로 옮기면 · 폴더를 지우면 꺼진다.
+-- dm_open · dm_folder_put · dm_folder_take 는 제자리에서 고침.
+-- ════════════════════════════════════════════════════════════════════
+create table if not exists private.dm_folder_rules (
+  owner_id  uuid not null references public.profiles(id) on delete cascade,
+  thread_id bigint not null references private.dm_threads(id) on delete cascade,
+  folder_id bigint not null references private.dm_folders(id) on delete cascade,
+  primary key (owner_id, thread_id)
+);
+create index if not exists dm_folder_rules_thread on private.dm_folder_rules (thread_id);
+create index if not exists dm_folder_rules_folder on private.dm_folder_rules (folder_id);
+alter table private.dm_folder_rules enable row level security;
+revoke all on private.dm_folder_rules from public, anon, authenticated;
+
+-- 앞으로 이 사람(줄기)의 편지는 이 폴더에 — 내 폴더 · 내가 낀 줄기만
+create or replace function public.dm_folder_rule(p_thread bigint, p_folder bigint)
+returns jsonb language plpgsql security definer set search_path = public, private as $fn$
+declare me uuid := auth.uid();
+begin
+  if me is null then raise exception 'unauthenticated'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('dm_folder:' || me::text,0));
+  if not exists (select 1 from private.dm_folders where id = p_folder and owner_id = me)
+     or not exists (select 1 from private.dm_threads where id = p_thread and status <> 'removed' and me in (sender_id, recipient_id)) then
+    return jsonb_build_object('status', 'not_found');
+  end if;
+  insert into private.dm_folder_rules (owner_id, thread_id, folder_id) values (me, p_thread, p_folder)
+  on conflict (owner_id, thread_id) do update set folder_id = excluded.folder_id;
+  return jsonb_build_object('status', 'ok');
+end
+$fn$;
+revoke all on function public.dm_folder_rule(bigint, bigint) from public, anon;
+grant execute on function public.dm_folder_rule(bigint, bigint) to authenticated;
 notify pgrst, 'reload schema';

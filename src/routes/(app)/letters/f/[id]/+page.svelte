@@ -12,12 +12,13 @@
 	import Sheet from '$lib/ui/Sheet.svelte';
 	import MailStack from '$lib/letters/MailStack.svelte';
 	import FolderPicker from '$lib/letters/FolderPicker.svelte';
+	import FolderRule from '$lib/letters/FolderRule.svelte';
 	import SelectBar from '$lib/letters/SelectBar.svelte';
 	import DeleteLettersSheet from '$lib/letters/DeleteLettersSheet.svelte';
 	import { MailSelection } from '$lib/letters/selection.svelte';
 	import { FolderMailbox } from '$lib/letters/folder.svelte';
 	import { BOX, refreshMailbox } from '$lib/letters/mailbox.svelte';
-	import { FOLDER_MAX, deleteFolder, folderError, renameFolder, takeFromFolder, type Box } from '$lib/letters/api';
+	import { FOLDER_MAX, deleteFolder, folderError, renameFolder, takeFromFolder, type Box, type FolderAsk } from '$lib/letters/api';
 	import { navigateFromOverlay } from '$lib/overlay.svelte';
 	import { errMsg, toast } from '$lib/state.svelte';
 
@@ -73,9 +74,13 @@
 			taking = false;
 		}
 	}
-	const moved = (to: string) => selection.complete((ids) => {
+	// 한 사람의 받은 편지를 모두 옮겼으면 — 앞으로도 그 폴더에 넣을지 묻는다 (한 사람씩)
+	let asks = $state<FolderAsk[]>([]);
+	const moved = (to: string, ask: FolderAsk[]) => selection.complete((ids) => {
 		leave(ids);
-		toast(to ? `'${to}' 폴더로 ${ids.length}통을 옮겼어요` : '옮겼어요');
+		// 묻는 시트가 뜨면 알림은 생략 — 알림이 시트의 단추를 가린다
+		if (!ask.length) toast(to ? `'${to}' 폴더로 ${ids.length}통을 옮겼어요` : '옮겼어요');
+		asks = ask;
 	});
 
 	// ── ⋯ 메뉴: 이름 바꾸기 · 지우기 ──
@@ -192,6 +197,9 @@
 {/if}
 {#if selection.dialog === 'folder'}
 	<FolderPicker ids={selection.picked} folders={BOX.folders} exclude={id} onclose={() => (selection.dialog = null)} ondone={moved} />
+{/if}
+{#if asks[0]}
+	{#key asks[0].thread}<FolderRule ask={asks[0]} onclose={() => (asks = asks.slice(1))} />{/key}
 {/if}
 {#if selection.dialog === 'delete'}
 	<DeleteLettersSheet count={selection.picked.length} busy={selection.deleting} ondelete={() => selection.remove()} onclose={() => (selection.dialog = null)} />

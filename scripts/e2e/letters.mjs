@@ -88,8 +88,9 @@ async function openApp(browser, w, opts = {}) {
 			let f = a.p_folder != null ? w.folders.find((x) => x.id === a.p_folder) : w.folders.find((x) => x.name === String(a.p_name).trim());
 			if (!f) { f = { id: w.folders.length + 1, name: String(a.p_name).trim() }; w.folders.push(f); }
 			for (const id of a.p_msgs) w.filed.set(id, f.id);
-			return json({ status: 'ok', folder: { id: f.id, name: f.name }, moved: a.p_msgs.length });
+			return json({ status: 'ok', folder: { id: f.id, name: f.name }, moved: a.p_msgs.length, offer: w.offer ?? [] });
 		}
+		if (rpc === 'dm_folder_rule') return json({ status: 'ok' });
 		if (rpc === 'dm_folder_take') { for (const id of a.p_msgs) w.filed.delete(id); return json({ status: 'ok', moved: a.p_msgs.length }); }
 		// 편지 지우기 (Phase 69) — 내 편지함에서만, 받은 편지는 열어 본 것만
 		if (rpc === 'dm_letter_delete') {
@@ -283,8 +284,8 @@ try {
 	await page.unroute(detailModule);
 	check('★ 누르면 우체통이 덜컹 덜컹 · 빨간 점은 그대로', knocking > 0 && (await page.locator('.stage .post .dot').count()) === 1, String(knocking));
 	await page.waitForTimeout(250);
-	const p0 = await phase(page), cap = await page.locator('.caption').innerText();
-	check('★ 처음 여는 편지는 연출: 우체통에서 나와 주소 면부터 · "익명의 여학생에게서 편지가 왔어요"', ['slot', 'emerge', 'land', 'front'].includes(p0) && cap.includes('익명의 여학생에게서 편지가 왔어요'), `${p0} | ${cap}`);
+	const p0 = await phase(page), cap = (await page.locator('.stage').innerText()).trim();
+	check('★ 처음 여는 편지는 연출: 우체통에서 나와 주소 면부터 · 우체통 아래 문구는 없다 (2026-10-06)', ['slot', 'emerge', 'land', 'front'].includes(p0) && !/편지가 왔어요|여는 중|건너뛰기/.test(cap), `${p0} | ${cap}`);
 	// 덜컹이 다 잦아든 뒤(투입구가 제자리) — 봉투는 아직 투입구 자리에서 빠져나오는 중
 	await page.waitForFunction(() => document.querySelector('.stage')?.getAttribute('data-phase') === 'emerge' && document.querySelector('.stage .post .postbox').getAnimations().length === 0, null, { timeout: 2000, polling: 16 }).catch(() => {});
 	const out0 = await page.evaluate(() => { const e = document.querySelector('.stage .env-wrap').getBoundingClientRect(), s = document.querySelector('.stage .post .slot').getBoundingClientRect(); return { dx: Math.abs((e.left + e.right) / 2 - (s.left + s.right) / 2), dy: Math.abs(e.bottom - (s.top + s.bottom) / 2), small: e.width <= s.width }; });
@@ -812,6 +813,22 @@ try {
 	const back7 = await p7.locator('.archive .stack .item').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')));
 	check('★ 폴더를 지우면 보관함으로 · 서랍에서 사라지고 안의 편지(보낸 편지)는 돌아온다', new URL(p7.url()).pathname === '/letters/archive' && (await p7.locator('.folders').count()) === 0
 		&& called(w7, 'dm_folder_delete').length === 1 && back7.includes('박받음에게 보낸 편지, 답장 옴'), `${p7.url()} | folders ${await p7.locator('.folders').count()} | ${back7.join(',')}`);
+	// 폴더 자동 넣기 (2026-10-06) — 한 사람의 받은 편지가 모두 한 폴더에 들어가면(서버의 offer) 아래에서 올라와 묻는다
+	w7.offer = [{ thread_id: 8, from_gender: 'm', from_name: null, from_nick: null }];
+	await p7.getByRole('tab', { name: '받은 편지' }).click(); await p7.waitForTimeout(500);
+	await p7.getByRole('button', { name: '선택', exact: true }).click(); await p7.waitForTimeout(200);
+	await env('익명의 남학생에게서 온 편지').click(); await p7.waitForTimeout(150);
+	await putBtn.click(); await p7.waitForTimeout(300);
+	await p7.getByRole('textbox', { name: '새 폴더 이름' }).fill('남학생');
+	await p7.getByRole('button', { name: '만들고 넣기' }).click();
+	const ask7 = p7.getByRole('dialog', { name: '폴더 자동 넣기' });
+	await ask7.waitFor({ timeout: 4000 }).catch(() => {}); await p7.waitForTimeout(500);
+	await p7.screenshot({ path: `${SP}/letters-folder-5-rule.png` });
+	check("★ 한 사람의 편지를 모두 한 폴더에 넣으면 아래에서 묻는다 — \"앞으로 '익명의 남학생'님의 모든 편지를 이 폴더 안에 넣을까요?\"", (await ask7.locator('.ask').innerText().catch(() => '')) === "앞으로 '익명의 남학생'님의 모든 편지를 이 폴더 안에 넣을까요?"
+		&& called(w7, 'dm_folder_rule').length === 0 && (await p7.getByText("'남학생' 폴더에 1통을 넣었어요").count()) === 0, await ask7.innerText().catch(() => '시트 없음'));
+	await ask7.getByRole('button', { name: '네, 넣을게요' }).click(); await p7.waitForTimeout(700);
+	check('★ 그러겠다고 하면 dm_folder_rule (그 줄기 · 그 폴더) · 시트가 닫히고 알림', JSON.stringify(called(w7, 'dm_folder_rule').at(-1)?.[1]) === JSON.stringify({ p_thread: 8, p_folder: w7.folders.at(-1).id })
+		&& (await ask7.count()) === 0 && (await p7.getByText("앞으로 '익명의 남학생'님의 편지는 열어 보면 이 폴더로 들어가요").count()) === 1, JSON.stringify(called(w7, 'dm_folder_rule')));
 	check('페이지 오류 없음 (폴더)', r7.errors.length === 0, r7.errors.join(' / '));
 	await r7.ctx.close();
 

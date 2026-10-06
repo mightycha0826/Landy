@@ -3218,6 +3218,59 @@ console.log('\n[92] 편지 지우기 — 선택한 편지를 나에게서만 (Ph
 	await expectError('로그인 안 하면 못 부른다', () => rowsAs(null, `select public.dm_letter_delete('{1}'::bigint[])`), 'permission denied');
 }
 
+console.log('\n[92-2] 편지 폴더 자동 넣기 — 한 사람의 받은 편지를 모두 한 폴더에 넣으면 묻고, 그 뒤로는 열어 본 편지가 그 폴더로 (2026-10-06)');
+{
+	let no = 27700;
+	const named = async (name, grade, gender) => {
+		const n = ++no;
+		await db.query('insert into private.student_roster (student_no, grade, name) values ($1, $2, $3) on conflict (student_no) do update set name = excluded.name, grade = excluded.grade', [n, grade, name]);
+		const id = await signUp(`${n}@cnsa.hs.kr`, true);
+		await db.query('update public.profiles set gender=$2, onboarded=true where id=$1', [id, gender]);
+		await rpcAs(id, 'ensure_self');
+		return id;
+	};
+	const A = await named('규칙보냄', 1, 'f');
+	const B = await named('규칙받음', 2, 'm');
+	const C = await named('규칙셋째', 3, 'f');
+	const E = await named('규칙남', 3, 'm');
+	const box = async (u, which, folder = null) => (await rpcAs(u, 'dm_mailbox', which, null, folder)).letters.map((x) => x.id);
+	const rules = async () => Number((await one('select count(*) n from private.dm_folder_rules where owner_id = $1', [B])).n);
+	const s1 = await rpcAs(A, 'dm_send', B, '첫 편지', null, '달빛');
+	const s2 = await rpcAs(A, 'dm_send', B, '둘째 편지', null, '별빛');
+	const c1 = await rpcAs(C, 'dm_send', B, '다른 사람 편지');
+	const c2 = await rpcAs(C, 'dm_send', B, '다른 사람 안 연 편지');
+	check('편지 넷 준비', [s1, s2, c1, c2].every((x) => x.status === 'ok'), JSON.stringify([s1, s2, c1, c2]));
+	for (const s of [s1, c1]) await rpcAs(B, 'dm_open', s.msg_id);
+
+	const part = await rpcAs(B, 'dm_folder_put', [s1.msg_id, c1.msg_id], null, '달빛 편지');
+	const fid = part.folder.id;
+	check('★ 아직 안 넣은(안 연) 편지가 남은 사람은 묻지 않는다', part.moved === 2 && JSON.stringify(part.offer) === '[]', JSON.stringify(part));
+	await rpcAs(B, 'dm_open', s2.msg_id);
+	const all = await rpcAs(B, 'dm_folder_put', [s2.msg_id], fid, null);
+	check('★ 한 사람의 받은 편지가 모두 한 폴더에 들어가면 그 사람을 묻는다 — 줄기 · 최근 서명', all.offer.length === 1 && all.offer[0].thread_id === s1.thread_id && all.offer[0].from_gender === 'f' && all.offer[0].from_name === null && all.offer[0].from_nick === '별빛', JSON.stringify(all.offer));
+	check('★ 남의 폴더 · 내가 끼지 않은 줄기에는 규칙을 못 건다', (await rpcAs(A, 'dm_folder_rule', s1.thread_id, fid)).status === 'not_found'
+		&& (await rpcAs(E, 'dm_folder_put', [c1.msg_id], null, '남의 줄기')).status === 'ok' && (await rpcAs(E, 'dm_folder_rule', s1.thread_id, (await rpcAs(E, 'dm_mailbox', 'received')).folders[0].id)).status === 'not_found');
+	check('그러겠다고 하면 규칙이 생긴다', (await rpcAs(B, 'dm_folder_rule', s1.thread_id, fid)).status === 'ok' && (await rules()) === 1);
+	check('이미 규칙이 있으면 다시 묻지 않는다', JSON.stringify((await rpcAs(B, 'dm_folder_put', [s2.msg_id], fid, null)).offer) === '[]');
+
+	const s3 = await rpcAs(A, 'dm_send', B, '규칙 뒤에 온 편지');
+	check('★ 새 편지는 열기 전에는 받은 편지함에 그대로 (안 읽은 수 · 우체통)', (await box(B, 'received')).includes(s3.msg_id) && !(await box(B, 'received', fid)).includes(s3.msg_id));
+	await rpcAs(B, 'dm_open', s3.msg_id);
+	check('★ 열어 보면 그 폴더로 들어간다', !(await box(B, 'received')).includes(s3.msg_id) && (await box(B, 'received', fid)).includes(s3.msg_id));
+	await rpcAs(B, 'dm_open', c2.msg_id);
+	check('★ 규칙이 없는 사람의 편지는 열어도 받은 편지함에', (await box(B, 'received')).includes(c2.msg_id));
+	check('★ 보낸 사람 쪽에는 아무것도 바뀌지 않는다', (await box(A, 'sent')).includes(s3.msg_id));
+
+	const moved = await rpcAs(B, 'dm_folder_put', [s1.msg_id, s2.msg_id, s3.msg_id], null, '옮긴 폴더');
+	check('★ 다른 폴더로 옮기면 규칙이 꺼지고, 모두 옮겼으면 새 폴더로 다시 묻는다', (await rules()) === 0 && moved.offer.length === 1 && moved.offer[0].thread_id === s1.thread_id, JSON.stringify(moved));
+	await rpcAs(B, 'dm_folder_rule', s1.thread_id, moved.folder.id);
+	check('★ 폴더에서 빼면 규칙이 꺼진다', (await rpcAs(B, 'dm_folder_take', [s1.msg_id])).moved === 1 && (await rules()) === 0);
+	await rpcAs(B, 'dm_folder_rule', s1.thread_id, moved.folder.id);
+	check('★ 폴더를 지우면 규칙도 지워진다', (await rpcAs(B, 'dm_folder_delete', moved.folder.id)).status === 'ok' && (await rules()) === 0);
+	await expectError('★ 규칙 표는 직접 못 읽는다', () => rowsAs(B, 'select * from private.dm_folder_rules'), 'permission denied');
+	await expectError('로그인 안 하면 못 부른다', () => rowsAs(null, 'select public.dm_folder_rule(1, 1)'), 'permission denied');
+}
+
 console.log('\n[93] CNSA 뱃지 — 극작소 (Phase 70)');
 {
 	const X = await person('f', 'm');
@@ -3614,7 +3667,7 @@ console.log('\n[100] 마이그레이션과 스키마 snapshot 일치');
 	const defs = async () => (await db.query("select n.nspname || '.' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' name, pg_get_functiondef(p.oid) body from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.prokind='f' order by 1")).rows;
 	const before = JSON.stringify(await defs());
 	// 운영에 적용한 순서대로 다시 실행하면 snapshot과 같아야 한다 (뒤 마이그레이션이 앞의 함수를 고쳐 쓴다)
-	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql'])
+	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql'])
 		await db.exec(readFileSync(here + 'migrations/' + file, 'utf8'));
 	check('업그레이드 마이그레이션의 함수가 snapshot과 같음', JSON.stringify(await defs()) === before);
 }

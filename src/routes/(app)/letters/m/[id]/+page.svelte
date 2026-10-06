@@ -234,10 +234,6 @@
 					/>
 				</span>
 			</span>
-			<span class="caption" aria-live="polite">
-				<span>{#if arriving}<b>{names.from}</b>에게서 편지가 왔어요{:else}봉투를 여는 중…{/if}</span>
-				<small>눌러서 건너뛰기</small>
-			</span>
 		{/if}
 	</button>
 {:else if letter}
@@ -402,28 +398,6 @@
 	[data-phase='unfold'] .env-wrap {
 		transform: translateY(55vh) rotate(6deg);
 		opacity: 0;
-	}
-	/* 안내 글 — 책상 윗머리 (봉투는 책상 가운데, 우체통은 벽) */
-	.caption {
-		position: absolute;
-		left: 0;
-		right: 0;
-		top: calc(var(--wall-h) + 16px);
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 6px;
-		padding: 0 var(--pad);
-		font-size: 15px;
-		text-align: center;
-	}
-	/* 책상 위라 판자색 글씨 */
-	.caption {
-		color: var(--wood-ink);
-	}
-	.caption small {
-		font-size: 12px;
-		opacity: 0.8;
 	}
 
 	/* ── 읽기 ── */

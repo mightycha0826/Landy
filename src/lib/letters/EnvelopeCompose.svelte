@@ -274,7 +274,8 @@
 		</div>
 	</div>
 
-	{#if sending}<p class="status" aria-live="polite">{phase === 'post' ? '우체통에 쏙! 편지가 출발했어요' : posting ? '우체통에 넣는 중…' : '봉투에 담는 중…'}</p>{/if}
+	<!-- 우체통 아래 문구는 화면에서 뺐다 (2026-10-06) — 화면 낭독기에만 -->
+	{#if sending}<p class="sr-only" aria-live="polite">{phase === 'post' ? '우체통에 쏙! 편지가 출발했어요' : posting ? '우체통에 넣는 중…' : '봉투에 담는 중…'}</p>{/if}
 </div>
 
 <style>
@@ -498,18 +499,5 @@
 		text-align: right;
 		font-size: 11px;
 		opacity: 0.6;
-	}
-	/* 안내 글 — 책상 윗머리 (봉투는 책상 가운데, 우체통은 벽) */
-	.status {
-		position: fixed;
-		left: 0;
-		right: 0;
-		top: calc(var(--wall-h) + 16px);
-		margin: 0;
-		text-align: center;
-		font-size: 14px;
-		font-weight: 700;
-		color: var(--wood-ink);
-		z-index: 2;
 	}
 </style>

@@ -138,10 +138,17 @@ export async function fetchFolder(id: number, before: number | null = null) {
 }
 
 // ── 폴더 (Phase 47) ──
-type FolderResult = { status: 'ok'; folder?: { id: number; name: string }; moved: number } | { status: 'bad_name' | 'bad_request' | 'not_found' | 'too_many' | 'exists' };
+/** 받은 편지가 모두 한 폴더에 들어간 사람(편지 줄기) — "앞으로도 이 폴더에 넣을까요?"를 묻는다 (FolderRule) */
+export type FolderOffer = Pick<MailItem, 'thread_id' | 'from_gender' | 'from_name' | 'from_nick'>;
+export type FolderAsk = { thread: number; folder: number; who: string };
+type FolderResult =
+	| { status: 'ok'; folder?: { id: number; name: string }; moved: number; offer?: FolderOffer[] }
+	| { status: 'bad_name' | 'bad_request' | 'not_found' | 'too_many' | 'exists' };
 /** 여러 통을 폴더에 — folder(있는 폴더) 또는 name(새 폴더, 같은 이름이 있으면 그 폴더) */
 export const putInFolder = (ids: number[], to: { folder: number } | { name: string }) =>
 	rpc<FolderResult>('dm_folder_put', { p_msgs: ids, p_folder: 'folder' in to ? to.folder : null, p_name: 'name' in to ? to.name : null });
+/** 앞으로 이 사람(줄기)에게서 온 편지는 열어 보면 이 폴더로 — 그 사람의 편지를 폴더에서 빼거나 옮기면 꺼진다 */
+export const setFolderRule = (thread: number, folder: number) => rpc<FolderResult>('dm_folder_rule', { p_thread: thread, p_folder: folder });
 /** 폴더에서 빼기 — 보관함으로 돌아간다 */
 export const takeFromFolder = (ids: number[]) => rpc<FolderResult>('dm_folder_take', { p_msgs: ids });
 export const renameFolder = (id: number, name: string) => rpc<FolderResult>('dm_folder_rename', { p_folder: id, p_name: name });

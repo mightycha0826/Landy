@@ -2,11 +2,12 @@
 	/**
 	 * 폴더에 넣기 (Phase 47) — 보관함 · 폴더 화면에서 편지를 여러 통 고른 뒤.
 	 * 있는 폴더를 누르거나, 새 폴더 이름을 적어 만들고 넣는다 (같은 이름이 있으면 그 폴더로).
-	 * 넣은 뒤의 처리(목록 고치기 · 알림)는 부르는 쪽이 — ondone(폴더 이름)
+	 * 넣은 뒤의 처리(목록 고치기 · 알림)는 부르는 쪽이 — ondone(폴더 이름, 물어볼 사람들)
+	 *   물어볼 사람들 = 이번에 넣어서 받은 편지가 모두 이 폴더에 들어간 사람 (FolderRule 이 "앞으로도 넣을까요?"를 묻는다)
 	 */
 	import Sheet from '$lib/ui/Sheet.svelte';
 	import { onDestroy } from 'svelte';
-	import { FOLDER_MAX, folderError, putInFolder, type Folder } from './api';
+	import { FOLDER_MAX, folderError, fromLabel, putInFolder, type Folder, type FolderAsk } from './api';
 	import { errMsg, toast } from '$lib/state.svelte';
 	// 계정이 바뀌면 루트 레이아웃이 화면을 통째로 다시 만든다 ({#key S.accountVersion}) — 떠 있는지만 보면 된다
 	let alive = true;
@@ -25,7 +26,7 @@
 		/** 지금 보고 있는 폴더 — 옮길 곳 목록에서 뺀다 */
 		exclude?: number | null;
 		onclose: () => void;
-		ondone: (name: string) => void;
+		ondone: (name: string, asks: FolderAsk[]) => void;
 	} = $props();
 
 	let name = $state('');
@@ -41,7 +42,8 @@
 			if (!current()) return;
 			const err = folderError(r);
 			if (err) return toast(err);
-			ondone(r.status === 'ok' && r.folder ? r.folder.name : '');
+			const f = r.status === 'ok' ? r.folder : undefined;
+			ondone(f?.name ?? '', f && r.status === 'ok' ? (r.offer ?? []).map((o) => ({ thread: o.thread_id, folder: f.id, who: fromLabel(o) })) : []);
 		} catch (e) {
 			if (current()) toast(errMsg(e));
 		} finally {
