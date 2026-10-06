@@ -10,6 +10,7 @@
 		toast,
 		verifyOtp
 	} from '$lib/state.svelte';
+	import OtpInput, { OTP_LEN } from '$lib/ui/OtpInput.svelte';
 
 	/**
 	 * 로그인 화면.
@@ -43,8 +44,8 @@
 		!typed || localOk || teacher ? '' : /^[0-9]+$/.test(typed) ? '학번 5자리를 입력해 주세요 (예: 20101)' : '학번만 입력해 주세요 (예: 20101)'
 	);
 	const pwReady = $derived(localOk && pw.length >= 6);
-	// Supabase 프로젝트 설정(Email OTP length)에 따라 6~8자리
-	const codeOk = $derived(/^[0-9]{6,8}$/.test(code.trim()));
+	// 숫자만 · 자릿수는 OtpInput 이 지킨다 (Supabase 설정 Email OTP Length 와 같은 6)
+	const codeOk = $derived(code.length === OTP_LEN);
 
 	function go(m: Mode) {
 		mode = m;
@@ -161,22 +162,13 @@
 		<button class="btn-text back" onclick={() => go('login')}>로그인으로 돌아가기</button>
 	{:else}
 		<p class="lead muted">
-			<strong>{email}</strong> 으로<br />인증 코드를 보냈어요.
+			<strong>{email}</strong> 으로<br />인증 코드 {OTP_LEN}자리를 보냈어요.
 		</p>
 		<p class="spam muted">
 			안 보이면 <strong>스팸함</strong>을 확인해 주세요.
 		</p>
 
-		<input
-			class="field code num"
-			bind:value={code}
-			type="text"
-			inputmode="numeric"
-			autocomplete="one-time-code"
-			maxlength="8"
-			placeholder="인증 코드"
-			onkeydown={(e) => e.key === 'Enter' && onVerify()}
-		/>
+		<OtpInput bind:value={code} onenter={onVerify} />
 
 		<button aria-busy={busy} class="btn" onclick={onVerify} disabled={!codeOk || busy}>
 			{busy ? '확인 중…' : mode === 'signup' ? '시작하기' : '확인'}
@@ -370,14 +362,6 @@
 		font-weight: 600;
 		color: var(--danger);
 	}
-	.code {
-		text-align: center;
-		font-size: 22px;
-		font-weight: 600;
-		letter-spacing: 0.3em;
-		text-indent: 0.3em;
-	}
-
 	.row {
 		display: flex;
 		justify-content: space-between;

@@ -23,7 +23,7 @@
 |---|---|---|
 | 학교 계정만 | 가입 · 이메일 변경 때 DB 트리거가 학교 도메인이 아니면 막는다 | `supabase/schema.sql` `private.enforce_school_domain` |
 | 계정 선점 막기 | 이메일 확인 전 계정의 비밀번호를 트리거가 지운다 | `private.strip_unconfirmed_password` |
-| 인증 코드 | 8자리 · 10분 만료, 로그인 요청 한도(IP 단위) | README "처음 설정하기" |
+| 인증 코드 | 6자리(2026-10-06, 전엔 8자리) · 10분 만료, 로그인 요청 한도(IP 단위) | README "처음 설정하기" |
 | 역할 위조 방지 | `profiles` 는 본인 행만 읽고, 고칠 수 있는 열은 `gender · want · onboarded · allow_rematch` 뿐 (정지 · 인증 상태는 못 바꿈) | `schema.sql` 열 단위 `grant update (…)` |
 
 ### 2. 데이터베이스 (Supabase)

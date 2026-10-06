@@ -5,6 +5,7 @@
 	import { S, errMsg, recentlyVerified, sendOtpToMe, setPassword, toast, verifyCurrentPassword, verifyOtpForMe } from '$lib/state.svelte';
 	import Chevron from './Chevron.svelte';
 	import PasswordFields from './PasswordFields.svelte';
+	import OtpInput, { OTP_LEN } from './OtpInput.svelte';
 
 	let step = $state<'idle' | 'current' | 'code' | 'new'>('idle');
 	let busy = $state(false);
@@ -62,7 +63,7 @@
 		});
 	}
 	function checkCode() {
-		if (/^[0-9]{6,8}$/.test(code.trim())) void run(() => verifyOtpForMe(code), () => { step = 'new'; }, () => { code = ''; });
+		if (code.length === OTP_LEN) void run(() => verifyOtpForMe(code), () => { step = 'new'; }, () => { code = ''; });
 	}
 	function savePassword() {
 		if (passwordOk) void run(() => setPassword(password, current || undefined), () => { toast('비밀번호 저장 완료'); cancel(); });
@@ -85,9 +86,9 @@
 				<button class="cancel u-tap" onclick={cancel}>취소</button>
 			</div>
 		{:else if step === 'code'}
-			<p class="step muted"><strong>{codeSentTo}</strong> 으로 보낸 인증 코드를 입력해 주세요. 안 보이면 스팸함을 확인해 주세요.</p>
-			<input class="field codein num" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="인증 코드" bind:value={code} onkeydown={(e) => e.key === 'Enter' && checkCode()} />
-			<button aria-busy={busy} class="btn" onclick={checkCode} disabled={!/^[0-9]{6,8}$/.test(code.trim()) || busy}>{busy ? '확인 중…' : '확인'}</button>
+			<p class="step muted"><strong>{codeSentTo}</strong> 으로 보낸 인증 코드 {OTP_LEN}자리를 입력해 주세요. 안 보이면 스팸함을 확인해 주세요.</p>
+			<OtpInput bind:value={code} onenter={checkCode} />
+			<button aria-busy={busy} class="btn" onclick={checkCode} disabled={code.length !== OTP_LEN || busy}>{busy ? '확인 중…' : '확인'}</button>
 			<div class="pwfoot">
 				<button class="btn-text" onclick={sendCode} disabled={busy || S.now < resendAt}>코드 다시 받기</button>
 				<button class="cancel u-tap" onclick={cancel}>취소</button>
@@ -104,7 +105,6 @@
 <style>
 	.step { margin: 0; font-size: 13px; line-height: 1.6; }
 	.step strong { color: var(--text); font-weight: 600; }
-	.codein { text-align: center; font-size: 20px; font-weight: 600; letter-spacing: 0.25em; }
 	.pwfoot { display: flex; justify-content: space-between; align-items: center; }
 	.cancel { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; font-size: 14px; color: var(--text-2); }
 </style>

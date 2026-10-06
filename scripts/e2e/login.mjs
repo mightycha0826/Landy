@@ -61,15 +61,15 @@ try {
 		check('비밀번호 찾기 화면 제목', await page.getByRole('heading', { name: '비밀번호 찾기' }).isVisible());
 		await page.getByPlaceholder('학교 이메일 앞부분').fill('39997'); // 가입하지 않은 학번
 		await page.getByRole('button', { name: '인증 코드 받기' }).click();
-		await page.getByPlaceholder('인증 코드').waitFor();
+		await page.getByLabel('인증 코드').waitFor();
 		check('★ 비밀번호 찾기는 새 계정을 만들지 않는다 (create_user=false)', log.otp.at(-1)?.create_user === false, JSON.stringify(log.otp.at(-1)));
-		check('★ 없는 계정이어도 똑같이 "발송" 화면 (가입 여부 비노출)', await page.getByText('인증 코드를 보냈어요').isVisible());
+		check('★ 없는 계정이어도 똑같이 "발송" 화면 (가입 여부 비노출)', await page.getByText('인증 코드 6자리를 보냈어요').isVisible());
 
 		await page.getByRole('button', { name: '로그인으로 돌아가기' }).click();
 		await page.getByRole('button', { name: '비밀번호를 잊었어요' }).click();
 		await page.getByPlaceholder('학교 이메일 앞부분').fill('29999');
 		await page.getByRole('button', { name: '인증 코드 받기' }).click();
-		await page.getByPlaceholder('인증 코드').fill('12345678');
+		await page.getByLabel('인증 코드').fill('123456');
 		await page.screenshot({ path: `${SP}/login-3-code.png` });
 		await page.getByRole('button', { name: '확인', exact: true }).click();
 		await page.waitForURL('**/settings#password', { timeout: 8000 }).catch(() => {});
@@ -100,7 +100,7 @@ try {
 		check('여기까지 인증 코드는 한 번도 안 보냄', log.otp.length === 0);
 		await page.getByPlaceholder('학교 이메일 앞부분').fill('19998');
 		await page.getByRole('button', { name: '인증 코드 받기' }).click();
-		await page.getByPlaceholder('인증 코드').fill('12345678');
+		await page.getByLabel('인증 코드').fill('123456');
 		check('★ 가입은 계정 생성 허용 (create_user=true)', log.otp.at(-1)?.create_user === true, JSON.stringify(log.otp.at(-1)));
 		await page.getByRole('button', { name: '시작하기' }).click();
 		await page.waitForURL((u) => !u.pathname.startsWith('/login'), { timeout: 8000 }).catch(() => {});
