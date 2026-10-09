@@ -149,19 +149,77 @@ try {
 		check('매칭·AI 런타임 오류 없음', st.errors.length === 0);
 		await ctx.close();
 	}
-	console.log('[로그아웃 시 매칭 정리]');
+	console.log('[찾는 동안 화면 켜 두기 · 앱을 떠났다 오면 알림]');
 	{
+		const { ctx, page, st } = await open();
+		await page.addInitScript(() => {
+			// 화면 꺼짐 막기를 흉내 — 건 횟수 · 푼 횟수를 센다
+			window.__wl = { req: 0, rel: 0 };
+			Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: { request: async () => {
+				window.__wl.req++;
+				const t = new EventTarget();
+				t.release = async () => { window.__wl.rel++; t.dispatchEvent(new Event('release')); };
+				return t;
+			} } });
+			// 앱 숨김 흉내 — document.visibilityState 를 바꾸고 이벤트를 쏜다
+			let vis = 'visible';
+			Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => vis });
+			window.__setVis = (v) => { vis = v; document.dispatchEvent(new Event('visibilitychange')); };
+		});
+		await login(page);
+		await page.getByRole('button', { name: '새 대화 찾기', exact: true }).click();
+		await page.locator('.seek').waitFor();
+		await page.waitForFunction(() => window.__wl.req === 1);
+		check('찾기를 시작하면 화면 꺼짐을 막고 그렇다고 알린다', await page.locator('.seek').innerText().then((s) => s.includes('화면을 켜 둘게요')));
+		await page.evaluate(() => window.__setVis('hidden'));
+		await page.evaluate(() => { const original = Date.now; Date.now = () => original() + 20000; });
+		await page.evaluate(() => window.__setVis('visible'));
+		await page.waitForFunction(() => document.body.innerText.includes('앱을 나가 있는 동안은 상대를 찾지 못했어요'));
+		check('15초 넘게 떠났다 오면 그동안 못 찾았다고 알리고 이어서 찾는다', await page.locator('.seek').isVisible());
+		await page.getByRole('button', { name: '그만', exact: true }).click();
+		await page.waitForFunction(() => window.__wl.rel >= 1);
+		check('그만 찾으면 화면 꺼짐 막기를 푼다', true);
+		check('화면 켜 두기 런타임 오류 없음', st.errors.length === 0);
+		await ctx.close();
+	}
+	console.log('[설정·알림에서 매칭 유지]');
+	{
+		const { ctx, page, count } = await open();
+		await login(page);
+		await page.getByRole('button', { name: '새 대화 찾기', exact: true }).click();
+		await page.locator('.seek').waitFor();
+		// 잠깐 들여다보는 화면(설정 · 알림)에서는 찾기가 이어지고 대기 막대가 보인다
+		await page.locator('button.settings').click();
+		await page.waitForURL(`${BASE}/settings`);
+		await page.getByRole('complementary', { name: '매칭 대기' }).waitFor();
+		const inSettings = count('request_match');
+		await page.waitForTimeout(1600);
+		check('설정 화면에서는 찾기가 이어지고 대기 막대를 보인다', count('request_match') > inSettings && count('stop_seeking') === 0);
+		await page.goBack();
+		await page.waitForURL(`${BASE}/`);
+		await page.locator('button.heart').click();
+		await page.waitForURL(`${BASE}/activity`);
+		await page.getByRole('complementary', { name: '매칭 대기' }).waitFor();
+		check('알림 화면에서도 찾기가 이어진다', count('stop_seeking') === 0);
+		await ctx.close();
+	}
+	console.log('[쓰는 화면에서 매칭 멈춤 · 로그아웃 시 매칭 정리]');
+	{
+		// 쓰던 글이 있는 화면(문의)으로 가면 예고 없이 대화방으로 넘어가지 않게 멈추고 알린다
 		const { ctx, page, count, st } = await open();
 		await login(page);
 		await page.getByRole('button', { name: '새 대화 찾기', exact: true }).click();
 		await page.locator('.seek').waitFor();
 		await page.locator('button.settings').click();
 		await page.waitForURL(`${BASE}/settings`);
+		await page.getByRole('link', { name: /운영진에게 문의하기/ }).click();
+		await page.waitForURL(`${BASE}/settings/contact`);
 		await page.waitForFunction(() => document.body.innerText.includes('상대 찾기를 멈췄어요'));
-		const seekingInSettings = count('request_match');
+		const seekingInContact = count('request_match');
 		await page.waitForTimeout(1800);
-		// 탭 밖 화면에는 찾는 중 표시가 없다 — 예고 없이 대화방으로 넘어가지 않게 멈추고 알린다
-		check('탭 밖 화면(설정)으로 가면 찾기를 멈추고 알린다', count('request_match') === seekingInSettings && count('stop_seeking') === 1);
+		check('쓰는 화면(문의)으로 가면 찾기를 멈추고 알린다', count('request_match') === seekingInContact && count('stop_seeking') === 1);
+		await page.goBack();
+		await page.waitForURL(`${BASE}/settings`);
 		await page.getByRole('button', { name: '로그아웃', exact: true }).click();
 		await page.waitForURL(`${BASE}/login`);
 		const before = count('request_match');

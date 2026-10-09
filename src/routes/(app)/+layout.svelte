@@ -19,6 +19,10 @@
 	import { INBOX } from '$lib/inbox.svelte';
 	import { notifyInApp } from '$lib/inapp.svelte';
 	import { pushState } from '$lib/push';
+	import { holdScreenOn } from '$lib/wakeLock';
+
+	/** 이만큼 넘게 앱을 떠나 있었으면 서버 대기에서 빠져 있었다 (seek_ttl_sec 기본 15초) */
+	const SEEK_AWAY_MS = 15_000;
 
 	/**
 	 * 앱 화면 공통 틀 — 하단 탭 3개 (왼쪽 익명편지 · 가운데 채팅 · 오른쪽 프로필).
@@ -44,13 +48,35 @@
 
 	const path = $derived(page.url.pathname);
 	const showTabs = $derived(path === '/' || path === '/letters' || path === '/me');
-	// 찾기는 탭(홈 · 익명편지 · 프로필) 사이에서만 이어진다. 탭 밖 화면(편지 쓰기 · 다른 대화방 · 설정)에는 찾는 중 표시가 없어
-	// 매칭되면 쓰던 화면에서 예고 없이 빠져나가므로 그 화면으로 가면 멈춘다. 매칭으로 대화방에 갈 때는 찾기가 이미 끝나 있다.
+	// 찾기는 탭(홈 · 익명편지 · 프로필)과 잠깐 들여다보고 돌아오는 화면(알림 · 공지 · 설정 · 약관 · 업적)에서 이어진다 —
+	// 찾는 중에 위의 하트 · 설정을 눌렀다고 대기가 사라지지 않게. 그 화면에도 아래 대기 막대를 띄워 매칭되면 이동한다고 미리 알린다.
+	// 쓰던 글이 있는 화면(편지 쓰기 · 답장 · 문의 · 삭제 요청 · 뱃지 제출)과 다른 대화방 · 편지 읽기는 예고 없이 빠져나가면 안 되므로 멈춘다.
+	// 매칭으로 대화방에 갈 때는 찾기가 이미 끝나 있다.
+	const keepSeeking = $derived(showTabs || /^\/(activity|notices\/\d+|settings(\/(terms|privacy|policy))?|me\/achievements)\/?$/.test(path));
 	$effect(() => {
-		if (seeker.seeking && !showTabs) untrack(() => {
+		if (seeker.seeking && !keepSeeking) untrack(() => {
 			seeker.cancel();
 			toast('다른 화면으로 이동해서 상대 찾기를 멈췄어요');
 		});
+	});
+	// 찾는 동안 — 화면이 저절로 꺼져 대기에서 빠지지 않게 켜 두고(lib/wakeLock), 다른 앱에 다녀오면 그동안은 못 찾았다고 알린다.
+	// 앱이 안 보이는 동안은 서버에 묻지 않아(PollSeeker) 서버 풀에서 빠지는 시간(seek_ttl_sec 기본 15초)이 지나면 대기가 비어 있었다.
+	$effect(() => {
+		if (!seeker.seeking) return;
+		const release = untrack(holdScreenOn);
+		let hiddenAt = 0;
+		const onVis = () => {
+			if (document.visibilityState === 'hidden') hiddenAt = Date.now();
+			else if (hiddenAt) {
+				if (Date.now() - hiddenAt > SEEK_AWAY_MS) toast('앱을 나가 있는 동안은 상대를 찾지 못했어요 · 다시 찾고 있어요');
+				hiddenAt = 0;
+			}
+		};
+		document.addEventListener('visibilitychange', onVis);
+		return () => {
+			release();
+			document.removeEventListener('visibilitychange', onVis);
+		};
 	});
 	const onLetters = $derived(path === '/letters');
 	const onChat = $derived(path === '/');
@@ -104,8 +130,9 @@
 
 {@render children()}
 
-{#if seeker.seeking && showTabs && !onChat}
-	<aside class="matching-bar" aria-label="매칭 대기">
+{#if seeker.seeking && keepSeeking && !onChat}
+	{#if !showTabs}<div class="matching-pad" aria-hidden="true"></div>{/if}
+	<aside class="matching-bar" class:no-tabs={!showTabs} aria-label="매칭 대기">
 		<a href="/" class="matching-status"><span class="matching-dot" aria-hidden="true"></span><span>상대 찾는 중 <span class="num muted">{elapsed}</span><small>연결되면 대화방으로 이동해요</small></span></a>
 		<button class="u-tap" onclick={() => seeker.cancel()}>그만 찾기</button>
 	</aside>
@@ -173,4 +200,9 @@
 	.matching-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--accent); }
 	.matching-bar button { min-height: 44px; flex: none; color: var(--accent); font-weight: 700; }
 	.matching-space { height: calc(var(--tabbar-h) + 84px); }
+	/* 탭바가 없는 화면(알림 · 설정 …) — 화면 맨 아래에 붙이고, 내용 끝이 막대에 가려지지 않게 그만큼 비운다 */
+	.matching-bar.no-tabs { bottom: calc(env(safe-area-inset-bottom) + 12px); }
+	.matching-pad { flex: none; height: calc(env(safe-area-inset-bottom) + 92px); }
+	/* 키보드가 떠 있으면 입력칸을 가리지 않게 숨긴다 (찾기는 이어진다) */
+	:global(html.kb-open) .matching-bar, :global(html.kb-open) .matching-pad { display: none; }
 </style>

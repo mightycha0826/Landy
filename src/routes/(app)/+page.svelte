@@ -5,11 +5,12 @@
 	import { page } from '$app/state';
 	import Avatar from '$lib/ui/Avatar.svelte';
 	import { INBOX, type InboxRoom } from '$lib/inbox.svelte';
-	import { S, UI, toast } from '$lib/state.svelte';
+	import { S, UI, retryAccount, toast } from '$lib/state.svelte';
 	import { touring } from '$lib/tour.svelte';
 	import { MATCHING_CONTEXT, type Matching } from '$lib/matching';
 	import { isRestricted } from '$lib/restriction';
 	import { mmss } from '$lib/time';
+	import { canHoldScreen } from '$lib/wakeLock';
 	import { scrollBehavior } from '$lib/motion';
 	import TopbarMe from '$lib/ui/TopbarMe.svelte';
 	import PushAsk from '$lib/ui/PushAsk.svelte';
@@ -103,6 +104,13 @@
 
 	const elapsed = $derived(seeker.seeking ? mmss(Math.floor((S.now - seeker.since) / 1000)) : '');
 
+	let retrying = $state(false);
+	async function retryRooms() {
+		if (retrying) return;
+		retrying = true;
+		try { await inbox.load(); } finally { retrying = false; }
+		if (inbox.failed) toast('아직 연결되지 않았어요');
+	}
 </script>
 
 <div class="topbar">
@@ -152,7 +160,19 @@
 			<i></i><i></i><i></i>
 			<span class="me-ring"><Avatar name={S.profile?.nickname ?? '나'} size={96} /></span>
 		</div>
-	{:else if inbox.loaded}
+	{:else if !inbox.loaded && inbox.failed}
+		<!-- 대화 목록을 한 번도 못 불러왔다 — 빈 홈("오늘은 누구와…")으로 보이지 않게 이유와 다시 시도 (UX G4) -->
+		<div class="load-fail" role="alert">
+			<p><strong>대화 목록을 불러오지 못했어요</strong><span class="muted">인터넷 연결을 확인하고 다시 시도해 주세요</span></p>
+			<button class="btn-ghost" onclick={retryRooms} disabled={retrying} aria-busy={retrying}>{retrying ? '불러오는 중…' : '다시 시도'}</button>
+		</div>
+	{:else if !inbox.loaded}
+		<!-- 처음 불러오는 중 — 대화 줄 모양의 빈 자리 -->
+		<div class="rooms-skeleton" aria-hidden="true">
+			{#each [0, 1] as i (i)}<div class="sk-row"><i class="skeleton sk-av"></i><span><i class="skeleton sk-t"></i><i class="skeleton sk-b"></i></span></div>{/each}
+		</div>
+		<span class="sr-only" role="status">불러오는 중…</span>
+	{:else}
 		<!-- 빈 홈 (Phase 44) — 숫자(10:00) 대신 말을 건네는 두 말풍선. 시간 규칙은 처음 사용법 안내(튜토리얼)가 알려 준다 -->
 		<div class="hero" in:surface={{ y: 14, scale: 1 }}>
 			<div class="orb" aria-hidden="true"></div>
@@ -186,7 +206,7 @@
 						{:else if seeker.reason === 'filtered'}
 							지금 찾는 사람들과는 조건이 맞지 않아요
 						{:else if seeker.reason === 'empty'}
-							지금은 찾는 사람이 없어요. 화면을 켜 두면 계속 찾아요
+							지금은 찾는 사람이 없어요. {canHoldScreen() ? '찾는 동안 화면을 켜 둘게요' : '화면을 켜 두면 계속 찾아요'}
 						{:else}
 							잠시만요…
 						{/if}
@@ -195,7 +215,11 @@
 				<button class="stop" onclick={() => seeker.cancel()}>그만</button>
 			</div>
 		{:else if profileMissing}
-			<button class="btn" disabled>계정 정보를 불러오지 못함 · 잠시 후 다시 열어 주세요</button>
+			<!-- 계정 정보를 못 불러왔다 — 앱을 껐다 켜지 않아도 되게 여기서 다시 시도 (UX G4) -->
+			<div class="load-fail" role="alert">
+				<p><strong>계정 정보를 불러오지 못했어요</strong><span class="muted">인터넷 연결을 확인하고 다시 시도해 주세요</span></p>
+				<button class="btn-ghost" onclick={() => void retryAccount()}>다시 시도</button>
+			</div>
 		{:else if closed}
 			<button class="btn" disabled>지금은 열려 있지 않아요</button>
 		{:else if suspended}
@@ -234,6 +258,17 @@
 <PushAsk bind:open={askPush} />
 
 <style>
+	.load-fail { display: flex; flex-direction: column; align-items: center; gap: 12px; margin: auto 0; padding: 24px 16px; text-align: center; }
+	.load-fail p { display: flex; flex-direction: column; gap: 4px; margin: 0; font-size: 15px; }
+	.load-fail .muted { font-size: 13px; }
+	.load-fail button { width: auto; min-height: 44px; height: 44px; padding: 0 24px; }
+	.cta .load-fail { margin: 0; padding: 12px; border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-1); }
+	.rooms-skeleton { display: flex; flex-direction: column; gap: 10px; padding-top: 34px; }
+	.sk-row { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: var(--r-md); background: var(--surface); }
+	.sk-row span { display: flex; flex: 1; flex-direction: column; gap: 8px; }
+	.sk-av { width: 52px; height: 52px; border-radius: 50%; }
+	.sk-t { width: 40%; height: 14px; }
+	.sk-b { width: 65%; height: 12px; }
 	.bot-choice { padding: 12px; margin-bottom: 8px; border-radius: 16px; background: var(--cell); }
 	.bot-choice p { margin: 0 0 8px; font-size: 13px; line-height: 1.5; }
 	.bot-choice button { width: 100%; min-height: 44px; }

@@ -2,7 +2,7 @@ import { ROOT, CHROME } from './_env.mjs';
 import { spawn, stopProcess } from './_process.mjs';
 import { chromium } from 'playwright-core';
 // 사용 흐름이 말없이 끊기지 않는지 (Phase 39 · docs/UX-GUIDELINES.md) — 가짜 Supabase 를 브라우저 가로채기로
-//  · 로그인 직후 "계정 정보를 불러오지 못함"이 번쩍이지 않는다
+//  · 로그인 직후 "계정 정보를 불러오지 못했어요"가 번쩍이지 않는다
 //  · 찾기 20초 뒤 저절로 뜬 대화 봇을 닫아도(버튼 · 뒤로가기), 끝난 대화에서 "새 대화 찾기"로 와도 찾기가 이어진다
 //  · 대화방을 열다 네트워크가 끊기면 쫓아내지 않고 그 자리에서 "다시 시도"
 //  · 공지 하나를 열면 그 공지까지만 본 것으로
@@ -36,7 +36,7 @@ async function open(opts = {}) {
 	const page = await ctx.newPage();
 	const log = [];
 	const errs = []; page.on('pageerror', (e) => errs.push(String(e)));
-	const st = { flakyFails: opts.flakyFails ?? 0, marks: [] };
+	const st = { flakyFails: opts.flakyFails ?? 0, marks: [], roomsDown: !!opts.roomsDown };
 	await page.route('https://fake-proj.supabase.co/**', async (route) => {
 		const req = route.request(); const u = new URL(req.url()); const p = u.pathname;
 		log.push(p.replace('/rest/v1/', ''));
@@ -45,6 +45,7 @@ async function open(opts = {}) {
 		if (p === '/auth/v1/token') return json(session);
 		if (p.startsWith('/auth/v1/')) return json({});
 		if (p.endsWith('rpc/my_account')) return json({ has_password: true });
+		if (p.endsWith('rpc/my_rooms') && st.roomsDown) return route.abort('internetdisconnected');
 		if (p.endsWith('rpc/my_rooms')) return json({ rooms: [room(LIVE, '새벽수달'), room(ENDED, '끝난고래'), room(FLAKY, '느린거북')], server_now: iso() });
 		if (p.endsWith('rpc/my_notices')) return json({ notices: [{ id: 3, title: '세 번째 공지', body: '본문', created_at: iso(-60) }, { id: 2, title: '두 번째 공지', body: '본문', created_at: iso(-3600) }], last_seen: 1 });
 		if (p.endsWith('rpc/mark_notices_seen')) { st.marks.push(body().p_id); return json(body().p_id); }
@@ -87,11 +88,25 @@ try {
 		let flashed = false;
 		await login(page, async () => {
 			for (let i = 0; i < 40; i++) {
-				if ((await page.locator('body').innerText().catch(() => '')).includes('계정 정보를 불러오지 못함')) flashed = true;
+				if ((await page.locator('body').innerText().catch(() => '')).includes('계정 정보를 불러오지 못했어요')) flashed = true;
 				await page.waitForTimeout(60);
 			}
 		});
-		check('★ 프로필을 불러오는 동안 "계정 정보를 불러오지 못함"이 번쩍이지 않는다', !flashed);
+		check('★ 프로필을 불러오는 동안 "계정 정보를 불러오지 못했어요"가 번쩍이지 않는다', !flashed);
+		await ctx.close();
+	}
+
+	console.log('[대화 목록을 못 불러오면]');
+	{
+		const { ctx, page, st } = await open({ roomsDown: true });
+		await login(page);
+		const failText = page.getByText('대화 목록을 불러오지 못했어요');
+		await failText.waitFor({ timeout: 10000 });
+		check('★ 목록을 못 불러오면 빈 홈 대신 이유와 다시 시도를 보인다', await page.getByRole('button', { name: '다시 시도' }).isVisible() && !(await page.getByText('오늘은 누구와 이야기할까요').count()));
+		st.roomsDown = false;
+		await page.getByRole('button', { name: '다시 시도' }).click();
+		await page.getByText('새벽수달').first().waitFor({ timeout: 10000 });
+		check('다시 시도하면 그 자리에서 목록을 그린다', !(await failText.count()));
 		await ctx.close();
 	}
 

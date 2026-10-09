@@ -44,6 +44,8 @@ const MIN_REFRESH_MS = 3000;
 class Inbox {
 	rooms = $state<InboxRoom[]>([]);
 	loaded = $state(false);
+	/** 마지막으로 불러오기에 실패했다 — 아직 한 번도 못 불러왔으면 홈이 "다시 시도"를 보인다 (UX G4: 오류를 빈 화면으로 두지 않는다) */
+	failed = $state(false);
 	/** serverNow - clientNow (ms) — 남은 시간 표시용 */
 	skew = $state(0);
 	/** 마지막으로 불러온 서버 시각 (ms) — 멈춘 방의 남은 시간 계산용 */
@@ -78,6 +80,7 @@ class Inbox {
 		this.#lastLoad = 0;
 		this.rooms = [];
 		this.loaded = false;
+		this.failed = false;
 		this.skew = this.serverAt = 0;
 		this.#seen = null;
 		this.#signature = '';
@@ -126,7 +129,12 @@ class Inbox {
 		const token = accountToken();
 		const request = ++this.#request;
 		const { data, error } = await supabase.rpc('my_rooms');
-		if (!accountIsCurrent(token) || request !== this.#request || this.#stopped || error || !data) return;
+		if (!accountIsCurrent(token) || request !== this.#request || this.#stopped) return;
+		if (error || !data) {
+			this.failed = true;
+			return;
+		}
+		this.failed = false;
 		const res = data as { rooms: InboxRoom[]; server_now: string };
 		this.skew = Date.parse(res.server_now) - Date.now();
 		this.serverAt = Date.parse(res.server_now);
