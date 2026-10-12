@@ -895,4 +895,5 @@ node scripts/dev-user.mjs simbun-test3@cnsa.hs.kr 비밀번호 m      # 성별�
       품격위원(`pumgyeok`, `Pumgyeok.svelte` — 구름 모양 두 칸 · 굵은 금 테 · 도드라진 금 글자 "品格", 획을 하나씩 그린다).
       CNSA 탭 순서는 극작소 뒤로 (sort 61 · 62 · 63). DB 는 `achievement_defs` 세 줄 (`schema.sql` Phase 70 의 insert ·
       실DB 는 `supabase/migrations/20261012120000_cnsa_badges_phase90.sql`, 여러 번 실행해도 같다). 스키마 테스트 [94] · 화면 achievements.
+      실DB 반영 2026-10-12 (phase90_cnsa_badges_library_1500m_pumgyeok — CNSA 일곱 · 업적 정의 32종 확인).
 - [ ] Phase 7 — (보류) Durable Object 전송 계층. 학술탐구 큐 · 벤치는 별도 저장소(serverless-log-queue)에서 진행하고, 앱 적용 여부는 실험 결과를 본 뒤 따로 정한다.
