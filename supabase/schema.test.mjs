@@ -2444,7 +2444,7 @@ console.log('\n[78] 업적 — 카운터 · 동/은/금 · 대표 업적 (Phase 
 	const openRoom = async (x, y) => (await one(`select private.dev_open_room($1, $2, 10) as id`, [x.email, y.email])).id;
 	const say = async (room, seat) => (await one(`insert into public.messages (room_id, sender_seat, body, client_msg_id) values ($1, $2, '안녕', gen_random_uuid()) returning id`, [room, seat])).id;
 
-	check('카탈로그 29종 (Phase 44 베타 테스터 · Phase 70 극작소 · Phase 71 CNSA 뱃지 셋 포함)', Number((await one('select count(*) n from private.achievement_defs')).n) === 29);
+	check('카탈로그 32종 (Phase 44 베타 테스터 · Phase 70 극작소 · Phase 71 · 90 CNSA 뱃지 셋씩 포함)', Number((await one('select count(*) n from private.achievement_defs')).n) === 32);
 
 	console.log('  [대화]');
 	let room = await openRoom(A, B);
@@ -2529,7 +2529,7 @@ console.log('\n[78] 업적 — 카운터 · 동/은/금 · 대표 업적 (Phase 
 	console.log('  [보이는 곳]');
 	const mine = await rpcAs(A.id, 'my_achievements');
 	const ext = mine.items.find((x) => x.code === 'extend');
-	check('★ 내 업적: 29종 · 진행도 · 등급 · 새로 딴 것', mine.items.length === 29 && ext.tier === 2 && ext.value === 0 && JSON.stringify(ext.tiers) === '[5,20,50]' && ext.new === true, JSON.stringify(ext));
+	check('★ 내 업적: 32종 · 진행도 · 등급 · 새로 딴 것', mine.items.length === 32 && ext.tier === 2 && ext.value === 0 && JSON.stringify(ext.tiers) === '[5,20,50]' && ext.new === true, JSON.stringify(ext));
 	check('개척자는 가입 순서 (작을수록 좋음)', mine.items.find((x) => x.code === 'pioneer').lower_better === true);
 	check('대표 업적은 자동으로 높은 등급부터 3개', mine.featured.length === 3 && mine.featured.every((x, i, a) => i === 0 || a[i - 1].tier >= x.tier), JSON.stringify(mine.featured));
 	check('새 업적 목록', (await rpcAs(A.id, 'new_achievements')).length > 0);
@@ -2836,7 +2836,7 @@ console.log('\n[84] 특별 업적(베타 테스터) · 업적 카탈로그 · �
 	// 카탈로그 — 누구나(로그인한 학생) 설명 · 기준을 본다
 	const cat = await rpcAs(X, 'achievement_catalog');
 	const beta = cat.find((d) => d.code === 'beta');
-	check('★ 카탈로그: 29종 · 설명 · 등급 기준 · 베타 테스터는 운영진이 주는 업적', cat.length === 29 && beta?.granted === true && beta.title === '베타 테스터'
+	check('★ 카탈로그: 32종 · 설명 · 등급 기준 · 베타 테스터는 운영진이 주는 업적', cat.length === 32 && beta?.granted === true && beta.title === '베타 테스터'
 		&& JSON.stringify(cat.find((d) => d.code === 'extend').tiers) === '[5,20,50]' && cat.find((d) => d.code === 'extend').granted === false, JSON.stringify(beta));
 	await expectError('비로그인은 카탈로그를 못 본다', () => rowsAs(null, 'select public.achievement_catalog()'), 'permission denied');
 	check('내 업적에도 granted 가 온다 (아직 없음)', (await rpcAs(X, 'my_achievements')).items.find((a) => a.code === 'beta')?.granted === true
@@ -3299,10 +3299,12 @@ console.log('\n[94] CNSA 뱃지 셋 · 운영자 뱃지 화면 — 여러 명에
 	check('★ 카탈로그에 CNSA 뱃지 · MSMP 우수 금뱃지 · Beatus — CNSA 분류 · 운영진이 준다',
 		['cnsa_student', 'msmp_gold', 'club_beatus'].every((c) => pick(c)?.category === 'cnsa' && pick(c).granted === true)
 		&& pick('cnsa_student').title === 'CNSA 뱃지' && pick('msmp_gold').title === 'MSMP 우수 금뱃지' && pick('club_beatus').description === 'IT 동아리 Beatus의 뱃지');
-	check('CNSA 탭 순서: CNSA · MSMP · Beatus · 극작소', cat.filter((d) => d.category === 'cnsa').map((d) => d.code).join() === 'cnsa_student,msmp_gold,club_beatus,club_geukjakso');
+	check('CNSA 탭 순서: CNSA · MSMP · Beatus · 극작소 · 도서부 · 1500m 인증제 · 품격위원', cat.filter((d) => d.category === 'cnsa').map((d) => d.code).join() === 'cnsa_student,msmp_gold,club_beatus,club_geukjakso,club_library,cert_1500m,pumgyeok');
+	check('★ 도서부 · 1500m 인증제 · 품격위원 — CNSA 분류 · 운영진이 준다 (Phase 90)', ['club_library', 'cert_1500m', 'pumgyeok'].every((c) => pick(c)?.category === 'cnsa' && pick(c).granted === true)
+		&& pick('club_library').title === '도서부' && pick('cert_1500m').title === '1500m 인증제' && pick('pumgyeok').title === '품격위원');
 
 	const list = await svc('admin_badges', mod);
-	check('★ 뱃지 목록: 줄 수 있는 것만 (베타 테스터 + CNSA 넷) · 가진 사람 수', list.map((b) => b.code).join() === 'beta,cnsa_student,msmp_gold,club_beatus,club_geukjakso'
+	check('★ 뱃지 목록: 줄 수 있는 것만 (베타 테스터 + CNSA 일곱) · 가진 사람 수', list.map((b) => b.code).join() === 'beta,cnsa_student,msmp_gold,club_beatus,club_geukjakso,club_library,cert_1500m,pumgyeok'
 		&& list.every((b) => typeof b.holders === 'number' && b.category), JSON.stringify(list.map((b) => [b.code, b.holders])));
 	const before = list.find((b) => b.code === 'club_beatus').holders;
 	check('★ 여러 명에게 한 번에 주기 — 바뀐 수', (await svc('admin_set_badge_many', mod, 'club_beatus', [X, Y, X], true)) === 2);
@@ -3667,7 +3669,7 @@ console.log('\n[100] 마이그레이션과 스키마 snapshot 일치');
 	const defs = async () => (await db.query("select n.nspname || '.' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' name, pg_get_functiondef(p.oid) body from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.prokind='f' order by 1")).rows;
 	const before = JSON.stringify(await defs());
 	// 운영에 적용한 순서대로 다시 실행하면 snapshot과 같아야 한다 (뒤 마이그레이션이 앞의 함수를 고쳐 쓴다)
-	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql'])
+	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql'])
 		await db.exec(readFileSync(here + 'migrations/' + file, 'utf8'));
 	check('업그레이드 마이그레이션의 함수가 snapshot과 같음', JSON.stringify(await defs()) === before);
 }

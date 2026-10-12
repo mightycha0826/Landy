@@ -6020,7 +6020,11 @@ alter table private.achievement_defs add constraint achievement_defs_category_ch
   check (category in ('chat', 'manner', 'letter', 'special', 'cnsa'));
 
 insert into private.achievement_defs (code, title, description, icon, category, stat, unit, bronze, silver, gold, lower_better, sort, granted) values
-  ('club_geukjakso', '극작소', '연극 동아리 극작소 부원', '🎬', 'cnsa', 'club_geukjakso', '', 1, 1, 1, false, 60, true)
+  ('club_geukjakso', '극작소', '연극 동아리 극작소 부원', '🎬', 'cnsa', 'club_geukjakso', '', 1, 1, 1, false, 60, true),
+  -- Phase 90 — 도서부(동아리라 club_ · 기장 제출) · 1500m 인증제 · 품격위원
+  ('club_library', '도서부',       '도서부 부원',                                '📚', 'cnsa', 'club_library', '', 1, 1, 1, false, 61, true),
+  ('cert_1500m',   '1500m 인증제', '1500m 인증제를 통과한 학생에게 주는 뱃지',   '🏃', 'cnsa', 'cert_1500m',   '', 1, 1, 1, false, 62, true),
+  ('pumgyeok',     '품격위원',     '품격위원으로 활동하는 학생에게 주는 뱃지',   '🎖️', 'cnsa', 'pumgyeok',     '', 1, 1, 1, false, 63, true)
 on conflict (code) do update
   set title = excluded.title, description = excluded.description, icon = excluded.icon, category = excluded.category,
       stat = excluded.stat, unit = excluded.unit, bronze = excluded.bronze, silver = excluded.silver, gold = excluded.gold,

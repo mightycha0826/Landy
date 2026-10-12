@@ -889,4 +889,10 @@ node scripts/dev-user.mjs simbun-test3@cnsa.hs.kr 비밀번호 m      # 성별�
       익명편지(우체통 · 보관함 · 편지 쓰기 · 버리기 · 차단 · 신고, 편지가 열려 있을 때만 · 알림에서 편지를 꺼내러 왔을 때는 미룬다).
       CNSA 뱃지 안내는 이제 축하 창 뒤 · 업적 화면에서 저절로 뜨지 않는다 (업적 화면 CNSA 탭 · 설정 › 뱃지에서 다시). 비출 자리가 화면 밖이면 끌어오고, 자리가 커서
       카드가 위아래에 안 들어가면 화면 아래에 겹쳐 놓는다. 설정 › "사용법 다시 보기"는 세 안내를 모두 처음부터. e2e back (순서 · 프로필 · 익명편지 안내 22개 추가) · letters.
+- [x] **Phase 90 — CNSA 뱃지 셋 더: 도서부 · 1500m 인증제 · 품격위원** — 실제 핀 사진을 격자에 대고 잰 그림 (`lib/ui/pins`):
+      도서부(`club_library`, `Library.svelte` — 마름모 판 · 금 테 · 파란 에나멜에 펼친 책 · 흰 "CNSA", 동아리라 학생 제출은 기장 제출로) ·
+      1500m 인증제(`cert_1500m`, `Ssc1500.svelte` — 은판 · 이름표 칸 "CNSA" · 큰 "S_S_C_", 각진 글자는 글꼴 대신 막대로) ·
+      품격위원(`pumgyeok`, `Pumgyeok.svelte` — 구름 모양 두 칸 · 굵은 금 테 · 도드라진 금 글자 "品格", 획을 하나씩 그린다).
+      CNSA 탭 순서는 극작소 뒤로 (sort 61 · 62 · 63). DB 는 `achievement_defs` 세 줄 (`schema.sql` Phase 70 의 insert ·
+      실DB 는 `supabase/migrations/20261012120000_cnsa_badges_phase90.sql`, 여러 번 실행해도 같다). 스키마 테스트 [94] · 화면 achievements.
 - [ ] Phase 7 — (보류) Durable Object 전송 계층. 학술탐구 큐 · 벤치는 별도 저장소(serverless-log-queue)에서 진행하고, 앱 적용 여부는 실험 결과를 본 뒤 따로 정한다.
