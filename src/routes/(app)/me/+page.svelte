@@ -183,24 +183,24 @@
 </script>
 
 <!-- 머리글은 다른 탭(익명편지 · 채팅)과 같은 높이 · 같은 자리 — 탭을 바꿔도 위쪽이 움직이지 않게 (Phase 35) -->
-<div class="topbar">
-	<span class="title display">내 프로필</span>
+<div class="topbar root">
+	<h1 class="title">프로필</h1>
 	<TopbarMe />
 </div>
 
 <div class="page grouped me">
 	{#if S.profile?.nickname}
-		<!-- 이름 카드 — 낮게 (Phase 60): 표지 위에 아바타 · 이름 · 업적 수, 그 아래 매너 온도 -->
+		<!-- 나 — 얼굴 · 이름 · 업적 수 줄(누르면 업적 전체), 아래 회색 카드에 매너 온도 -->
 		<section class="who">
-			<div class="cover" aria-hidden="true"></div>
-			<div class="head">
-				<span class="who-ring"><Avatar name={S.profile.nickname} size={60} online /></span>
-				<p class="nick">{S.profile.nickname}</p>
-				{#if fame}
-					<a class="ach-link" href="/me/achievements" aria-label="업적 {earned}개 · 전체 보기"><span class="num">업적 {earned}/{fame.items.length}</span> ›</a>
-				{/if}
-			</div>
-			<div class="temp"><MannerTemp temp={S.profile.manner_temp} /></div>
+			<a class="list-row tall" href="/me/achievements" aria-label="{S.profile.nickname}{fame ? `, 업적 ${earned}/${fame.items.length} · 전체 보기` : ''}">
+				<Avatar name={S.profile.nickname} size={64} online />
+				<span class="lr-mid">
+					<span class="nick">{S.profile.nickname}</span>
+					{#if fame}<span class="lr-sub num">업적 {earned}/{fame.items.length}</span>{/if}
+				</span>
+				<svg class="lr-chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+			</a>
+			<div class="g-card temp"><MannerTemp temp={S.profile.manner_temp} /></div>
 		</section>
 	{/if}
 
@@ -242,7 +242,7 @@
 			aria-labelledby="bio-h"
 			placeholder="한 줄로 나를 소개해 주세요 (예: 밴드 음악 좋아해요)"
 		></textarea>
-		<span class="count muted num">{bio.trim().length}/60</span>
+		<span class="bio-count muted num">{bio.trim().length}/60</span>
 	</div>
 
 	<h2 class="g-head">관심사 <span class="num">{interests.length}/5</span></h2>
@@ -273,11 +273,6 @@
 		{/each}
 	</div>
 
-	{#if dirty}<button class="btn ghost" onclick={discardProfileDraft} disabled={busy}>수정 내용 버리기</button>{/if}
-	<button aria-busy={busy} class="btn save" onclick={saveInfo} disabled={!dirty || busy}>
-		{busy ? '저장 중…' : dirty ? '저장' : '저장됨'}
-	</button>
-
 	<h2 class="g-head" id="want-h">이런 사람과 이야기할래요</h2>
 	<div class="g-card" role="radiogroup" aria-labelledby="want-h">
 		{#each WANTS as w (w.v)}
@@ -292,84 +287,46 @@
 			</button>
 		{/each}
 	</div>
+	<!-- 고친 것이 있을 때만 하단 영역에 되돌리기 · 저장 (주 버튼은 하나) -->
+	{#if dirty || busy}
+		<div class="dock-action">
+			<div class="pair">
+				<button class="btn-ghost" onclick={discardProfileDraft} disabled={busy}>되돌리기</button>
+				<button aria-busy={busy} class="btn" onclick={saveInfo} disabled={busy}>{busy ? '저장 중' : '저장'}</button>
+			</div>
+		</div>
+	{/if}
 </div>
 
 <style>
 	.me {
-		padding-bottom: 32px; /* 아래쪽 안전영역은 탭바가 맡는다 */
+		padding-bottom: 0; /* 아래쪽 안전영역은 탭바가 맡는다 */
 	}
 
-	/* 맨 위 — 낮은 이름 카드 (Phase 60): 브랜드색 표지에 걸친 아바타 · 표지 위 이름 · 업적 수, 아래 매너 온도 */
+	/* 맨 위 — 얼굴 · 이름 줄(72) + 매너 온도 회색 카드 */
 	.who {
-		position: relative;
 		display: flex;
 		flex-direction: column;
-		margin: 4px 16px 0;
-		padding: 10px 16px 14px;
-		border-radius: var(--r-card);
-		background: var(--cell);
-		box-shadow: var(--shadow-1);
-		overflow: hidden;
+		gap: 8px;
 	}
-	.cover {
-		position: absolute;
-		inset: 0 0 auto;
-		height: 56px;
-		background:
-			radial-gradient(60% 120% at 20% 0%, rgb(255 255 255 / 0.35), transparent 60%),
-			var(--brand);
-	}
-	.head {
-		position: relative;
-		display: flex;
-		align-items: flex-start;
-		gap: 12px;
-	}
-	.who-ring {
-		flex: none;
-		padding: 4px;
-		border-radius: 50%;
-		background: var(--cell);
-		box-shadow: var(--shadow-1);
+	.who a {
+		color: inherit;
+		text-decoration: none;
 	}
 	.nick {
-		flex: 1;
-		min-width: 0;
-		margin: 8px 0 0;
 		overflow: hidden;
-		color: #fff;
-		font-size: 22px;
-		font-weight: 650;
-		letter-spacing: -0.04em;
+		font-size: 20px;
+		line-height: 28px;
+		font-weight: 600;
+		letter-spacing: -0.01em;
 		white-space: nowrap;
 		text-overflow: ellipsis;
-		text-shadow: 0 1px 6px rgb(0 0 0 / 0.18);
-	}
-	/* 업적 전체 — 표지 오른쪽 (누름 높이 44) */
-	.ach-link {
-		flex: none;
-		display: inline-flex;
-		align-items: center;
-		min-height: 44px;
-		margin: -4px -6px 0 0;
-		padding: 0 6px;
-		color: #fff;
-		font-size: 13px;
-		font-weight: 600;
-		text-decoration: none;
-		text-shadow: 0 1px 6px rgb(0 0 0 / 0.18);
-	}
-	.ach-link:active {
-		opacity: 0.6;
 	}
 	.who .temp {
-		display: flex;
-		justify-content: center;
-		width: 100%;
-		margin-top: 6px;
+		padding: 14px 16px;
 	}
 	.dress {
-		margin: 14px 16px 0;
+		margin: 14px 0 0;
 	}
 	/* 메달 자세히(BadgeDetail) 아래 */
 	.feat {
@@ -409,7 +366,7 @@
 	.area::placeholder {
 		color: var(--text-2);
 	}
-	.count {
+	.bio-count {
 		align-self: flex-end;
 		font-size: 12px;
 	}
@@ -479,9 +436,10 @@
 	.chip.none {
 		grid-column: 1 / -1;
 	}
+	/* 고른 것 — primary */
 	.chip.on {
-		background: var(--text);
-		color: var(--bg);
+		background: var(--primary);
+		color: var(--on-primary);
 		font-weight: 600;
 	}
 	/* "안 적을래요"는 고르지 않은 상태 — 카드 폭 가득한 검은 막대가 화면에서 가장 무겁게 보이지 않게 테두리로만 (Phase 40) */
@@ -491,10 +449,14 @@
 		box-shadow: inset 0 0 0 1.5px var(--text);
 	}
 
-	.save {
-		margin-top: 18px;
-		height: 50px;
-		border-radius: 16px;
-		font-size: 16px;
+	.me .dock-action {
+		margin: 24px 0 0;
+	}
+	.pair {
+		display: flex;
+		gap: 8px;
+	}
+	.pair > * {
+		flex: 1;
 	}
 </style>

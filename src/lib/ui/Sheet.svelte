@@ -110,9 +110,7 @@
 		justify-content: center;
 		/* 아이폰은 키보드가 시트 아래를 가린다 — 그만큼 올려서 신고 메모 · 버튼이 키보드 위에 (Phase 41) */
 		padding-bottom: var(--kb, 0px);
-		background: rgb(14 6 9 / 0.48);
-		-webkit-backdrop-filter: blur(3px);
-		backdrop-filter: blur(3px);
+		background: rgb(0 0 0 / 0.42);
 	}
 	/* 아래에서 튀어 오르는 둥근 판 — 위에 손잡이 */
 	.sheet {
@@ -121,7 +119,7 @@
 		max-width: 520px;
 		max-height: calc(var(--vvh, 100dvh) * 0.92);
 		overflow-y: auto;
-		padding: 22px 0 calc(10px + env(safe-area-inset-bottom));
+		padding: 28px 0 calc(16px + env(safe-area-inset-bottom));
 		border-radius: 28px 28px 0 0;
 		background: var(--surface);
 		box-shadow: var(--shadow-2);
@@ -152,37 +150,64 @@
 		height: 5px;
 		margin-left: -20px;
 		border-radius: 999px;
-		background: var(--line);
+		background: var(--track);
 	}
+	/* 시트 버튼 — 회색 면(모서리 16) · 54px. 줄 사이 8. 삭제는 빨간 면이 아니라 회색 면에 빨간 글자 */
 	.sheet :global(.item) {
 		display: block;
-		width: 100%;
+		width: calc(100% - 2 * var(--pad));
 		height: 54px;
+		margin: 8px var(--pad) 0;
+		border-radius: var(--r-md);
+		background: var(--row);
 		font-size: 16px;
 		font-weight: 600;
-		border-top: 1px solid var(--line);
-		transition: background 0.15s;
+		transition:
+			transform var(--dur-release) var(--ease-spring-ui),
+			filter var(--dur-press) var(--ease-squish);
 	}
 	.sheet :global(.item:active:not(:disabled)) {
-		background: var(--field);
+		transform: scale(0.97);
+		filter: brightness(var(--brightness-press));
+		transition-duration: var(--dur-press);
 	}
 	.sheet :global(.item:first-child),
 	.grab + :global(.item) {
-		border-top: 0;
+		margin-top: 0;
 	}
 	.sheet :global(.item.danger) {
 		color: var(--danger);
-		font-weight: 600;
 	}
 	.sheet :global(.item:disabled) {
 		opacity: 0.4;
 	}
+	/* 확인 시트 — 묻는 글 아래 버튼 둘(실행 · 취소)을 나란히, 취소가 왼쪽 */
+	.sheet:has(> :global(.warn:not(.left)), > :global(.ask)) {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		column-gap: 8px;
+		padding-inline: var(--pad);
+	}
+	.sheet:has(> :global(.warn:not(.left)), > :global(.ask)) > :global(*) {
+		grid-column: 1 / -1;
+	}
+	.sheet:has(> :global(.warn:not(.left)), > :global(.ask)) > :global(.item) {
+		grid-column: auto;
+		grid-row: 99;
+		width: 100%;
+		margin: 8px 0 0;
+	}
+	.sheet:has(> :global(.warn:not(.left)), > :global(.ask)) > :global(.item:last-child) {
+		order: -1;
+	}
+	/* 시트의 묻는 글 — 제목 크기(20 · 600), 가운데 */
 	.sheet :global(.warn) {
-		margin: 8px var(--pad) 12px;
+		margin: 4px var(--pad) 16px;
 		text-align: center;
-		font-size: 13px;
-		line-height: 1.6;
-		color: var(--text-2);
+		font-size: 17px;
+		line-height: 24px;
+		font-weight: 600;
+		color: var(--text);
 	}
 	.sheet :global(.warn.left) {
 		text-align: left;

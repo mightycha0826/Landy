@@ -779,12 +779,17 @@ a {
 	white-space: nowrap;
 }
 .topbar.ios .back {
-	margin: 0 auto 0 -4px;
-	width: 40px;
-	height: 40px;
+	margin: 0 auto 0 -10px;
+	width: 44px;
+	height: 44px;
 	border-radius: 50%;
-	background: var(--cell);
-	box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+	/* 면 없는 아이콘 버튼 — 누를 때만 옅은 원 */
+	transition: background var(--dur-2) var(--ease-out), transform var(--dur-release) var(--ease-spring-ui);
+}
+.topbar.ios .back:active {
+	background: var(--row);
+	transform: scale(0.95);
+	transition-duration: var(--dur-press);
 }
 .topbar.ios .back svg {
 	width: 22px;
@@ -1370,4 +1375,315 @@ html.kb-open .toasts {
 }
 .letter-paper .lp-body * {
 	line-height: inherit;
+}
+
+/* ── 포인트 디자인 시스템 · 구조 (design/structure) ─────────────────────────
+   화면 = 위쪽 제목(왼쪽 26px) · 가운데 목록 · 아래 하단 영역(주 버튼 54px + 탭 58px).
+   목록은 카드에 담지 않고 바탕 위에 바로 줄(.list-row)로, 묶음 머리(.section)는 왼쪽 이름 · 오른쪽 개수.
+   알림은 회색 면 위 색 아이콘(.notice), 목록이 비면 가운데 아이콘 원 + 제목 한 줄(.pt-empty) */
+
+/* 탭 첫 화면 제목 — 화면 제목(text-title)을 왼쪽에 */
+.topbar.root {
+	height: calc(64px + var(--safe-top));
+	background: var(--bg);
+	-webkit-backdrop-filter: none;
+	backdrop-filter: none;
+}
+.topbar.root .title {
+	font-size: 26px;
+	line-height: 34px;
+	font-weight: 650;
+	letter-spacing: -0.02em;
+}
+
+/* 하단 영역의 주 버튼 — 탭 바로 위, surface 면에 얹는다. 이 화면에서는 탭 위쪽 선을 지운다 (하단 영역이 한 덩어리) */
+.dock-action {
+	position: sticky;
+	bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+	z-index: 5;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: auto calc(-1 * var(--pad)) 0;
+	padding: 12px var(--pad) 8px;
+	background: var(--surface);
+	box-shadow: var(--shadow-dock);
+}
+body:has(.dock-action) .tabbar {
+	box-shadow: none;
+}
+
+/* 묶음 머리 — 왼쪽 이름(600) · 오른쪽 합계 */
+.section {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	margin: 24px 0 4px;
+}
+.section h2 {
+	margin: 0;
+	font-size: 17px;
+	line-height: 24px;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+.section > span {
+	color: var(--text-2);
+	font-size: 15px;
+	font-weight: 500;
+	font-variant-numeric: tabular-nums;
+}
+
+/* 목록 줄 — 아이콘 원 · 이름 · 둘째 줄 · 오른쪽 값. 높이 64 (얼굴이 크면 .tall 72) */
+.list-row {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	width: 100%;
+	min-height: 64px;
+	padding: 8px 0;
+	text-align: left;
+	transition:
+		transform var(--dur-release) var(--ease-spring-ui),
+		filter var(--dur-press) var(--ease-squish);
+}
+.list-row.tall {
+	min-height: 72px;
+}
+.list-row:active:not(:disabled) {
+	transform: scale(0.99);
+	transition-duration: var(--dur-press);
+	transition-timing-function: var(--ease-squish);
+}
+.list-row .lr-icon {
+	flex: none;
+	display: grid;
+	place-items: center;
+	width: 44px;
+	height: 44px;
+	border-radius: 999px;
+	background: var(--row);
+	color: var(--primary-icon);
+}
+.list-row .lr-icon svg {
+	width: 22px;
+	height: 22px;
+}
+.list-row .lr-mid {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.list-row .lr-name {
+	font-size: 16px;
+	line-height: 24px;
+	font-weight: 550;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.list-row .lr-sub {
+	font-size: 13px;
+	line-height: 18px;
+	color: var(--text-2);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.list-row .lr-end {
+	flex: none;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 4px;
+	font-size: 13px;
+	color: var(--text-2);
+	font-variant-numeric: tabular-nums;
+}
+.list-row .lr-chev {
+	flex: none;
+	width: 8px;
+	height: 14px;
+	color: var(--control);
+}
+
+/* 숫자 배지 — 안 읽은 수. 20px 원형, primary 면에 흰 숫자 */
+.pt-count {
+	display: inline-grid;
+	place-items: center;
+	min-width: 20px;
+	height: 20px;
+	padding: 0 6px;
+	border-radius: 999px;
+	background: var(--primary);
+	color: var(--on-primary);
+	font-size: 12px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+/* 새 것 점 — 8px, point */
+.pt-dot {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 999px;
+	background: var(--point-mark);
+}
+
+/* 조용한 알림 — 회색 면(모서리 20) 위 색 아이콘 + 상태 한 줄. 오른쪽 버튼은 .notice-action */
+.notice-panel {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-height: 56px;
+	padding: 10px 12px 10px 16px;
+	border-radius: var(--r-card);
+	background: var(--row);
+	color: var(--text);
+	font-size: 15px;
+	font-weight: 600;
+	text-align: left;
+}
+.notice-panel > svg {
+	flex: none;
+	width: 22px;
+	height: 22px;
+	color: var(--primary-icon);
+}
+.notice-panel.warn > svg {
+	color: var(--point-icon);
+}
+.notice-panel.danger > svg {
+	color: var(--danger);
+}
+.notice-panel > span {
+	flex: 1;
+	min-width: 0;
+}
+.notice-panel small {
+	display: block;
+	margin-top: 2px;
+	color: var(--text-2);
+	font-size: 13px;
+	font-weight: 400;
+}
+.notice-action {
+	flex: none;
+	min-height: 44px;
+	padding: 0 14px;
+	border-radius: var(--r-sm);
+	background: var(--badge-bg);
+	font-size: 15px;
+	font-weight: 600;
+	transition: transform var(--dur-release) var(--ease-spring-ui);
+}
+.notice-action:active {
+	transform: scale(0.95);
+	transition-duration: var(--dur-press);
+}
+
+/* 빈 화면 — 88px 회색 원 안 아이콘 + 제목 한 줄 + (할 수 있으면) 버튼 하나. 설명 문장은 붙이지 않는다 */
+.pt-empty {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 16px;
+	min-height: 280px;
+	padding: 24px 0;
+	text-align: center;
+}
+.pt-empty .pt-empty-icon {
+	display: grid;
+	place-items: center;
+	width: 88px;
+	height: 88px;
+	border-radius: 999px;
+	background: var(--row);
+	color: var(--point-icon);
+}
+.pt-empty .pt-empty-icon svg {
+	width: 40px;
+	height: 40px;
+}
+.pt-empty.loading .pt-empty-icon {
+	color: var(--primary-icon);
+}
+.pt-empty.loading .pt-empty-icon svg {
+	animation: busy-spin 1s linear infinite;
+}
+.pt-empty.error .pt-empty-icon {
+	color: var(--danger);
+}
+.pt-empty h2 {
+	margin: 0;
+	font-size: 20px;
+	line-height: 28px;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+.pt-empty .btn,
+.pt-empty .btn-ghost {
+	width: auto;
+	min-width: 140px;
+	height: 44px;
+	padding: 0 20px;
+	border-radius: var(--r-sm);
+	font-size: 15px;
+}
+
+/* 구간 선택 — 바깥 row 면(모서리 14), 고른 칸(모서리 10)이 미끄러져 멈춘다. 칸 수 --n, 고른 순서 --i */
+.pt-seg {
+	position: relative;
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: 1fr;
+	gap: 4px;
+	padding: 4px;
+	border-radius: var(--r-sm);
+	background: var(--row);
+}
+.pt-seg::before {
+	content: '';
+	position: absolute;
+	top: 4px;
+	bottom: 4px;
+	left: 4px;
+	width: calc((100% - 8px - (var(--n) - 1) * 4px) / var(--n));
+	border-radius: 10px;
+	background: var(--badge-bg);
+	box-shadow: var(--shadow-seg);
+	transform: translateX(calc(var(--i) * (100% + 4px)));
+	transition: transform var(--dur-release) var(--ease-spring-ui);
+}
+.pt-seg > * {
+	position: relative;
+	display: grid;
+	place-items: center;
+	min-height: 36px;
+	padding: 0 8px;
+	border-radius: 10px;
+	color: var(--text-2);
+	font-size: 15px;
+	font-weight: 400;
+	cursor: pointer;
+}
+.pt-seg > [aria-checked='true'],
+.pt-seg > [aria-pressed='true'],
+.pt-seg > :has(input:checked) {
+	color: var(--text);
+	font-weight: 600;
+}
+.pt-seg input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+.pt-seg > :has(input:focus-visible) {
+	outline: 2px solid var(--focus);
+	outline-offset: 2px;
 }

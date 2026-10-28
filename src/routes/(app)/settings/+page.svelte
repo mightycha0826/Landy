@@ -455,13 +455,14 @@
 	.theme-card {
 		margin-top: 18px;
 	}
-	/* 화면 모드 — 아이콘 세 개짜리 작은 고르기 칸 */
+	/* 화면 모드 — 구간 선택 (바깥 모서리 14, 고른 칸 모서리 10 · 흰 면 + 옅은 그림자). 회색 줄 위라 바깥은 한 단계 짙게 */
 	.seg {
 		display: flex;
+		gap: 2px;
 		margin-left: auto;
 		padding: 3px;
-		border-radius: 999px;
-		background: var(--field);
+		border-radius: var(--r-sm);
+		background: color-mix(in srgb, var(--track) 60%, var(--row));
 	}
 	/* 보이는 칸 44×32, 누름은 위아래 여백까지 44 (G1) */
 	.seg-btn::after {
@@ -470,7 +471,8 @@
 		inset: -6px 0;
 	}
 	.seg-btn:active {
-		transform: scale(0.92);
+		transform: scale(0.95);
+		transition-duration: var(--dur-press);
 	}
 	.seg-btn {
 		position: relative;
@@ -478,17 +480,22 @@
 		place-items: center;
 		width: 44px;
 		height: 32px;
-		border-radius: 999px;
+		border-radius: 10px;
 		color: var(--text-2);
-		transition: background-color 0.15s, color 0.15s;
+		transition:
+			background-color var(--dur-2) var(--ease-out),
+			color var(--dur-2) var(--ease-out),
+			transform var(--dur-release) var(--ease-spring-ui);
 	}
 	.seg-btn svg {
 		width: 18px;
 		height: 18px;
 	}
 	.seg-btn.on {
-		background: var(--accent-fill);
-		color: var(--on-accent);
+		background: var(--badge-bg);
+		box-shadow: var(--shadow-seg);
+		color: var(--text);
+		font-weight: 600;
 	}
 	/* 글자 크기 · 편지지 글씨 (Phase 43) — 아이콘 대신 글자. "가"는 단추마다 크기가 다르다(style) */
 	.seg-btn.pick {
@@ -615,7 +622,7 @@
 		line-height: 1.38;
 	}
 	.bubble.other {
-		background: var(--field);
+		background: var(--badge-bg);
 		color: var(--text);
 	}
 	.swatches {

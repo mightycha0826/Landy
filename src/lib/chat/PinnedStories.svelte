@@ -55,10 +55,10 @@
 	.story-ring {
 		padding: 3px;
 		border-radius: 50%;
-		background: var(--line);
+		background: var(--track);
 	}
 	.story-ring.fresh {
-		background: conic-gradient(from 210deg, var(--g-orange), var(--g-pink), #ffb347, var(--g-orange));
+		background: var(--primary);
 	}
 	.story-ring :global(.av) {
 		border: 3px solid var(--bg);
