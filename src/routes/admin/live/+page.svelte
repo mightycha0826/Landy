@@ -191,7 +191,7 @@
 		background: var(--line);
 	}
 	.s {
-		font-weight: 700;
+		font-weight: 600;
 		font-size: 13px;
 	}
 	.s-chat {

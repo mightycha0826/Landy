@@ -41,7 +41,7 @@
 	.ask {
 		margin: 4px var(--pad) 10px;
 		font-size: 17px;
-		font-weight: 800;
+		font-weight: 650;
 		line-height: 1.45;
 		text-align: center;
 		word-break: keep-all;

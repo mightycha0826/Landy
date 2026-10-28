@@ -83,7 +83,7 @@
 	h2 {
 		margin: 0;
 		font-size: 20px;
-		font-weight: 800;
+		font-weight: 650;
 		letter-spacing: -0.03em;
 	}
 	.head span {
@@ -131,7 +131,7 @@
 		text-overflow: ellipsis;
 	}
 	.bold {
-		font-weight: 700;
+		font-weight: 600;
 		color: var(--text);
 	}
 	.right {
@@ -168,7 +168,7 @@
 		background: var(--accent-fill-deep);
 		color: var(--on-accent);
 		font-size: 11px;
-		font-weight: 700;
+		font-weight: 600;
 		display: grid;
 		place-items: center;
 	}

@@ -19,7 +19,7 @@ body.admin .a-head {
 body.admin .a-h1 {
 	margin: 0 0 4px;
 	font-size: 22px;
-	font-weight: 800;
+	font-weight: 650;
 	letter-spacing: -0.03em;
 }
 body.admin .a-sub {
@@ -30,7 +30,7 @@ body.admin .a-sub {
 body.admin .a-h2 {
 	margin: 0 0 10px;
 	font-size: 14px;
-	font-weight: 700;
+	font-weight: 600;
 }
 body.admin .a-h2 .muted {
 	font-weight: 500;
@@ -229,7 +229,7 @@ body.admin .mono {
 }
 body.admin .danger {
 	color: var(--danger);
-	font-weight: 700;
+	font-weight: 600;
 }
 body.admin .pill {
 	display: inline-block;
@@ -237,7 +237,7 @@ body.admin .pill {
 	margin-left: 4px;
 	border-radius: 999px;
 	font-size: 11px;
-	font-weight: 700;
+	font-weight: 600;
 	white-space: nowrap;
 	background: var(--surface);
 	color: var(--text-2);
@@ -295,7 +295,7 @@ body.admin .a-stat {
 }
 body.admin .a-stat b {
 	font-size: 22px;
-	font-weight: 800;
+	font-weight: 650;
 	letter-spacing: -0.03em;
 }
 body.admin .a-stat span {
@@ -333,7 +333,7 @@ body.admin button[data-ack]::after {
 	padding: 0 8px;
 	border-radius: inherit;
 	font-size: 13px;
-	font-weight: 800;
+	font-weight: 650;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;

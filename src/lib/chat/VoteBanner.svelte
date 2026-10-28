@@ -122,7 +122,7 @@
 		flex-basis: 100%;
 		margin: -4px 0 -6px;
 		font-size: 14px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	/* 디플로마 · 동아리 · 공통 질문 답 적는 칸 — 띠 아래 한 줄 전체 */
 	.hint-in {
@@ -156,7 +156,7 @@
 		right: 14px;
 		top: 10px;
 		color: var(--accent);
-		font-weight: 800;
+		font-weight: 650;
 	}
 	.dip ul {
 		display: flex;
@@ -179,7 +179,7 @@
 		border-radius: 999px;
 		background: var(--field);
 		font-size: 14px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.dip li button:active {
 		background: color-mix(in srgb, var(--accent) 16%, transparent);

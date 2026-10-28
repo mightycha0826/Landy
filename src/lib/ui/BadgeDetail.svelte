@@ -118,7 +118,7 @@
 	}
 	.check {
 		color: var(--accent);
-		font-weight: 800;
+		font-weight: 650;
 	}
 	.special {
 		display: flex;

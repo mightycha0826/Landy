@@ -339,7 +339,7 @@
 		overflow: hidden;
 		color: #fff;
 		font-size: 22px;
-		font-weight: 900;
+		font-weight: 650;
 		letter-spacing: -0.04em;
 		white-space: nowrap;
 		text-overflow: ellipsis;
@@ -355,7 +355,7 @@
 		padding: 0 6px;
 		color: #fff;
 		font-size: 13px;
-		font-weight: 700;
+		font-weight: 600;
 		text-decoration: none;
 		text-shadow: 0 1px 6px rgb(0 0 0 / 0.18);
 	}

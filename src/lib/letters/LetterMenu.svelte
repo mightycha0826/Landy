@@ -188,6 +188,6 @@
 		margin: 6px var(--pad) 0;
 		text-align: center;
 		font-size: 17px;
-		font-weight: 800;
+		font-weight: 650;
 	}
 </style>

@@ -1225,7 +1225,7 @@
 		background: var(--danger);
 		color: #fff;
 		font-size: 13px;
-		font-weight: 700;
+		font-weight: 600;
 		order: -1;
 	}
 	.seen {
@@ -1309,7 +1309,7 @@
 	.rate-bar b {
 		flex: none;
 		color: var(--accent);
-		font-weight: 700;
+		font-weight: 600;
 	}
 
 	/* ── 입력창 ── */

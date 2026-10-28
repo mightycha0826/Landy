@@ -370,7 +370,7 @@
 		background: var(--tier);
 		color: #fff;
 		font-size: 10px;
-		font-weight: 800;
+		font-weight: 650;
 		letter-spacing: 0.02em;
 		box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
 		z-index: 1;

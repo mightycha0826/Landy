@@ -1,94 +1,86 @@
 /**
- * 테마 색상 — 앱 전체의 포인트 색 (설정 화면에서 고른다).
- * 로고 · 채운 버튼 · 링크/아이콘 색 · 내 말풍선 · 연결 화면 등 app.css 의 포인트 색 토큰을 한꺼번에 바꾼다
- *   --g-orange/--g-coral/--g-pink(→ --brand), --accent-fill, --accent, --bubble-fill
- * 이 기기에만 저장한다 (localStorage). 상대 화면에는 영향이 없고, 서버에도 보내지 않는다.
- * 흰 글씨가 올라가므로 아주 밝은 색은 넣지 않는다 (인스타의 노랑처럼 밝은 끝은 fill 의 가장자리에만).
- * 없어진 색(예전의 '베리' · '회색' · '보라')을 저장해 둔 기기는 기본 색으로 돌아간다.
- * 예전 이름이 "채팅 색상"이라 저장 키는 그대로 둔다 (이미 고른 색이 유지되게).
+ * 테마 색상 — 포인트 디자인 시스템의 "조합" (설정 화면에서 고른다).
+ * 조합은 두 색뿐: 첫 번째 색(primary)은 주 버튼 · 켜진 스위치 · 고른 것 · 지금 탭에, 두 번째 색(point)은 새 것 · 곧 끝남 같은 한 곳에만.
+ * 나머지는 모두 회색(app.css). 원래 색이 바탕에서 묻히면 대비가 맞을 때까지 라이트는 어둡게, 다크는 밝게 민다.
+ * 이 기기에만 저장한다 (localStorage). 예전 색(그라데이션)을 저장해 둔 기기는 기본 조합으로 돌아간다.
  */
-import { readableColor } from './contrast';
-type ThemeColor = {
-	id: string;
-	label: string;
-	/** 그라데이션 세 점 (위/왼쪽 → 아래/오른쪽). 한 가지 색이면 셋 다 같게 */
-	stops: [string, string, string];
-	/** 글자 · 아이콘용 단색 — 흰 바탕과 검은 바탕 모두에서 읽히는 중간 톤 (기본은 app.css 의 라이트/다크 값) */
-	accent: string | null;
-	/** 채운 면(버튼 · 말풍선 · 색 동그라미)에 쓸 더 긴 그라데이션 — 없으면 stops 세 점 */
-	fill?: string[];
-};
+import { contrast, pushContrast } from './contrast';
+type ThemeColor = { id: string; label: string; primary: string; point: string };
 
+// 자극적인 조합 — 채도 높은 두 색을 맞붙인다. 기본(첫 번째) 값은 app.css 에 미리 계산해 두었다
 export const THEME_COLORS: ThemeColor[] = [
-	// 파랑만 한 가지 색, 나머지는 서로 겹치지 않는 두세 가지 색 그라데이션
-	{ id: 'landy', label: '기본', stops: ['#b56cf3', '#a35bee', '#8c46e2'], accent: null }, // 로고의 연보라 → 보라 (예전 기본은 다홍 — 주황 → 핑크)
-	{ id: 'ocean', label: '파랑', stops: ['#3b8af6', '#3b8af6', '#3b8af6'], accent: '#3b8af6' }, // 단색
-	// Phase 40: 한 톤 연하게 (예전 #3aa757 → #0e8f9c 는 너무 짙었다). 흰 글씨가 올라가는 면은 --accent-fill-deep 이 한 번 더 눌러 준다
-	{ id: 'mint', label: '초록', stops: ['#5fd08a', '#34c3a0', '#33b7c2'], accent: '#22b38e' }, // 연두 → 청록
-	// Phase 40: 회색(검은색)을 빼고 인스타 그라데이션 — 노랑 · 주황 · 핑크 · 자주 · 보라 (가운데 셋이 그라데이션 세 점, 양 끝은 채운 면에만)
-	{
-		id: 'insta',
-		label: '인스타',
-		stops: ['#f77737', '#e1306c', '#833ab4'],
-		accent: '#d62976',
-		fill: ['#feda75', '#fa7e1e', '#d62976', '#962fbf', '#4f5bd5']
-	} // 노랑 → 보라
+	{ id: 'volt', label: '일렉트릭 블루와 형광 주황', primary: '#2a3bff', point: '#ff5a00' },
+	{ id: 'acid', label: '마젠타와 라임', primary: '#ff0a78', point: '#b6f000' },
+	{ id: 'siren', label: '다홍과 시안', primary: '#ff3b1f', point: '#00d1ff' },
+	{ id: 'rave', label: '바이올렛과 형광 노랑', primary: '#7a1fff', point: '#ffd500' }
 ];
 const DEFAULT = THEME_COLORS[0].id;
-const KEY = 'chat-color-v1';
+const KEY = 'theme-combo-v1';
 
-/** n 개 색을 고르게 펼친 그라데이션 */
-const spread = (dir: string, cs: string[]) => `linear-gradient(${dir}, ${cs.map((x, i) => `${x} ${Math.round((i / (cs.length - 1)) * 100)}%`).join(', ')})`;
-/** 세로 그라데이션 (말풍선 · 색 동그라미) */
-export const fillOf = (c: ThemeColor) =>
-	c.fill ? spread('200deg', c.fill) : `linear-gradient(180deg, ${c.stops[0]}, ${c.stops[1]} 55%, ${c.stops[2]})`;
+/** 색 동그라미 — 두 색을 반씩 */
+export const fillOf = (c: ThemeColor) => `linear-gradient(135deg, ${c.primary} 50%, ${c.point} 50%)`;
 
 export const THEME_COLOR = $state({ id: DEFAULT });
 
-// --accent-fill-deep(작은 흰 글씨가 올라가는 면 · 편지 쓰기 단추) · --glow(버튼 빛) · --ambient/--desk(빛 번짐)도 테마 색을 따른다 (Phase 35)
-const PROPS = [
-	'--g-orange', '--g-coral', '--g-pink', '--bubble-fill', '--bubble-a', '--bubble-b', '--bubble-c', '--accent-fill', '--accent',
-	'--accent-fill-deep', '--glow', '--ambient', '--desk', '--theme-accent-light', '--theme-accent-dark'
-];
-const tint = (c: string, pct: number) => `color-mix(in srgb, ${c} ${pct}%, transparent)`;
+// app.css 의 회색 (라이트 / 다크)
+const L = { bg: '#ffffff', row: '#f3f3f3' };
+const D = { bg: '#1e1e1e', surface: '#262626', row: '#2e2e2e' };
 
-function apply(id: string) {
-	const c = THEME_COLORS.find((x) => x.id === id);
-	const root = document.documentElement.style;
-	// 기본은 app.css 의 값을 그대로 쓴다 (다크 모드의 밝은 --accent 도 그대로)
-	if (!c || c.id === DEFAULT) {
-		for (const p of PROPS) root.removeProperty(p);
-		return;
-	}
-	const [a, b, z] = c.stops;
-	const safe = (color: string) => readableColor(color, '#ffffff');
-	const [sa, sb, sz] = c.stops.map(safe);
-	root.setProperty('--g-orange', a);
-	root.setProperty('--g-coral', b);
-	root.setProperty('--g-pink', z);
-	// 말풍선에는 흰 글씨가 올라가므로 가장 밝은 끝(인스타의 노랑)은 뺀다 — 노랑은 색 동그라미에서만
-	root.setProperty('--bubble-fill', c.fill ? spread('200deg', c.fill.slice(1).map(safe)) : `linear-gradient(180deg, ${sa}, ${sb} 55%, ${sz})`);
-	root.setProperty('--bubble-a', sa);
-	root.setProperty('--bubble-b', sb);
-	root.setProperty('--bubble-c', sz);
-	const fill = c.fill ? spread('60deg', c.fill.slice(1).map(safe)) : `linear-gradient(110deg, ${sa}, ${sb} 55%, ${sz})`;
-	root.setProperty('--accent-fill', fill);
-	root.setProperty('--accent-fill-deep', fill);
-	root.setProperty('--glow', `0 10px 28px -8px ${tint(b, 55)}`);
-	root.setProperty('--ambient', `radial-gradient(90% 38% at 0% 0%, ${tint(a, 16)}, transparent 70%), radial-gradient(80% 34% at 100% 6%, ${tint(z, 13)}, transparent 70%)`);
-	root.setProperty('--desk', `radial-gradient(120% 60% at 10% 0%, ${tint(a, 14)}, transparent 60%), radial-gradient(90% 50% at 100% 30%, ${tint(z, 12)}, transparent 60%)`);
-	root.removeProperty('--accent');
-	root.setProperty('--theme-accent-light', readableColor(c.accent ?? b, '#ffffff'));
-	root.setProperty('--theme-accent-dark', readableColor(c.accent ?? b, '#171416', true));
+/** primary 면 — 흰 글자 4.5:1. 다크는 그 한도까지 밝게 */
+const lighten = (hex: string, r: number) =>
+	'#' + hex.slice(1).match(/../g)!.map((v) => Math.round(parseInt(v, 16) + (255 - parseInt(v, 16)) * r).toString(16).padStart(2, '0')).join('');
+function primaryFill(hex: string, dark: boolean) {
+	const base = pushContrast(hex, '#ffffff', 4.5, '#000000');
+	if (!dark) return base;
+	let c = base;
+	for (let step = 1; step <= 100 && contrast(lighten(base, step / 100), '#ffffff') >= 4.5; step++) c = lighten(base, step / 100);
+	return c;
 }
 
-/** 앱을 켤 때 한 번 — 저장해 둔 색을 입힌다 */
+// 토큰 이름 — app.css 가 라이트는 --c-<이름>-l, 다크는 --c-<이름>-d 를 읽는다 (CSP 때문에 <style> 대신 html 의 style 속성에 넣는다)
+const NAMES = ['primary', 'primary-mark', 'primary-text', 'primary-icon', 'point', 'point-mark', 'point-icon', 'point-text'];
+
+function tokens(c: ThemeColor, dark: boolean): string[] {
+	const up = dark ? '#ffffff' : '#000000';
+	const bg = dark ? D.bg : L.bg;
+	const row = dark ? D.row : L.row;
+	const surface = dark ? D.surface : L.bg;
+	return [
+		primaryFill(c.primary, dark),
+		pushContrast(c.primary, bg, 3, up),
+		pushContrast(c.primary, surface, 4.5, up),
+		pushContrast(c.primary, row, 3, up),
+		c.point,
+		pushContrast(c.point, surface, 3, up),
+		pushContrast(c.point, row, 3, up),
+		pushContrast(c.point, surface, 4.5, up)
+	];
+}
+
+function apply(id: string) {
+	const root = document.documentElement.style;
+	const c = THEME_COLORS.find((x) => x.id === id);
+	const light = c && c.id !== DEFAULT ? tokens(c, false) : null;
+	const dark = c && c.id !== DEFAULT ? tokens(c, true) : null;
+	// 기본 조합은 app.css 의 값을 그대로 쓴다
+	NAMES.forEach((n, i) => {
+		if (light && dark) {
+			root.setProperty(`--c-${n}-l`, light[i]);
+			root.setProperty(`--c-${n}-d`, dark[i]);
+		} else {
+			root.removeProperty(`--c-${n}-l`);
+			root.removeProperty(`--c-${n}-d`);
+		}
+	});
+}
+
+/** 앱을 켤 때 한 번 — 저장해 둔 조합을 입힌다 */
 export function loadThemeColor() {
 	let id = DEFAULT;
 	try {
 		id = localStorage.getItem(KEY) ?? DEFAULT;
 	} catch {
-		/* 저장소를 못 쓰는 환경 — 기본 색 */
+		/* 저장소를 못 쓰는 환경 — 기본 조합 */
 	}
 	if (!THEME_COLORS.some((c) => c.id === id)) id = DEFAULT;
 	THEME_COLOR.id = id;

@@ -492,7 +492,7 @@
 	}
 	/* 글자 크기 · 편지지 글씨 (Phase 43) — 아이콘 대신 글자. "가"는 단추마다 크기가 다르다(style) */
 	.seg-btn.pick {
-		font-weight: 700;
+		font-weight: 600;
 		line-height: 1;
 	}
 	.seg-btn.word {

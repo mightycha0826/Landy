@@ -181,7 +181,7 @@
 		flex: 1;
 		min-width: 0;
 		font-size: 15px;
-		font-weight: 700;
+		font-weight: 600;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;

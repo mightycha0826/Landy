@@ -28,7 +28,7 @@
 	h3 {
 		margin: 4px 0 8px;
 		font-size: 16px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.reasons {
 		display: flex;

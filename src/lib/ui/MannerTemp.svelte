@@ -50,7 +50,7 @@
 		background: color-mix(in srgb, var(--col) 14%, transparent);
 		color: var(--col);
 		font-size: 13px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.temp {
 		width: 100%;
@@ -75,7 +75,7 @@
 		gap: 4px;
 		color: var(--col);
 		font-size: 18px;
-		font-weight: 800;
+		font-weight: 650;
 		letter-spacing: -0.02em;
 	}
 	.face {

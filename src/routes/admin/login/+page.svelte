@@ -98,7 +98,7 @@
 		gap: 8px;
 		margin: 0;
 		font-size: 22px;
-		font-weight: 800;
+		font-weight: 650;
 		letter-spacing: -0.04em;
 	}
 	/* 학생 앱과 같은 로고 (Phase 58) */

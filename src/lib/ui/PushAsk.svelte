@@ -73,7 +73,7 @@
 	.ask h2 {
 		margin: 0;
 		font-size: 18px;
-		font-weight: 800;
+		font-weight: 650;
 		letter-spacing: -0.03em;
 	}
 	.bell {

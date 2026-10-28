@@ -188,7 +188,7 @@
 		margin: 34px 0 6px;
 		text-align: center;
 		font-size: 12px;
-		font-weight: 800;
+		font-weight: 650;
 		letter-spacing: 0.06em;
 		color: var(--accent);
 	}

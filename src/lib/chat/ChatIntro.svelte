@@ -53,7 +53,7 @@
 	h2 {
 		margin: 10px 0 0;
 		font-size: 20px;
-		font-weight: 700;
+		font-weight: 600;
 		letter-spacing: -0.02em;
 	}
 	p {

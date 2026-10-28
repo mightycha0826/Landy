@@ -120,7 +120,7 @@
 		padding: 2px 8px;
 		border-radius: 999px;
 		background: var(--field);
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.who {
 		font-weight: 600;

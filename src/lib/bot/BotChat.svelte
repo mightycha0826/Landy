@@ -348,7 +348,7 @@
 		line-height: 1.2;
 	}
 	.alias {
-		font-weight: 700;
+		font-weight: 600;
 		font-size: 15px;
 		white-space: nowrap;
 	}
@@ -365,13 +365,13 @@
 		background: var(--field);
 		color: var(--text-2);
 		font-size: 11px;
-		font-weight: 700;
+		font-weight: 600;
 		vertical-align: 2px;
 	}
 	.timer {
 		margin-left: auto;
 		font-size: 15px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 
 	.list {
@@ -393,7 +393,7 @@
 	.intro h2 {
 		margin: 8px 0 0;
 		font-size: 19px;
-		font-weight: 700;
+		font-weight: 600;
 		letter-spacing: -0.02em;
 	}
 	.intro p {

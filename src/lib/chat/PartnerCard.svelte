@@ -74,7 +74,7 @@
 	h3 {
 		margin: 6px 0 0;
 		font-size: 18px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.status {
 		margin: 0;

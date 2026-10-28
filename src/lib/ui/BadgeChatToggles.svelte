@@ -98,7 +98,7 @@
 	}
 	.name b {
 		font-size: 14px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.name small {
 		font-size: 11px;

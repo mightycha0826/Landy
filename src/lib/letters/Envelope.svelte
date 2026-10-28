@@ -308,14 +308,14 @@
 	.lbl {
 		display: block;
 		font-size: 0.46em;
-		font-weight: 800;
+		font-weight: 650;
 		letter-spacing: 0.1em;
 		opacity: 0.55;
 	}
 	/* From. · To. 머리말 (Phase 43) — 예전(0.6em · 옅게 0.55)은 휴대폰에서 거의 안 보였다 */
 	.en {
 		font-size: 0.68em;
-		font-weight: 800;
+		font-weight: 650;
 		letter-spacing: 0.03em;
 		opacity: 0.75;
 	}
@@ -359,7 +359,7 @@
 		border-radius: 0.2em;
 		color: var(--s2);
 		font-size: 0.46em;
-		font-weight: 900;
+		font-weight: 650;
 		letter-spacing: 0.08em;
 		transform: rotate(-1.5deg);
 		opacity: 0.85;
@@ -412,7 +412,7 @@
 	.s-name {
 		margin-top: 0.12em;
 		font-size: 0.34em;
-		font-weight: 900;
+		font-weight: 650;
 		letter-spacing: 0.14em;
 	}
 	.s-val {
@@ -420,7 +420,7 @@
 		top: 0.14em;
 		left: 0.18em;
 		font-size: 0.3em;
-		font-weight: 900;
+		font-weight: 650;
 	}
 	/* 소인 — 우표 위에 비스듬히 찍힌 잉크 */
 	.postmark {
@@ -456,13 +456,13 @@
 	}
 	.ring small {
 		font-size: 0.3em;
-		font-weight: 900;
+		font-weight: 650;
 		letter-spacing: 0.06em;
 	}
 	.ring b {
 		margin: 0.1em 0 0.06em;
 		font-size: 0.66em;
-		font-weight: 900;
+		font-weight: 650;
 	}
 	.pm-logo {
 		width: 0.5em;
@@ -491,7 +491,7 @@
 	.sub {
 		flex: none;
 		font-size: 0.56em;
-		font-weight: 700;
+		font-weight: 600;
 		opacity: 0.6;
 	}
 	.rule {
@@ -525,7 +525,7 @@
 		border-radius: 0.25em;
 		color: color-mix(in srgb, var(--s2) 85%, #000);
 		font-size: 0.62em;
-		font-weight: 900;
+		font-weight: 650;
 		letter-spacing: 0.08em;
 		transform: rotate(-8deg);
 		mix-blend-mode: multiply;
@@ -622,7 +622,7 @@
 	.pi-date {
 		flex: none;
 		font-size: 0.5em;
-		font-weight: 700;
+		font-weight: 600;
 		opacity: 0.5;
 	}
 	/* 본문 — 테마 색 줄 위에 알아볼 수 없는 손글씨 획 (봉투를 열기 전에는 내용이 보이지 않게). 줄마다 길이 · 시작점이 다르다 */
@@ -746,7 +746,7 @@
 		left: 1em;
 		bottom: 0.9em;
 		font-size: 0.55em;
-		font-weight: 800;
+		font-weight: 650;
 		letter-spacing: 0.06em;
 		opacity: 0.45;
 	}

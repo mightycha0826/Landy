@@ -105,7 +105,7 @@
 	.head {
 		margin: 0 8px 14px;
 		font-size: 13px;
-		font-weight: 700;
+		font-weight: 600;
 		color: var(--text-2);
 	}
 	.head b {
@@ -119,7 +119,7 @@
 	.group {
 		margin: 14px 8px 6px;
 		font-size: 11px;
-		font-weight: 800;
+		font-weight: 650;
 		letter-spacing: 0.02em;
 		color: var(--text-2);
 	}
@@ -152,7 +152,7 @@
 		background: var(--c);
 		color: #fff;
 		font-size: 14px;
-		font-weight: 800;
+		font-weight: 650;
 	}
 	.dot {
 		position: absolute;
@@ -179,7 +179,7 @@
 	.name {
 		overflow: hidden;
 		font-size: 14px;
-		font-weight: 700;
+		font-weight: 600;
 		white-space: nowrap;
 		text-overflow: ellipsis;
 	}
@@ -190,7 +190,7 @@
 		background: var(--field);
 		color: var(--text-2);
 		font-size: 10px;
-		font-weight: 700;
+		font-weight: 600;
 		vertical-align: 1px;
 	}
 	.own {
@@ -200,7 +200,7 @@
 		background: color-mix(in srgb, #f59e0b 20%, transparent);
 		color: #b45309;
 		font-size: 10px;
-		font-weight: 800;
+		font-weight: 650;
 		vertical-align: 1px;
 	}
 	.sub {

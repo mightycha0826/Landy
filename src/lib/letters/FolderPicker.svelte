@@ -96,7 +96,7 @@
 		gap: 8px;
 		margin: 4px 0 10px;
 		font-size: 17px;
-		font-weight: 800;
+		font-weight: 650;
 	}
 	.ask .muted {
 		font-size: 13px;
@@ -148,7 +148,7 @@
 		background: var(--accent-fill-deep);
 		color: var(--on-accent);
 		font-size: 15px;
-		font-weight: 800;
+		font-weight: 650;
 	}
 	.make:disabled {
 		background: var(--field);

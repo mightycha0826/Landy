@@ -23,7 +23,7 @@
 	<div class="pair" aria-hidden="true">
 		<span class="face me"><Avatar name={S.profile?.nickname ?? '나'} size={104} /></span>
 		<span class="heart">
-			<svg viewBox="0 0 24 24"><path d="M12 20.5s-8-4.9-8-11.1A4.6 4.6 0 0 1 12 6.6a4.6 4.6 0 0 1 8 2.8c0 6.2-8 11.1-8 11.1z" fill="url(#mh)" /><defs><linearGradient id="mh" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#dc9cfb" /><stop offset="1" stop-color="#9a52eb" /></linearGradient></defs></svg>
+			<svg viewBox="0 0 24 24"><path d="M12 20.5s-8-4.9-8-11.1A4.6 4.6 0 0 1 12 6.6a4.6 4.6 0 0 1 8 2.8c0 6.2-8 11.1-8 11.1z" fill="url(#mh)" /><defs><linearGradient id="mh" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color: var(--primary)" /><stop offset="1" style="stop-color: var(--point)" /></linearGradient></defs></svg>
 		</span>
 		<span class="face you"><Avatar name={alias} size={104} /></span>
 	</div>

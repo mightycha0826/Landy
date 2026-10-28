@@ -380,7 +380,7 @@
 	h2 {
 		margin: 0;
 		font-size: 19px;
-		font-weight: 800;
+		font-weight: 650;
 		letter-spacing: -0.03em;
 	}
 	p {
@@ -503,12 +503,12 @@
 		flex-direction: column;
 		align-items: center;
 		line-height: 1;
-		font-weight: 800;
+		font-weight: 650;
 	}
 	.ring-text b {
 		font-family: var(--display);
 		font-size: 34px;
-		font-weight: 400;
+		font-weight: 650;
 		background: var(--brand);
 		-webkit-background-clip: text;
 		background-clip: text;
@@ -535,7 +535,7 @@
 		border-radius: 999px;
 		background: var(--field);
 		font-size: 13px;
-		font-weight: 700;
+		font-weight: 600;
 		animation: chip 0.4s calc(var(--i) * 0.18s) both cubic-bezier(0.3, 1.4, 0.5, 1);
 	}
 	.path li.pin {
@@ -583,7 +583,7 @@
 		border-radius: 50%;
 		background: var(--surface);
 		box-shadow: var(--shadow-1);
-		color: #ff3040;
+		color: var(--point-mark);
 		font-size: 12px;
 		font-style: normal;
 		animation: heart 2.4s 0.6s infinite;

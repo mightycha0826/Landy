@@ -280,7 +280,7 @@
 	.link {
 		position: relative;
 		color: var(--accent);
-		font-weight: 700;
+		font-weight: 600;
 		text-decoration: underline;
 		text-underline-offset: 3px;
 	}
@@ -300,7 +300,7 @@
 		min-height: 40px;
 		border-radius: 11px;
 		font-size: 13px;
-		font-weight: 700;
+		font-weight: 600;
 		color: var(--text-2);
 	}
 	.kinds button.on {
@@ -344,7 +344,7 @@
 		border-radius: 16px;
 		border: 1.5px solid var(--line);
 		font-size: 12px;
-		font-weight: 700;
+		font-weight: 600;
 		text-align: center;
 		transition: transform 0.15s;
 	}
@@ -371,7 +371,7 @@
 		gap: 6px;
 		margin-top: 4px;
 		font-size: 14px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.lbl small {
 		font-size: 11px;
@@ -435,7 +435,7 @@
 		background: none;
 		color: var(--text-2);
 		font-size: 12px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.ph.add svg {
 		width: 24px;
@@ -501,7 +501,7 @@
 		border-radius: 999px;
 		background: var(--field);
 		font-size: 11px;
-		font-weight: 800;
+		font-weight: 650;
 	}
 	.st.approved {
 		background: #e7f6ec;

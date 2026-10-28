@@ -35,7 +35,7 @@ let { doc }: { doc: LegalDoc | null | undefined } = $props();
 	h1 {
 		margin: 0;
 		font-size: 22px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.updated {
 		margin: 4px 0 0;
@@ -55,7 +55,7 @@ let { doc }: { doc: LegalDoc | null | undefined } = $props();
 	h2 {
 		margin: 0 0 8px;
 		font-size: 16px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	p,
 	li {

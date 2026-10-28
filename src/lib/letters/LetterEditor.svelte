@@ -270,7 +270,7 @@
 		height: 20px;
 	}
 	.t .ga {
-		font-weight: 700;
+		font-weight: 600;
 		line-height: 1;
 	}
 	.swatch {
@@ -317,7 +317,7 @@
 	}
 	.chip.on {
 		border-color: var(--text);
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.chip .dot {
 		width: 14px;

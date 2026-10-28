@@ -130,7 +130,7 @@
 		padding: 3px 9px;
 		border-radius: 999px;
 		font-size: 11px;
-		font-weight: 800;
+		font-weight: 650;
 		box-shadow: 0 2px 6px rgb(0 0 0 / 0.15);
 	}
 	.new {
@@ -205,7 +205,7 @@
 		background: var(--surface);
 		color: var(--accent);
 		font-size: 12px;
-		font-weight: 800;
+		font-weight: 650;
 		white-space: nowrap;
 		box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 45%, transparent), 0 2px 6px rgb(0 0 0 / 0.15);
 	}

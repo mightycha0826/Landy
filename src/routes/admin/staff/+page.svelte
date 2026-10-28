@@ -119,7 +119,7 @@
 		flex-direction: column;
 		gap: 4px;
 		font-size: 12px;
-		font-weight: 700;
+		font-weight: 600;
 		color: var(--text-2);
 	}
 	.f small {
@@ -200,7 +200,7 @@
 		height: 38px;
 		border-radius: 50%;
 		color: #fff;
-		font-weight: 800;
+		font-weight: 650;
 	}
 	.who {
 		display: flex;
@@ -218,7 +218,7 @@
 		background: color-mix(in srgb, #f59e0b 18%, transparent);
 		color: #b45309;
 		font-size: 11px;
-		font-weight: 800;
+		font-weight: 650;
 	}
 	.locked {
 		font-size: 12px;

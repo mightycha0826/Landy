@@ -77,7 +77,7 @@
 		line-height: 1.2;
 	}
 	.alias {
-		font-weight: 700;
+		font-weight: 600;
 		font-size: 15px;
 		white-space: nowrap;
 		overflow: hidden;
@@ -94,7 +94,7 @@
 	.timer {
 		margin-left: auto;
 		font-size: 15px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.timer .pause-ic {
 		width: 12px;
@@ -115,7 +115,7 @@
 		gap: 3px;
 		color: var(--accent);
 		font-size: 13px;
-		font-weight: 700;
+		font-weight: 600;
 		white-space: nowrap;
 	}
 	.pinned-tag svg {

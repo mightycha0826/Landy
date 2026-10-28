@@ -151,7 +151,7 @@
 	}
 	.kind {
 		font-size: 12px;
-		font-weight: 700;
+		font-weight: 600;
 		color: var(--accent);
 	}
 	.what .a-h2 {
@@ -170,7 +170,7 @@
 	.warn {
 		margin: 4px 0 0;
 		font-size: 12px;
-		font-weight: 700;
+		font-weight: 600;
 		color: #b3261e;
 	}
 	.note {
@@ -245,7 +245,7 @@
 		border-radius: 999px;
 		background: var(--field);
 		font-size: 12px;
-		font-weight: 800;
+		font-weight: 650;
 	}
 	.st.approved {
 		background: #e7f6ec;

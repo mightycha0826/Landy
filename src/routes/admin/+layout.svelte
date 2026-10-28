@@ -195,7 +195,7 @@
 		padding: 0 10px 14px;
 		white-space: nowrap;
 		color: var(--text);
-		font-weight: 800;
+		font-weight: 650;
 		font-size: 17px;
 		letter-spacing: -0.03em;
 		text-decoration: none;
@@ -206,7 +206,7 @@
 	}
 	.brand span {
 		color: var(--accent);
-		font-weight: 700;
+		font-weight: 600;
 	}
 	nav {
 		display: flex;
@@ -221,7 +221,7 @@
 	.group {
 		margin: 14px 10px 4px;
 		font-size: 11px;
-		font-weight: 700;
+		font-weight: 600;
 		letter-spacing: 0.02em;
 		color: var(--text-2);
 	}
@@ -301,7 +301,7 @@
 		box-shadow: inset 0 0 0 1px color-mix(in srgb, #f59e0b 45%, transparent);
 		color: #92400e;
 		font-size: 14px;
-		font-weight: 800;
+		font-weight: 650;
 		text-decoration: none;
 	}
 	.maint-bar span {

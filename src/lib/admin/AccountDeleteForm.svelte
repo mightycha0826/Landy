@@ -34,7 +34,7 @@
 
 <style>
 	.delete-account { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; font-size: 13px; line-height: 1.65; }
-	summary { color: var(--danger); cursor: pointer; font-weight: 700; min-height: 44px; padding: 10px 0; }
+	summary { color: var(--danger); cursor: pointer; font-weight: 600; min-height: 44px; padding: 10px 0; }
 	p { overflow-wrap: anywhere; }
 	form { display: grid; gap: 8px; }
 	textarea { height: auto; padding: 10px; }

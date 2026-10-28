@@ -195,10 +195,10 @@
 
 <style>
 	.matching-bar { position: fixed; z-index: 30; left: max(12px, calc((100vw - 536px) / 2)); right: max(12px, calc((100vw - 536px) / 2)); bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 8px); display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 18px; background: var(--cell); box-shadow: var(--shadow-2); }
-	.matching-status { display: flex; flex: 1; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; font-weight: 700; }
+	.matching-status { display: flex; flex: 1; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; font-weight: 600; }
 	.matching-status small { display: block; margin-top: 3px; color: var(--text-2); font-size: 12px; font-weight: 400; }
 	.matching-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--accent); }
-	.matching-bar button { min-height: 44px; flex: none; color: var(--accent); font-weight: 700; }
+	.matching-bar button { min-height: 44px; flex: none; color: var(--accent); font-weight: 600; }
 	.matching-space { height: calc(var(--tabbar-h) + 84px); }
 	/* 탭바가 없는 화면(알림 · 설정 …) — 화면 맨 아래에 붙이고, 내용 끝이 막대에 가려지지 않게 그만큼 비운다 */
 	.matching-bar.no-tabs { bottom: calc(env(safe-area-inset-bottom) + 12px); }

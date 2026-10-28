@@ -46,7 +46,7 @@
 		background: color-mix(in srgb, var(--text) 90%, transparent);
 		color: var(--bg);
 		font-size: 13px;
-		font-weight: 700;
+		font-weight: 600;
 		transform: translateX(-50%);
 		box-shadow: 0 4px 14px rgb(0 0 0 / 0.2);
 		animation: drop 0.25s ease-out;

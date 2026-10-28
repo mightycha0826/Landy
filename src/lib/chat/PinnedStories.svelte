@@ -82,7 +82,7 @@
 		background: var(--accent-fill-deep);
 		color: #fff;
 		font-size: 11px;
-		font-weight: 800;
+		font-weight: 650;
 		line-height: 20px;
 		border: 2px solid var(--bg);
 		box-sizing: content-box;

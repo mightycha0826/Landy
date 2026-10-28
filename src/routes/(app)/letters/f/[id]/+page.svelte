@@ -269,7 +269,7 @@
 	.empty p {
 		margin: 0;
 		font-size: 15px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	/* 빈 마닐라 폴더 */
 	.icon {
@@ -312,7 +312,7 @@
 		padding: 0 4px;
 		border-radius: 999px;
 		font-size: 13px;
-		font-weight: 700;
+		font-weight: 600;
 		white-space: nowrap;
 		color: var(--text-2);
 		transition: color 0.25s;
@@ -331,7 +331,7 @@
 	}
 	.seg .n {
 		font-size: 12px;
-		font-weight: 800;
+		font-weight: 650;
 		opacity: 0.75;
 	}
 	.thumb {
@@ -353,13 +353,13 @@
 		border-radius: 999px;
 		background: var(--field);
 		font-size: 13px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.ask {
 		margin: 4px 0 10px;
 		overflow: hidden;
 		font-size: 17px;
-		font-weight: 800;
+		font-weight: 650;
 		text-align: center;
 		text-overflow: ellipsis;
 	}

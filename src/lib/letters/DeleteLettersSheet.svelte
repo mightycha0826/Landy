@@ -15,7 +15,7 @@
 	.ask {
 		margin: 4px 0 10px;
 		font-size: 17px;
-		font-weight: 800;
+		font-weight: 650;
 		text-align: center;
 	}
 </style>

@@ -21,7 +21,7 @@
 
 <style>
 	.privacy-summary { width: 100%; text-align: left; border-radius: 14px; background: var(--field); color: var(--text); }
-	summary { min-height: 44px; padding: 12px 14px; cursor: pointer; font-size: 13px; font-weight: 700; }
+	summary { min-height: 44px; padding: 12px 14px; cursor: pointer; font-size: 13px; font-weight: 600; }
 	.privacy-body { padding: 0 14px 14px; font-size: 13px; line-height: 1.65; }
 	p { margin: 0 0 8px; overflow-wrap: anywhere; }
 	a { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); text-decoration: underline; }

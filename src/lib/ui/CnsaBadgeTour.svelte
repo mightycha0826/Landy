@@ -219,7 +219,7 @@
 	h2 {
 		margin: 4px 0 0;
 		font-size: 19px;
-		font-weight: 800;
+		font-weight: 650;
 		letter-spacing: -0.02em;
 	}
 	p {
@@ -310,7 +310,7 @@
 		border-radius: 999px;
 		background: var(--field);
 		font-size: 12px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.way.on {
 		background: var(--accent-fill-deep);
@@ -353,7 +353,7 @@
 		border-radius: 999px;
 		color: var(--text-2);
 		font-size: 13px;
-		font-weight: 700;
+		font-weight: 600;
 		transition:
 			background-color 0.15s,
 			color 0.15s;

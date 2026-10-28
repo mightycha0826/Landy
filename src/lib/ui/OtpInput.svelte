@@ -67,7 +67,7 @@
 		border-radius: var(--r-md);
 		background: var(--field);
 		font-size: 26px;
-		font-weight: 700;
+		font-weight: 600;
 		transition:
 			border-color 0.15s,
 			box-shadow 0.15s,

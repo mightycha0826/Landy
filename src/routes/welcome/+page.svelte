@@ -62,15 +62,15 @@
 	.welcome { max-width: 560px; margin: 0 auto; padding: max(12px, env(safe-area-inset-top)) 22px calc(28px + env(safe-area-inset-bottom)); }
 	header { display: flex; align-items: center; justify-content: space-between; min-height: 56px; }
 	.wordmark { font-size: 28px; color: var(--accent); }
-	.start-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-size: 14px; font-weight: 700; }
+	.start-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-size: 14px; font-weight: 600; }
 	.hero { padding: 42px 0 30px; }
-	.eyebrow { color: var(--accent); font-size: 13px; font-weight: 700; }
+	.eyebrow { color: var(--accent); font-size: 13px; font-weight: 600; }
 	h1 { margin: 14px 0; font-size: clamp(28px, 7.6vw, 42px); line-height: 1.25; letter-spacing: -0.05em; }
 	.lead { margin: 0 0 24px; color: var(--text-2); font-size: 16px; line-height: 1.7; }
 	.hint { font-size: 12px; line-height: 1.6; }
 	h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: -0.03em; }
 	.sample-tabs { display: flex; padding: 4px; margin: 18px 0 12px; border-radius: 16px; background: var(--field); }
-	.sample-tabs button { flex: 1; min-height: 44px; border-radius: 12px; font-weight: 700; color: var(--text-2); }
+	.sample-tabs button { flex: 1; min-height: 44px; border-radius: 12px; font-weight: 600; color: var(--text-2); }
 	.sample-tabs button[aria-selected='true'] { background: var(--cell); color: var(--text); box-shadow: var(--shadow-1); }
 	.sample-panel { padding: 18px; border-radius: 24px; border: 1px solid var(--line); background: var(--cell); }
 	.sample-head { display: flex; align-items: center; gap: 10px; font-size: 14px; }
@@ -79,7 +79,7 @@
 	.sample-system { text-align: center; margin: 22px 0; color: var(--text-2); font-size: 12px; }
 	.sample-bubble { width: fit-content; max-width: 88%; padding: 12px 14px; margin-bottom: 10px; background: var(--field); border-radius: 18px 18px 18px 5px; font-size: 14px; line-height: 1.6; }
 	.sample-bubble.mine { margin-left: auto; color: var(--on-accent); background: var(--accent-fill-deep); border-radius: 18px 18px 5px 18px; }
-	.sample-reply { display: block; width: 100%; min-height: 44px; margin-top: 24px; color: var(--accent); font-size: 14px; font-weight: 700; border-radius: 12px; background: var(--field); }
+	.sample-reply { display: block; width: 100%; min-height: 44px; margin-top: 24px; color: var(--accent); font-size: 14px; font-weight: 600; border-radius: 12px; background: var(--field); }
 	.sample-letter { padding: 8px; }
 	.sample-envelope { position: relative; display: flex; flex-direction: column; justify-content: space-between; min-height: 180px; padding: 24px; overflow: hidden; border: 1px solid #dccfba; background: #f3e6cf; color: #514538; border-radius: 8px; }
 	.sample-envelope::before { content: ''; position: absolute; left: 0; right: 0; top: -60px; height: 140px; border: 1px solid #dccfba; transform: rotate(-12deg); background: #f7ecd9; }
@@ -89,7 +89,7 @@
 	.sample-paper p { line-height: 1.9; font-size: 17px; }
 	.how { margin: 34px 0 24px; }
 	.how > div { display: flex; gap: 16px; margin-top: 18px; }
-	.how span { color: var(--accent); font-size: 13px; font-weight: 700; padding-top: 2px; }
+	.how span { color: var(--accent); font-size: 13px; font-weight: 600; padding-top: 2px; }
 	.how p { margin: 0; font-size: 14px; color: var(--text-2); line-height: 1.7; }
 	.how b { display: block; color: var(--text); margin-bottom: 4px; }
 	.how .hint { margin-top: 18px; }

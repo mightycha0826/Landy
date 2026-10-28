@@ -335,7 +335,7 @@
 		flex-direction: column;
 		gap: 4px;
 		font-size: 12px;
-		font-weight: 700;
+		font-weight: 600;
 		color: var(--text-2);
 	}
 	.mfield small {

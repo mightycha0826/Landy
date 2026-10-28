@@ -17,3 +17,13 @@ export function readableColor(hex: string, background: string, lighten = false) 
 	}
 	return lighten ? '#ffffff' : '#000000';
 }
+/** 바탕 위 대비가 min 이 될 때까지 target(검정 · 흰색) 쪽으로 민다 — 포인트 디자인 시스템의 "대비는 자동" */
+export function pushContrast(hex: string, background: string, min: number, target: '#000000' | '#ffffff') {
+	const a = hex.replace('#', '').match(/../g)!.map((v) => parseInt(v, 16));
+	const t = target === '#ffffff' ? 255 : 0;
+	for (let step = 0; step <= 100; step++) {
+		const color = '#' + a.map((v) => Math.round(v + (t - v) * (step / 100)).toString(16).padStart(2, '0')).join('');
+		if (contrast(color, background) >= min) return color;
+	}
+	return target;
+}

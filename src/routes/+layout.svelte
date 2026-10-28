@@ -246,7 +246,7 @@
 
 <style>
 	.update-note { position: fixed; top: var(--safe-top); inset-inline: 12px; z-index: 100; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
-	.update-note button { margin-left: 12px; min-height: 44px; font-weight: 700; color: var(--accent); }
+	.update-note button { margin-left: 12px; min-height: 44px; font-weight: 600; color: var(--accent); }
 	.setup {
 		justify-content: center;
 		gap: 12px;

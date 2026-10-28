@@ -562,7 +562,7 @@
 	.empty-desk {
 		color: var(--wood-ink);
 		font-size: 13px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	/* 이름표 — 오른쪽은 편지 쓰기 단추 자리(--fab-w)만큼 비운다 */
 	.desk-area {
@@ -588,7 +588,7 @@
 	}
 	.plate strong {
 		font-size: 16px;
-		font-weight: 800;
+		font-weight: 650;
 	}
 	.plate .muted {
 		font-size: 13px;
@@ -614,7 +614,7 @@
 		background: var(--accent-fill-deep);
 		color: var(--on-accent);
 		font-size: 15px;
-		font-weight: 800;
+		font-weight: 650;
 		text-decoration: none;
 		box-shadow: var(--glow);
 		transition: transform 0.2s cubic-bezier(0.3, 0.7, 0.3, 1.4);

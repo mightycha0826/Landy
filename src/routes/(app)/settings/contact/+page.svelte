@@ -224,7 +224,7 @@
 		font-size: 13px;
 	}
 	.tag {
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.when {
 		color: var(--text-2);
@@ -236,7 +236,7 @@
 		background: var(--field);
 		color: var(--text-2);
 		font-size: 12px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.st.done {
 		background: var(--accent-fill-deep);
@@ -258,7 +258,7 @@
 	}
 	.answer .who {
 		font-size: 12px;
-		font-weight: 700;
+		font-weight: 600;
 		color: var(--accent);
 	}
 	.answer p {

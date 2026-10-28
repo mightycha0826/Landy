@@ -191,7 +191,7 @@
 	h2 {
 		margin: 16px 2px 4px;
 		font-size: 16px;
-		font-weight: 800;
+		font-weight: 650;
 		letter-spacing: -0.02em;
 	}
 	.list {
@@ -273,7 +273,7 @@
 		overflow: hidden;
 	}
 	.unread .mid strong {
-		font-weight: 800;
+		font-weight: 650;
 	}
 	.body {
 		font-size: 13px;
@@ -296,7 +296,7 @@
 		height: 8px;
 		margin: 6px 6px 0 0;
 		border-radius: 50%;
-		background: #ff3040;
+		background: var(--point-mark);
 	}
 	.row.expanded .mid strong {
 		-webkit-line-clamp: unset;
@@ -318,10 +318,10 @@
 		height: 20px;
 		padding: 0 6px;
 		border-radius: 10px;
-		background: #ff3040;
+		background: var(--point-mark);
 		color: #fff;
 		font-size: 11px;
-		font-weight: 800;
+		font-weight: 650;
 		line-height: 20px;
 		text-align: center;
 	}

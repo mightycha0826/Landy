@@ -424,7 +424,7 @@
 		border-radius: 999px;
 		background: var(--field);
 		font-size: 14px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.dots {
 		display: flex;
@@ -520,7 +520,7 @@
 		border-radius: 22px;
 		font-family: var(--display);
 		font-size: 24px;
-		font-weight: 400;
+		font-weight: 650;
 		line-height: 1.1;
 		animation: float 4s ease-in-out infinite;
 	}
@@ -547,7 +547,7 @@
 	h1 {
 		margin: 6px 0 0;
 		font-size: 20px;
-		font-weight: 800;
+		font-weight: 650;
 		letter-spacing: -0.03em;
 	}
 </style>

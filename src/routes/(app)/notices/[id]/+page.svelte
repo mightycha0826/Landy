@@ -63,7 +63,7 @@
 	h1 {
 		margin: 0;
 		font-size: 20px;
-		font-weight: 700;
+		font-weight: 600;
 		line-height: 1.4;
 		overflow-wrap: anywhere;
 	}

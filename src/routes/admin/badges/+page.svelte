@@ -269,7 +269,7 @@
 		margin: 8px 8px 4px;
 		color: var(--text-2);
 		font-size: 12px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.list a {
 		display: flex;

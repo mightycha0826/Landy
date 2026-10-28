@@ -11,7 +11,7 @@ export const THEME_MODES: { id: ThemeMode; label: string }[] = [
 	{ id: 'dark', label: '다크 모드' }
 ];
 const KEY = 'theme-v1'; // app.html 과 같은 키
-const BAR = { light: '#fbf9f7', dark: '#0c0a0b' }; // app.css 의 --bg
+const BAR = { light: '#ffffff', dark: '#1e1e1e' }; // app.css 의 --bg
 
 export const THEME = $state({ mode: 'system' as ThemeMode });
 

@@ -233,7 +233,7 @@
 	}
 	.plus b {
 		font-size: 17px;
-		font-weight: 900;
+		font-weight: 650;
 		line-height: 1;
 	}
 	.plus svg {

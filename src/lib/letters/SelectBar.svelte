@@ -38,7 +38,7 @@
 		flex: 1 1 auto;
 		margin: 0;
 		font-size: 14px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.acts {
 		display: flex;
@@ -51,7 +51,7 @@
 		padding: 0 18px;
 		border-radius: 999px;
 		font-size: 15px;
-		font-weight: 800;
+		font-weight: 650;
 		white-space: nowrap;
 	}
 	.acts :global(.go) {

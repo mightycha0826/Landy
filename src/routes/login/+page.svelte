@@ -198,34 +198,6 @@
 		isolation: isolate;
 		overflow: hidden;
 	}
-	.login::before,
-	.login::after {
-		content: '';
-		position: absolute;
-		z-index: -1;
-		width: 340px;
-		height: 340px;
-		border-radius: 50%;
-		filter: blur(60px);
-		opacity: 0.45;
-		animation: drift 12s ease-in-out infinite alternate;
-	}
-	.login::before {
-		top: -120px;
-		left: -120px;
-		background: var(--g-orange);
-	}
-	.login::after {
-		top: -60px;
-		right: -160px;
-		background: var(--g-pink);
-		animation-delay: -6s;
-	}
-	@keyframes drift {
-		to {
-			transform: translate(40px, 50px) scale(1.15);
-		}
-	}
 	/* 앱 이름 "Landy"(Phase 57)는 짧아서 — 아이콘 · 이름을 가운데 한 덩어리로 크게 (Phase 58).
 	   예전 긴 이름(10자)에 맞춘 왼쪽 정렬 · 36px 는 오른쪽이 휑하고 첫 화면이 가벼워 보였다 */
 	.appicon {
@@ -252,7 +224,7 @@
 	h2 {
 		margin: 0;
 		font-size: 15px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.lead {
 		margin: 0 0 2px;

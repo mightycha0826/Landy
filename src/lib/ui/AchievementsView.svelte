@@ -171,7 +171,7 @@
 	}
 	.big strong {
 		font-size: 34px;
-		font-weight: 800;
+		font-weight: 650;
 		letter-spacing: -0.03em;
 	}
 	.big span {
@@ -242,7 +242,7 @@
 	.feat-head h2 small {
 		margin-left: 4px;
 		font-size: 12px;
-		font-weight: 700;
+		font-weight: 600;
 		color: var(--text-2);
 	}
 	/* 금 뱃지 진행도 — 5개면 대표 칸 5개 */
@@ -288,7 +288,7 @@
 		background: var(--field);
 		color: var(--text);
 		font-size: 14px;
-		font-weight: 700;
+		font-weight: 600;
 		text-decoration: none;
 	}
 	.cnsa-btn.primary {
@@ -327,7 +327,7 @@
 		border-radius: 999px;
 		background: var(--field);
 		font-size: 13px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.cats button.on {
 		background: var(--text);
@@ -362,7 +362,7 @@
 	.name {
 		margin-top: 4px;
 		font-size: 14px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.locked .name {
 		color: var(--text-2);
@@ -400,7 +400,7 @@
 		background: var(--accent-fill-deep);
 		color: var(--on-accent);
 		font-size: 9px;
-		font-weight: 800;
+		font-weight: 650;
 		letter-spacing: 0.04em;
 	}
 

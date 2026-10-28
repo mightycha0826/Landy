@@ -218,7 +218,7 @@
 		min-height: 44px;
 		padding: 0 4px;
 		font-size: 13px;
-		font-weight: 700;
+		font-weight: 600;
 		color: var(--accent);
 	}
 	.rec-sk {
@@ -277,6 +277,6 @@
 		background: var(--accent-fill-deep);
 		color: var(--on-accent);
 		font-size: 13px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 </style>

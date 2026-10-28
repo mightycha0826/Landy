@@ -150,7 +150,7 @@
 </div>
 
 <style>
-	.preview-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 10px; color: var(--accent); font-size: 14px; font-weight: 700; text-decoration: underline; }
+	.preview-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 10px; color: var(--accent); font-size: 14px; font-weight: 600; text-decoration: underline; }
 	.legal-links { font-size: 14px; line-height: 1.8; }
 	.legal-links a { display: inline-block; padding-block: 10px; text-decoration: underline; }
 	.gate {
@@ -176,7 +176,7 @@
 	}
 	h1 {
 		font-size: 19px;
-		font-weight: 700;
+		font-weight: 600;
 		letter-spacing: -0.02em;
 		margin: 0;
 	}

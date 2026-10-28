@@ -46,7 +46,7 @@
 	}
 	.q strong {
 		font-size: 15px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.q span {
 		font-size: 12px;
@@ -54,7 +54,7 @@
 	}
 	.q .want {
 		color: var(--accent);
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.acts {
 		display: flex;
@@ -65,7 +65,7 @@
 	}
 	.acts :global(.no) {
 		font-size: 14px;
-		font-weight: 700;
+		font-weight: 600;
 		color: var(--text-2);
 	}
 	.acts :global(.yes) {
@@ -75,7 +75,7 @@
 		background: var(--accent-fill-deep);
 		color: var(--on-accent);
 		font-size: 14px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.acts :global(button:disabled) {
 		opacity: 0.5;

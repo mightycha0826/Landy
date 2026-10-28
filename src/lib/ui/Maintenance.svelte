@@ -92,7 +92,7 @@
 		margin: 0;
 		font-family: var(--display);
 		font-size: 26px;
-		font-weight: 400;
+		font-weight: 650;
 	}
 	.msg {
 		max-width: 22em;

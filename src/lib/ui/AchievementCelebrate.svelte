@@ -301,7 +301,7 @@
 	.kicker {
 		margin: 0;
 		font-size: 12px;
-		font-weight: 800;
+		font-weight: 650;
 		letter-spacing: 0.1em;
 		background: var(--brand);
 		-webkit-background-clip: text;
@@ -313,7 +313,7 @@
 		margin: 0 0 4px;
 		font-family: var(--display);
 		font-size: 23px;
-		font-weight: 400;
+		font-weight: 650;
 		letter-spacing: -0.01em;
 		animation: up 0.5s 0.65s ease-out both;
 	}

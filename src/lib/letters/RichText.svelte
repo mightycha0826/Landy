@@ -23,7 +23,7 @@
 		overflow-wrap: anywhere;
 	}
 	.rt :global(.rt-b) {
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.rt :global(.rt-i) {
 		font-style: italic;

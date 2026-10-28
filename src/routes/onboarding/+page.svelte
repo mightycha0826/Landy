@@ -167,7 +167,7 @@
 	.name {
 		margin: 0;
 		font-size: 20px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 
 	.rules {
@@ -210,7 +210,7 @@
 	}
 	.nick {
 		font-size: 20px;
-		font-weight: 700;
+		font-weight: 600;
 		letter-spacing: -0.02em;
 	}
 </style>

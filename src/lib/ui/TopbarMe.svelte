@@ -82,7 +82,7 @@
 		width: 8px;
 		height: 8px;
 		border-radius: 50%;
-		background: #ff3040;
+		background: var(--point-mark);
 		border: 2px solid var(--bg);
 		box-sizing: content-box;
 		animation: dot-in 0.35s cubic-bezier(0.3, 0.7, 0.3, 1.6);

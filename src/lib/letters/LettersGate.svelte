@@ -105,7 +105,7 @@
 	h1 {
 		margin: 0;
 		font-size: 20px;
-		font-weight: 800;
+		font-weight: 650;
 		letter-spacing: -0.03em;
 	}
 	.why {
@@ -137,7 +137,7 @@
 		gap: 6px;
 		margin-bottom: 4px;
 		font-size: 12px;
-		font-weight: 700;
+		font-weight: 600;
 		color: var(--text-2);
 	}
 	.live i {
@@ -156,7 +156,7 @@
 	.big {
 		font-family: var(--display);
 		font-size: 52px;
-		font-weight: 400;
+		font-weight: 650;
 		line-height: 1;
 		background: var(--brand);
 		-webkit-background-clip: text;
@@ -175,7 +175,7 @@
 	}
 	.of {
 		font-size: 16px;
-		font-weight: 700;
+		font-weight: 600;
 		color: var(--text-2);
 	}
 	.bar {

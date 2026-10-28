@@ -175,7 +175,7 @@
 	.fname {
 		overflow: hidden;
 		font-size: 14px;
-		font-weight: 800;
+		font-weight: 650;
 		white-space: nowrap;
 		text-overflow: ellipsis;
 	}
@@ -208,7 +208,7 @@
 		height: 38px;
 		border-radius: 999px;
 		font-size: 14px;
-		font-weight: 700;
+		font-weight: 600;
 		color: var(--text-2);
 		transition: color 0.25s;
 	}
@@ -244,6 +244,6 @@
 		border-radius: 999px;
 		background: var(--field);
 		font-size: 13px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 </style>

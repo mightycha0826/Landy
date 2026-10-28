@@ -139,7 +139,7 @@
 		font-size: 12px;
 	}
 	.kind {
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.body {
 		margin: 6px 0 0;
