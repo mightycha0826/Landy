@@ -3,7 +3,7 @@
 	 * 새 편지 (Phase 32) — 1) 받을 학생을 이름으로 찾고 → 2) 봉투를 열어 편지지에 쓰고 → 봉투에 담아 보낸다 (EnvelopeCompose).
 	 * 받는 사람에게 나는 "익명의 ○학생"(성별만) 또는 내가 적은 서명으로만 보인다 (Phase 35). 받기를 끈 사람 · 차단한 사이는 검색에 나오지 않는다.
 	 * 찾기 결과에는 학년 · 학번 — 같은 학년 동명이인을 구분한다. 대표 뱃지도 (Phase 84 — 순서는 그 사람이 정한 대로).
-	 * 아직 찾지 않았으면 아래에 추천 5명 (Phase 84 — 들어올 때 한 번, "다른 추천"을 누르면 다시. 추천에 안 나오기는 설정 › 편지).
+	 * 아직 찾지 않았으면 아래에 추천 3명 (Phase 84 — 들어올 때 한 번, "다른 추천"을 누르면 다시 — 하루 3번까지. 추천에 안 나오기는 설정 › 편지).
 	 */
 	import { onDestroy, onMount } from 'svelte';
 	import BackButton from '$lib/ui/BackButton.svelte';
@@ -46,15 +46,39 @@
 		return () => { active = false; clearTimeout(t); };
 	});
 
-	// 추천 5명 — 들어올 때 한 번 (주기 요청 없음)
+	// 추천 3명 — 들어올 때 한 번 (주기 요청 없음). 서버는 5명까지 주고, 화면에는 앞의 3명만
+	const REC_SHOW = 3;
+	// "다른 추천"은 하루 3번까지 — 이 기기에 날짜와 함께 센다 (날이 바뀌면 다시 3번)
+	const REC_REFRESH = 3;
+	const REC_KEY = 'dm-rec-refresh-v1';
+	const today = () => new Date().toLocaleDateString('sv-SE');
+	function refreshesUsed() {
+		try {
+			const v = JSON.parse(localStorage.getItem(REC_KEY) ?? 'null');
+			return v?.day === today() ? Number(v.n) || 0 : 0;
+		} catch {
+			return 0;
+		}
+	}
+	let recLeft = $state(REC_REFRESH - refreshesUsed());
 	let recs = $state<DmPerson[] | null>(null);
 	let recBusy = $state(false);
-	async function loadRecs() {
+	async function loadRecs(refresh = false) {
 		if (recBusy || !current()) return;
+		if (refresh) {
+			const used = refreshesUsed();
+			if (used >= REC_REFRESH) return void (recLeft = 0);
+			try {
+				localStorage.setItem(REC_KEY, JSON.stringify({ day: today(), n: used + 1 }));
+			} catch {
+				/* 저장소를 못 쓰면 이 화면에서만 센다 */
+			}
+			recLeft = Math.max(0, recLeft - 1);
+		}
 		recBusy = true;
 		try {
 			const r = await recommendPeople();
-			if (current()) recs = r ?? [];
+			if (current()) recs = (r ?? []).slice(0, REC_SHOW);
 		} catch {
 			if (current()) recs = [];
 		} finally {
@@ -124,7 +148,7 @@
 
 		{#if results === null}
 			<p class="prompt muted">이름을 두 글자 이상 적어 주세요</p>
-			<!-- 추천 5명 (Phase 84) -->
+			<!-- 추천 3명 (Phase 84) -->
 			{#if recs === null}
 				<p class="sr-only">추천을 불러오는 중…</p>
 				<div class="rec-sk" aria-hidden="true">{#each [0, 1, 2] as i (i)}<i class="skeleton"></i>{/each}</div>
@@ -132,7 +156,7 @@
 				<section class="recs" aria-labelledby="rec-h">
 					<div class="rec-head">
 						<h2 id="rec-h">이 친구에게 써 볼까요?</h2>
-						<button class="again u-tap" onclick={loadRecs} disabled={recBusy}>다른 추천</button>
+						<button class="again u-tap" onclick={() => loadRecs(true)} disabled={recBusy || recLeft <= 0}>다른 추천 <span class="num">{recLeft}/{REC_REFRESH}</span></button>
 					</div>
 					<ul class="people">
 						{#each recs as p (p.id)}
@@ -220,6 +244,10 @@
 		font-size: 13px;
 		font-weight: 600;
 		color: var(--accent);
+	}
+	.again:disabled {
+		color: var(--text-2);
+		opacity: 0.4;
 	}
 	.rec-sk {
 		display: flex;

@@ -46,11 +46,14 @@ try {
 			if (p.startsWith('/rest/v1/rpc/')) return json(null);
 			return json([]);
 		});
-		await page.goto(`${BASE}/login`);
-		await page.getByPlaceholder('학교 이메일 앞부분').fill('29999');
-		await page.getByPlaceholder('비밀번호').fill('abcd1234');
-		await page.getByRole('button', { name: '로그인', exact: true }).click();
-		await page.waitForURL(`${BASE}/`).catch(() => {});
+		// NOLOGIN=1 — 로그인 전 화면(/login · /welcome)을 찍을 때
+		if (!process.env.NOLOGIN) {
+			await page.goto(`${BASE}/login`);
+			await page.getByPlaceholder('학교 이메일 앞부분').fill('29999');
+			await page.getByPlaceholder('비밀번호').fill('abcd1234');
+			await page.getByRole('button', { name: '로그인', exact: true }).click();
+			await page.waitForURL(`${BASE}/`).catch(() => {});
+		}
 		const shots = (process.env.SHOTS ?? '/,/letters,/me,/settings,/activity,/dev/chat,/dev/letters').split(',');
 		for (const path of shots) {
 			await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle' }).catch(() => {});

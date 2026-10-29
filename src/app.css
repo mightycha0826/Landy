@@ -29,20 +29,22 @@
 }
 
 :root {
-	/* ── 포인트 디자인 시스템 (design/point) — 회색 위에 조합색 두 개만. 기본 조합: 일렉트릭 블루와 형광 주황.
+	/* ── 포인트 디자인 시스템 (design/point) — 회색 위에 조합색 두 개만. 기본 조합: 인스타 (분홍 → 자주 옅은 그라데이션 · 주황).
 	   다른 조합은 lib/themeColor.svelte.ts 가 --c-<이름>-l / -d 로 넣는다 ── */
 	--row: #f3f3f3;
 	--track: #dadada;
 	--control: #8a8a8a;
-	--primary: var(--c-primary-l, #2a3bff);
+	--primary: var(--c-primary-l, #d62976);
+	/* 넓은 면(주 버튼 · 내 말풍선)은 인스타 색을 옅게 — 분홍 → 자주 세 점이 서로 가깝다. 세 점 모두 흰 글자 4.5:1 */
+	--primary-fill: linear-gradient(115deg, var(--c-stop-a, #d8325f), var(--c-stop-b, #d62976) 50%, var(--c-stop-c, #b9338f));
 	--on-primary: #ffffff;
-	--primary-mark: var(--c-primary-mark-l, #2a3bff);
-	--primary-text: var(--c-primary-text-l, #2a3bff);
-	--primary-icon: var(--c-primary-icon-l, #2a3bff);
-	--point: var(--c-point-l, #ff5a00);
-	--point-mark: var(--c-point-mark-l, #ff5a00);
-	--point-icon: var(--c-point-icon-l, #f55600);
-	--point-text: var(--c-point-text-l, #cf4900);
+	--primary-mark: var(--c-primary-mark-l, #d62976);
+	--primary-text: var(--c-primary-text-l, #d62976);
+	--primary-icon: var(--c-primary-icon-l, #d62976);
+	--point: var(--c-point-l, #f56040);
+	--point-mark: var(--c-point-mark-l, #f56040);
+	--point-icon: var(--c-point-icon-l, #ee5d3e);
+	--point-text: var(--c-point-text-l, #c94f34);
 	--danger-on-bg: #dc3229;
 	--danger-line: #e5342b;
 	--badge-bg: #ffffff;
@@ -66,19 +68,19 @@
 	--g-coral: var(--primary-text);
 	--g-pink: var(--primary-text);
 	/* 로고·장식용 전체 그라디언트 — 아이콘과 같은 대각선 방향 */
-	--brand: var(--primary);
+	--brand: var(--primary-fill);
 	/* 흰 글씨가 올라가는 면 — 가장 밝은 연보라는 빼고 한 단계 짙게 (글씨가 읽히게) */
-	--accent-fill: var(--primary);
+	--accent-fill: var(--primary-fill);
 	/* 글자·링크·아이콘용 단색 — 밝은 바탕 위 4.5:1 넘게 */
 	--accent: var(--primary-text);
 	/* 내 말풍선 — 화면 위(연보라)에서 아래(보라)로. 인스타 DM 처럼 말풍선 위치에 따라 색이 변한다 */
-	--bubble-fill: var(--primary);
+	--bubble-fill: var(--primary-fill);
 	/* 위 그라디언트의 세 점 — 대화 화면이 그라디언트 위아래를 끝 색으로 늘려 쓴다 (ChatView) */
-	--bubble-a: var(--primary);
-	--bubble-b: var(--primary);
-	--bubble-c: var(--primary);
+	--bubble-a: var(--c-stop-a, #d8325f);
+	--bubble-b: var(--c-stop-b, #d62976);
+	--bubble-c: var(--c-stop-c, #b9338f);
 	/* 작은 흰 글씨(배지 · 칩 · 스티커)가 올라가는 면 — 흰 글씨와 4.7:1 넘게 (큰 글씨 버튼은 --accent-fill 그대로) */
-	--accent-fill-deep: var(--primary);
+	--accent-fill-deep: var(--primary-fill);
 	--on-accent: #ffffff;
 	--danger: #ce2f27;
 	/* 설정식 묶음 목록 — 옅은 바탕 위 흰 카드 */
@@ -181,14 +183,14 @@
 		--row: #2e2e2e;
 		--track: #3d3d3d;
 		--control: #808080;
-		--primary: var(--c-primary-d, #5361ff);
-		--primary-mark: var(--c-primary-mark-d, #4151ff);
-		--primary-text: var(--c-primary-text-d, #7580ff);
-		--primary-icon: var(--c-primary-icon-d, #5764ff);
-		--point: var(--c-point-d, #ff5a00);
-		--point-mark: var(--c-point-mark-d, #ff5a00);
-		--point-icon: var(--c-point-icon-d, #ff5a00);
-		--point-text: var(--c-point-text-d, #ff5a00);
+		--primary: var(--c-primary-d, #d8327b);
+		--primary-mark: var(--c-primary-mark-d, #d62976);
+		--primary-text: var(--c-primary-text-d, #e05f98);
+		--primary-icon: var(--c-primary-icon-d, #d8327b);
+		--point: var(--c-point-d, #f56040);
+		--point-mark: var(--c-point-mark-d, #f56040);
+		--point-icon: var(--c-point-icon-d, #f56040);
+		--point-text: var(--c-point-text-d, #f56040);
 		--danger: #ed716b;
 		--danger-on-bg: #e95049;
 		--badge-bg: #3b3b3b;
@@ -248,14 +250,14 @@
 	--row: #2e2e2e;
 	--track: #3d3d3d;
 	--control: #808080;
-	--primary: var(--c-primary-d, #5361ff);
-	--primary-mark: var(--c-primary-mark-d, #4151ff);
-	--primary-text: var(--c-primary-text-d, #7580ff);
-	--primary-icon: var(--c-primary-icon-d, #5764ff);
-	--point: var(--c-point-d, #ff5a00);
-	--point-mark: var(--c-point-mark-d, #ff5a00);
-	--point-icon: var(--c-point-icon-d, #ff5a00);
-	--point-text: var(--c-point-text-d, #ff5a00);
+	--primary: var(--c-primary-d, #d8327b);
+	--primary-mark: var(--c-primary-mark-d, #d62976);
+	--primary-text: var(--c-primary-text-d, #e05f98);
+	--primary-icon: var(--c-primary-icon-d, #d8327b);
+	--point: var(--c-point-d, #f56040);
+	--point-mark: var(--c-point-mark-d, #f56040);
+	--point-icon: var(--c-point-icon-d, #f56040);
+	--point-text: var(--c-point-text-d, #f56040);
 	--danger: #ed716b;
 	--danger-on-bg: #e95049;
 	--badge-bg: #3b3b3b;
@@ -494,7 +496,7 @@ a {
 	height: 54px;
 	/* 포인트 디자인 시스템 — 큰 버튼은 알약이 아니라 모서리 16 · 굵기 600 · 면은 primary 단색 (빛 번짐 없음) */
 	border-radius: var(--r-md);
-	background: var(--primary);
+	background: var(--primary-fill);
 	color: var(--on-primary);
 	font-weight: 600;
 	font-size: 17px;
@@ -730,8 +732,11 @@ a {
 	padding: 0 0.12em 0.22em;
 	margin-inline: -0.12em;
 	margin-bottom: -0.16em;
-	/* 그라디언트 대신 primary 글자색 한 가지 */
-	color: var(--primary-text);
+	/* 로고 글자에만 옅은 인스타 그라데이션 */
+	background: var(--primary-fill);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
 }
 /* 홈 머리글의 로고 — 짧은 이름(Landy, 5자)이라 조금 크게 해야 머리글이 비어 보이지 않고 다른 탭 제목과 무게가 맞는다 (Phase 58) */
 .title.wordmark {

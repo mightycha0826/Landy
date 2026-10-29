@@ -11,7 +11,7 @@ export function errMsg(e: unknown): string {
 	if (m.includes('rate limit')) return '요청이 많아요. 잠시 후 다시 시도해 주세요';
 	// 비밀번호 로그인 — 계정이 없는지 비밀번호가 틀렸는지는 구분해 주지 않는다 (가입 여부 탐색 방지)
 	if (m.includes('Invalid login credentials')) return '이메일 또는 비밀번호가 맞지 않아요';
-	if (m.includes('Email not confirmed')) return '아직 인증을 마치지 않은 계정입니다. "처음이에요 · 가입하기"로 인증해 주세요';
+	if (m.includes('Email not confirmed')) return '아직 인증을 마치지 않은 계정입니다. "가입하기"로 인증해 주세요';
 	if (m.includes('Password should') || m.includes('weak_password'))
 		return '비밀번호는 8자 이상, 영문과 숫자를 섞어 주세요';
 	if (m.includes('same_password') || m.includes('should be different'))

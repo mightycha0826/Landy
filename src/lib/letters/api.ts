@@ -122,7 +122,7 @@ export const paperDate = (iso: string) => new Date(iso).toLocaleDateString('ko-K
 // ── 읽기 ──
 /** 두 글자 이상. 공개 수신 설정만 반영하고, 익명 상대 차단으로 검색 결과가 달라지지 않는다. */
 export const searchPeople = (q: string) => rpc<DmPerson[]>('dm_search', { p_q: q });
-/** 찾기 화면 아래 추천 5명 (Phase 84 — 무작위. 추천을 끈 사람 · 이미 편지를 보내고 있는 사람은 빼고) */
+/** 찾기 화면 아래 추천 (서버는 5명, 화면은 3명 — Phase 84 — 무작위. 추천을 끈 사람 · 이미 편지를 보내고 있는 사람은 빼고) */
 export const recommendPeople = () => rpc<DmPerson[]>('dm_recommend');
 
 /** 받은/보낸 편지 중 폴더에 넣지 않은 것. 첫 쪽이면 내 폴더 목록도 같이 온다 (요청을 늘리지 않게, G13) */

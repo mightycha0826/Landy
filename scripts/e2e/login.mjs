@@ -53,7 +53,7 @@ try {
 		await page.screenshot({ path: `${SP}/login-1-main.png` });
 		check('기본 화면: 비밀번호 입력칸', await page.getByPlaceholder('비밀번호').isVisible());
 		check('기본 화면: 인증 코드 버튼 없음', (await page.getByRole('button', { name: '인증 코드 받기' }).count()) === 0);
-		check('기본 화면: 가입하기 링크', await page.getByRole('button', { name: '처음이에요 · 가입하기' }).isVisible());
+		check('기본 화면: 가입하기 버튼', await page.getByRole('button', { name: '가입하기', exact: true }).isVisible());
 		check('기본 화면: 비밀번호 찾기 링크', await page.getByRole('button', { name: '비밀번호를 잊었어요' }).isVisible());
 
 		await page.getByRole('button', { name: '비밀번호를 잊었어요' }).click();
@@ -86,7 +86,7 @@ try {
 		const log = { otp: [], verify: 0, errors: [] };
 		const page = await newPage(browser, log);
 		await page.goto(`${BASE}/login`);
-		await page.getByRole('button', { name: '처음이에요 · 가입하기' }).click();
+		await page.getByRole('button', { name: '가입하기', exact: true }).click();
 		check('가입 화면 제목', await page.getByRole('heading', { name: '처음 가입' }).isVisible());
 		// 학번만 (Phase 44) — 영어가 섞이면 선생님 안내, 숫자가 모자라면 형식 안내. 둘 다 코드를 보내지 않는다
 		const sendBtn = page.getByRole('button', { name: '인증 코드 받기' });

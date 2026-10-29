@@ -148,8 +148,13 @@
 		</section>
 
 		<div class="links">
-			<button class="btn-text" onclick={() => go('signup')}>처음이에요 · 가입하기</button>
 			<button class="btn-text" onclick={() => go('reset')}>비밀번호를 잊었어요</button>
+		</div>
+
+		<!-- 가입하기 — 처음 온 학생이 로그인 칸에 적다가 막히지 않게, 작은 글자 대신 로그인만큼 큰 버튼 -->
+		<div class="first">
+			<p id="first-h">처음이에요?</p>
+			<button class="btn-ghost signup" aria-describedby="first-h" onclick={() => go('signup')}>가입하기</button>
 		</div>
 	{:else if !sent}
 		<section>
@@ -240,7 +245,7 @@
 	.links {
 		display: flex;
 		flex-wrap: wrap;
-		justify-content: space-between;
+		justify-content: flex-end;
 		align-items: center;
 		column-gap: 12px;
 	}
@@ -254,6 +259,27 @@
 	}
 	.back {
 		align-self: center;
+	}
+	/* 가입하기 — 로그인과 같은 크기(54) · 회색 면에 primary 글자. 위에 "처음이에요?" 와 가는 선 */
+	.first {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		margin-top: 8px;
+		padding-top: 20px;
+		border-top: 1px solid var(--track);
+	}
+	.first p {
+		margin: 0;
+		text-align: center;
+		color: var(--text-2);
+		font-size: 15px;
+		font-weight: 500;
+	}
+	.signup {
+		height: 54px;
+		color: var(--primary-text);
+		font-size: 17px;
 	}
 
 	.spam {
