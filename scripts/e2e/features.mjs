@@ -297,7 +297,7 @@ try {
 	});
 	for (const y of [9999, ...targets, 9999]) worst = Math.max(worst, ...(await drift(y)));
 	check('★ 스크롤해도 말풍선마다 제 위치의 색 (어긋남 1px 미만)', worst < 1, `${worst}px`);
-	check('말풍선 바탕은 테마의 가운데 색 (인스타 #d62976)', (await sp.locator('.mine .bubble').first().evaluate((b) => getComputedStyle(b).backgroundColor)) === 'rgb(214, 41, 118)');
+	check('말풍선 바탕은 테마의 가운데 색 (인스타 #db2777)', (await sp.locator('.mine .bubble').first().evaluate((b) => getComputedStyle(b).backgroundColor)) === 'rgb(219, 39, 119)');
 	check('페이지 오류 없음', errs.length === 0, errs.join(' / '));
 } finally { await browser.close(); stopProcess(vite);  }
 console.log(`\n${pass} passed, ${fail} failed`);

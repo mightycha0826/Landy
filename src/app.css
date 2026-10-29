@@ -29,22 +29,22 @@
 }
 
 :root {
-	/* ── 포인트 디자인 시스템 (design/point) — 회색 위에 조합색 두 개만. 기본 조합: 인스타 (분홍 → 자주 옅은 그라데이션 · 주황).
+	/* ── 포인트 디자인 시스템 (design/point) — 회색 위에 조합색 두 개만. 기본 조합: 인스타 (분홍 → 자주 옅은 그라데이션 · 보색 청록).
 	   다른 조합은 lib/themeColor.svelte.ts 가 --c-<이름>-l / -d 로 넣는다 ── */
 	--row: #f3f3f3;
 	--track: #dadada;
 	--control: #8a8a8a;
-	--primary: var(--c-primary-l, #d62976);
+	--primary: var(--c-primary-l, #db2777);
 	/* 넓은 면(주 버튼 · 내 말풍선)은 인스타 색을 옅게 — 분홍 → 자주 세 점이 서로 가깝다. 세 점 모두 흰 글자 4.5:1 */
-	--primary-fill: linear-gradient(115deg, var(--c-stop-a, #d8325f), var(--c-stop-b, #d62976) 50%, var(--c-stop-c, #b9338f));
+	--primary-fill: linear-gradient(115deg, var(--c-stop-a, #e11d63), var(--c-stop-b, #db2777) 50%, var(--c-stop-c, #c2189b));
 	--on-primary: #ffffff;
-	--primary-mark: var(--c-primary-mark-l, #d62976);
-	--primary-text: var(--c-primary-text-l, #d62976);
-	--primary-icon: var(--c-primary-icon-l, #d62976);
-	--point: var(--c-point-l, #f56040);
-	--point-mark: var(--c-point-mark-l, #f56040);
-	--point-icon: var(--c-point-icon-l, #ee5d3e);
-	--point-text: var(--c-point-text-l, #c94f34);
+	--primary-mark: var(--c-primary-mark-l, #db2777);
+	--primary-text: var(--c-primary-text-l, #db2777);
+	--primary-icon: var(--c-primary-icon-l, #db2777);
+	--point: var(--c-point-l, #14b8a6);
+	--point-mark: var(--c-point-mark-l, #12a695);
+	--point-icon: var(--c-point-icon-l, #119c8d);
+	--point-text: var(--c-point-text-l, #0e8478);
 	--danger-on-bg: #dc3229;
 	--danger-line: #e5342b;
 	--badge-bg: #ffffff;
@@ -76,9 +76,9 @@
 	/* 내 말풍선 — 화면 위(연보라)에서 아래(보라)로. 인스타 DM 처럼 말풍선 위치에 따라 색이 변한다 */
 	--bubble-fill: var(--primary-fill);
 	/* 위 그라디언트의 세 점 — 대화 화면이 그라디언트 위아래를 끝 색으로 늘려 쓴다 (ChatView) */
-	--bubble-a: var(--c-stop-a, #d8325f);
-	--bubble-b: var(--c-stop-b, #d62976);
-	--bubble-c: var(--c-stop-c, #b9338f);
+	--bubble-a: var(--c-stop-a, #e11d63);
+	--bubble-b: var(--c-stop-b, #db2777);
+	--bubble-c: var(--c-stop-c, #c2189b);
 	/* 작은 흰 글씨(배지 · 칩 · 스티커)가 올라가는 면 — 흰 글씨와 4.7:1 넘게 (큰 글씨 버튼은 --accent-fill 그대로) */
 	--accent-fill-deep: var(--primary-fill);
 	--on-accent: #ffffff;
@@ -183,14 +183,14 @@
 		--row: #2e2e2e;
 		--track: #3d3d3d;
 		--control: #808080;
-		--primary: var(--c-primary-d, #d8327b);
-		--primary-mark: var(--c-primary-mark-d, #d62976);
-		--primary-text: var(--c-primary-text-d, #e05f98);
-		--primary-icon: var(--c-primary-icon-d, #d8327b);
-		--point: var(--c-point-d, #f56040);
-		--point-mark: var(--c-point-mark-d, #f56040);
-		--point-icon: var(--c-point-icon-d, #f56040);
-		--point-text: var(--c-point-text-d, #f56040);
+		--primary: var(--c-primary-d, #db2978);
+		--primary-mark: var(--c-primary-mark-d, #db2777);
+		--primary-text: var(--c-primary-text-d, #e45b98);
+		--primary-icon: var(--c-primary-icon-d, #dc2b7a);
+		--point: var(--c-point-d, #14b8a6);
+		--point-mark: var(--c-point-mark-d, #14b8a6);
+		--point-icon: var(--c-point-icon-d, #14b8a6);
+		--point-text: var(--c-point-text-d, #14b8a6);
 		--danger: #ed716b;
 		--danger-on-bg: #e95049;
 		--badge-bg: #3b3b3b;
@@ -250,14 +250,14 @@
 	--row: #2e2e2e;
 	--track: #3d3d3d;
 	--control: #808080;
-	--primary: var(--c-primary-d, #d8327b);
-	--primary-mark: var(--c-primary-mark-d, #d62976);
-	--primary-text: var(--c-primary-text-d, #e05f98);
-	--primary-icon: var(--c-primary-icon-d, #d8327b);
-	--point: var(--c-point-d, #f56040);
-	--point-mark: var(--c-point-mark-d, #f56040);
-	--point-icon: var(--c-point-icon-d, #f56040);
-	--point-text: var(--c-point-text-d, #f56040);
+	--primary: var(--c-primary-d, #db2978);
+	--primary-mark: var(--c-primary-mark-d, #db2777);
+	--primary-text: var(--c-primary-text-d, #e45b98);
+	--primary-icon: var(--c-primary-icon-d, #dc2b7a);
+	--point: var(--c-point-d, #14b8a6);
+	--point-mark: var(--c-point-mark-d, #14b8a6);
+	--point-icon: var(--c-point-icon-d, #14b8a6);
+	--point-text: var(--c-point-text-d, #14b8a6);
 	--danger: #ed716b;
 	--danger-on-bg: #e95049;
 	--badge-bg: #3b3b3b;
@@ -733,8 +733,13 @@ a {
 	padding: 0 0.12em 0.22em;
 	margin-inline: -0.12em;
 	margin-bottom: -0.16em;
-	/* 로고 글자에만 옅은 인스타 그라데이션 */
-	background: var(--primary-fill);
+	/* 로고 글자에만 옅은 인스타 그라데이션 — 큰 글자라 흰색을 섞어 채도를 한 단계 낮춘다 (회색을 섞으면 탁해진다) */
+	background: linear-gradient(
+		115deg,
+		color-mix(in srgb, var(--c-stop-a, #e11d63) 76%, #fff),
+		color-mix(in srgb, var(--c-stop-b, #db2777) 76%, #fff) 50%,
+		color-mix(in srgb, var(--c-stop-c, #c2189b) 76%, #fff)
+	);
 	-webkit-background-clip: text;
 	background-clip: text;
 	color: transparent;

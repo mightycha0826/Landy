@@ -22,6 +22,7 @@
 	import * as haptic from '$lib/haptics';
 	import { whileVisible } from '$lib/visible';
 	import { TOUR } from '$lib/tour.svelte';
+	import { LIST } from '$lib/letters/unread.svelte';
 
 	const timers: ReturnType<typeof setTimeout>[] = [];
 	onDestroy(() => timers.forEach(clearTimeout));
@@ -185,7 +186,8 @@
 	</div>
 	<ul class="rows letter-shelf">
 		<li>
-			<a class="list-row" href="/letters/archive">
+			<!-- 보관함은 마지막에 본 칸(LIST.tab)을 기억한다 — 누른 줄의 칸으로 열리게 먼저 정해 둔다 -->
+			<a class="list-row" href="/letters/archive" onclick={() => (LIST.tab = 'received')}>
 				<span class="lr-icon" aria-hidden="true">{@render tray()}</span>
 				<span class="lr-mid"><span class="lr-name">받은 편지</span></span>
 				<span class="lr-end">{loaded ? count(readCount, BOX.more.received) : ''}</span>
@@ -193,7 +195,7 @@
 			</a>
 		</li>
 		<li>
-			<a class="list-row" href="/letters/archive">
+			<a class="list-row" href="/letters/archive" onclick={() => (LIST.tab = 'sent')}>
 				<span class="lr-icon" aria-hidden="true">{@render send()}</span>
 				<span class="lr-mid"><span class="lr-name">보낸 편지</span></span>
 				<span class="lr-end">{loaded ? count(sentCount, BOX.more.sent) : ''}</span>

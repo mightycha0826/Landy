@@ -2,7 +2,7 @@
  * 테마 색상 — 포인트 디자인 시스템의 "조합" (설정 화면에서 고른다).
  * 조합은 두 색뿐: 첫 번째 색(primary)은 주 버튼 · 켜진 스위치 · 고른 것 · 지금 탭에, 두 번째 색(point)은 새 것 · 곧 끝남 같은 한 곳에만.
  * 나머지는 모두 회색(app.css). 원래 색이 바탕에서 묻히면 대비가 맞을 때까지 라이트는 어둡게, 다크는 밝게 민다.
- * 기본 조합(인스타)만 넓은 면(주 버튼 · 내 말풍선 · 로고)에 옅은 그라데이션 — 분홍 → 자주, 세 점이 서로 가깝다 (app.css --primary-fill).
+ * 기본 조합(인스타)만 넓은 면(주 버튼 · 내 말풍선 · 로고)에 옅은 그라데이션 — 분홍 → 자주, 세 점이 서로 가깝다. 두 번째 색은 분홍의 보색 청록 (app.css --primary-fill).
  * 이 기기에만 저장한다 (localStorage). 예전 색(그라데이션)을 저장해 둔 기기는 기본 조합으로 돌아간다.
  */
 import { contrast, pushContrast } from './contrast';
@@ -10,7 +10,7 @@ type ThemeColor = { id: string; label: string; primary: string; point: string };
 
 // 기본(첫 번째) 인스타 값은 app.css 에 미리 계산해 두었다. 나머지는 채도 높은 두 색을 맞붙인 단색 조합
 export const THEME_COLORS: ThemeColor[] = [
-	{ id: 'insta', label: '인스타', primary: '#d62976', point: '#f56040' },
+	{ id: 'insta', label: '인스타', primary: '#db2777', point: '#14b8a6' },
 	{ id: 'volt', label: '일렉트릭 블루와 형광 주황', primary: '#2a3bff', point: '#ff5a00' },
 	{ id: 'acid', label: '마젠타와 라임', primary: '#ff0a78', point: '#b6f000' },
 	{ id: 'siren', label: '다홍과 시안', primary: '#ff3b1f', point: '#00d1ff' },
@@ -21,7 +21,7 @@ const KEY = 'theme-combo-v1';
 
 /** 색 동그라미 — 두 색을 반씩 (기본 인스타는 그라데이션 그대로) */
 export const fillOf = (c: ThemeColor) =>
-	c.id === DEFAULT ? 'linear-gradient(115deg, #d8325f, #d62976 50%, #b9338f)' : `linear-gradient(135deg, ${c.primary} 50%, ${c.point} 50%)`;
+	c.id === DEFAULT ? 'linear-gradient(115deg, #e11d63, #db2777 50%, #c2189b)' : `linear-gradient(135deg, ${c.primary} 50%, ${c.point} 50%)`;
 
 export const THEME_COLOR = $state({ id: DEFAULT });
 

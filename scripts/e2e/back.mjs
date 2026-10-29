@@ -215,11 +215,11 @@ try {
 	await page.emulateMedia({ colorScheme: 'light' });
 	const swatch = (name) => page.locator('.swatch', { has: page.getByRole('radio', { name }) });
 	check('기본 색(인스타)이 골라져 있다', (await page.getByRole('radio', { name: '인스타' }).isChecked()) && (await swatch('인스타').getAttribute('class')).includes('on'));
-	check('★ 기본 말풍선 · 주 버튼 = 옅은 인스타 그라데이션 (분홍 → 자주)', before.includes('#d8325f') && before.includes('#b9338f'), before);
+	check('★ 기본 말풍선 · 주 버튼 = 옅은 인스타 그라데이션 (분홍 → 자주)', before.includes('#e11d63') && before.includes('#c2189b'), before);
 	check('색 동그라미 아래 글자 없음 (이름은 화면 낭독기에만)', (await page.locator('.swatches').innerText()).trim() === '');
 	await swatch('일렉트릭 블루와 형광 주황').click(); await page.waitForTimeout(200);
 	const blue = await fill();
-	check('★ 다른 조합을 고르면 말풍선이 그 색 단색으로 바로 바뀐다', blue !== before && blue.includes('#2a3bff') && !blue.includes('#d8325f'), blue);
+	check('★ 다른 조합을 고르면 말풍선이 그 색 단색으로 바로 바뀐다', blue !== before && blue.includes('#2a3bff') && !blue.includes('#e11d63'), blue);
 	const mine = await page.locator('.preview .mine .bubble').first().evaluate((e) => getComputedStyle(e).backgroundImage);
 	check('미리보기 말풍선에도 입혀진다', mine.includes('42, 59, 255'), mine);
 	const tok = () => page.evaluate(() => { const cs = getComputedStyle(document.documentElement); return ['--primary', '--primary-text', '--point'].map((k) => cs.getPropertyValue(k).trim()); });
@@ -237,7 +237,7 @@ try {
 	await page.goto(`${BASE}/settings`); await page.locator('.swatch.on').waitFor({ timeout: 8000 });
 	await swatch('인스타').click(); await page.waitForTimeout(200);
 	check('기본으로 되돌리면 저장값도 지운다', (await fill()) === before && (await page.evaluate(() => localStorage.getItem('theme-combo-v1'))) === null);
-	check('기본으로 되돌리면 앱 색도 원래대로', (await tok())[0] === '#d62976' && (await fill()).includes('#d8325f'), JSON.stringify(await tok()));
+	check('기본으로 되돌리면 앱 색도 원래대로', (await tok())[0] === '#db2777' && (await fill()).includes('#e11d63'), JSON.stringify(await tok()));
 
 	console.log('[설정 · 글자 크기 · 이 기기 설정 (Phase 43)]');
 	const prefs = () => page.evaluate(() => localStorage.getItem('prefs-v1'));

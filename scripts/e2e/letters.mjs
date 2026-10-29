@@ -337,9 +337,13 @@ try {
 	check('★ 보내고 돌아오면 우체통 위 "+✉" (Phase 72)', back.plus > 0, JSON.stringify(back));
 	check('★ 답장 → dm_reply_to (받은 편지 한 통에 · 이름으로 받은 쪽은 서명 없음)', JSON.stringify(called(w, 'dm_reply_to').at(-1)?.[1]) === JSON.stringify({ p_msg: 70, p_body: '고마워! 너도 잘 지내', p_fmt: null, p_nick: null }));
 	check('보내기 성공 후 답장 초안 삭제', !(await page.evaluate(() => Object.keys(localStorage).some(key => key.startsWith('landy-draft-v1:') && localStorage.getItem(key).includes('고마워! 너도 잘 지내')))));
-	await page.locator('.letter-shelf a.list-row').first().click(); await page.waitForURL('**/letters/archive'); await page.locator('.archive .stack .item').first().waitFor(); await page.waitForTimeout(300);
-	check('★ 날아간 뒤 보관함은 보낸 편지 칸 — 맨 위에 방금 답장 (To. 익명의 여학생)', (await page.getByRole('tab', { name: '보낸 편지' }).getAttribute('aria-selected')) === 'true'
+	await page.locator('.letter-shelf a.list-row').nth(1).click(); await page.waitForURL('**/letters/archive'); await page.locator('.archive .stack .item').first().waitFor(); await page.waitForTimeout(300);
+	check('★ 보낸 편지 줄 → 보관함 보낸 편지 칸 — 맨 위에 방금 답장 (To. 익명의 여학생)', (await page.getByRole('tab', { name: '보낸 편지' }).getAttribute('aria-selected')) === 'true'
 		&& (await page.locator('.archive .stack .item').first().getAttribute('aria-label')) === '익명의 여학생에게 보낸 답장');
+	await page.goBack(); await page.waitForURL(/\/letters$/); await page.locator('.letter-shelf a.list-row').first().waitFor();
+	await page.locator('.letter-shelf a.list-row').first().click(); await page.waitForURL('**/letters/archive'); await page.waitForTimeout(300);
+	check('★ 보낸 편지 칸을 보고 나와도 받은 편지 줄은 받은 편지 칸으로 (2026-10-30)', (await page.getByRole('tab', { name: '받은 편지' }).getAttribute('aria-selected')) === 'true');
+	await page.getByRole('tab', { name: '보낸 편지' }).click(); await page.waitForTimeout(300);
 
 	console.log('[새 편지]');
 	await page.locator('button.back').click(); await page.waitForURL(/\/letters$/); await page.waitForTimeout(300);
