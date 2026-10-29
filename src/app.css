@@ -601,10 +601,11 @@ a {
 	--dur-grow: 800ms;
 	--dur-1: 120ms;
 	--dur-2: 220ms;
-	--dur-3: 550ms;
-	--dur-sheet: 600ms;
+	/* 화면 넘김 · 시트처럼 큰 움직임은 예전 길이 그대로 — 스프링 550ms 는 누름에서 뗄 때(--dur-release)만 */
+	--dur-3: 360ms;
+	--dur-sheet: 440ms;
 	--dur-exit: 160ms;
-	--dur-sheet-exit: 220ms;
+	--dur-sheet-exit: 280ms;
 	--ease-squish: cubic-bezier(0.3, 0, 0.5, 1);
 	--ease-spring-ui: cubic-bezier(0.3, 1.25, 0.5, 1);
 	--ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);

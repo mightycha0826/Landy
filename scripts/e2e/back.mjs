@@ -75,19 +75,19 @@ try {
 	await page.getByPlaceholder('비밀번호').fill('abcd1234');
 	await page.getByRole('button', { name: '로그인', exact: true }).click();
 	await page.waitForURL(`${BASE}/`, { timeout: 8000 }).catch(() => {});
-	await page.locator('a.logo').waitFor({ timeout: 8000 });
+	await page.locator('.topbar.root .title').waitFor({ timeout: 8000 });
 	await page.waitForTimeout(600);
 	const idx = () => page.evaluate(() => navigation.currentEntry.index);
 	const toastText = () => page.locator('.toasts').innerText().catch(() => '');
 	const back = async () => { await page.evaluate(() => history.back()); await page.waitForTimeout(400); };
 
-	console.log('[로고]');
-	const logo = page.locator('a.logo');
-	check('로고 = 홈 링크, 끌 수 없음', (await logo.getAttribute('href')) === '/' && (await logo.getAttribute('draggable')) === 'false');
+	console.log('[화면 제목]');
+	const logo = page.locator('.topbar.root .title');
+	check('홈 머리글 = 왼쪽 화면 제목 "채팅" (26px)', (await logo.innerText()) === '채팅' && (await logo.evaluate((e) => getComputedStyle(e).fontSize)) === '26px');
 	const lb = await logo.boundingBox();
 	await page.mouse.move(lb.x + 3, lb.y + lb.height / 2); await page.mouse.down();
 	await page.mouse.move(lb.x + lb.width - 3, lb.y + lb.height / 2, { steps: 6 }); await page.mouse.up();
-	check('로고를 드래그해도 글자가 잡히지 않는다', (await page.evaluate(() => getSelection().toString())) === '');
+	check('제목을 드래그해도 글자가 잡히지 않는다', (await page.evaluate(() => getSelection().toString())) === '');
 	check('하단 탭 3개 — 익명편지 · 채팅 · 프로필 순서', (await page.locator('a.tab').allInnerTexts()).map((t) => t.trim()).join(',') === '익명편지,채팅,프로필',
 		(await page.locator('a.tab').allInnerTexts()).join(','));
 	check('상단 오른쪽 = 알림 하트 + 설정 톱니 (프로필 사진 없음)', (await page.locator('button.settings').count()) === 1 && (await page.locator('button.heart').count()) === 1 && (await page.locator('button.me').count()) === 0);
@@ -98,8 +98,8 @@ try {
 	const meHeads = await heads();
 	check('프로필 = 소개 · 관심사 · MBTI · 상대 (알림 · 비밀번호 · 로그아웃 없음)',
 		meHeads.join(',') === '소개,관심사,MBTI,이런 사람과 이야기할래요' && (await page.getByRole('button', { name: '로그아웃' }).count()) === 0, meHeads.join(','));
-	check('프로필: 설정식 — 회색 바탕 위 둥근 카드', (await page.locator('.page.grouped').evaluate((e) => getComputedStyle(e).backgroundColor)) === 'rgb(246, 243, 240)'
-		&& (await page.locator('.g-card').first().evaluate((e) => getComputedStyle(e).borderTopLeftRadius)) === '24px');
+	check('프로필: 흰 바탕 위 회색 둥근 카드 (모서리 20)', (await page.locator('.page.grouped').evaluate((e) => getComputedStyle(e).backgroundColor)) === 'rgb(255, 255, 255)'
+		&& (await page.locator('.g-card').first().evaluate((e) => getComputedStyle(e).borderTopLeftRadius)) === '20px');
 	check('상대 고르기 = 체크 표시 줄 (지금 고른 것 하나)', (await page.getByRole('radio', { checked: true }).count()) === 1);
 	await page.screenshot({ path: `${SP}/profile.png`, fullPage: true });
 	await back(); await page.waitForTimeout(300);
@@ -152,10 +152,10 @@ try {
 	// 홈 화면 앱(black-translucent)은 화면이 상태바 밑까지 올라간다 — 안전영역 47px 을 흉내 내서 머리글이 그만큼 내려오는지
 	await page.evaluate(() => document.documentElement.style.setProperty('--safe-top', '47px')); await page.waitForTimeout(100);
 	const tb = await page.locator('.topbar').first().boundingBox();
-	const lg = await page.locator('a.logo').boundingBox();
-	check('★ 머리글 = 상태바 47 + 48, 로고는 상태바 아래', Math.round(tb.height) === 95 && lg.y >= 47, `${tb.height} ${lg.y}`);
+	const lg = await page.locator('.topbar.root .title').boundingBox();
+	check('★ 머리글 = 상태바 47 + 64, 제목은 상태바 아래', Math.round(tb.height) === 111 && lg.y >= 47, `${tb.height} ${lg.y}`);
 	await page.evaluate(() => document.documentElement.style.removeProperty('--safe-top'));
-	check('안전영역이 없으면 48 그대로', Math.round((await page.locator('.topbar').first().boundingBox()).height) === 48);
+	check('안전영역이 없으면 64 그대로', Math.round((await page.locator('.topbar').first().boundingBox()).height) === 64);
 
 	console.log('[설정 · 테마 색상]');
 	const fill = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--bubble-fill').trim());
@@ -166,7 +166,7 @@ try {
 	check('★ 설정 = 화면 · 테마 색상 · 알림 · 대화 · 편지 · 뱃지(Phase 84) · 계정 · 도움(문의) · 약관 및 정책 · 앱 · 로그아웃', setHeads.join(',') === '테마 색상,알림,대화,편지,뱃지,계정,도움,약관 및 정책,앱'
 		&& (await page.getByRole('switch', { name: '푸시 알림' }).count()) === 1 && (await page.getByText('학교 인증').count()) === 1
 		&& (await page.getByRole('button', { name: '로그아웃' }).count()) === 1, setHeads.join(','));
-	check('뒤로는 둥근 단추 · 제목 가운데', (await page.locator('button.back').evaluate((e) => getComputedStyle(e).borderRadius)) === '50%'
+	check('뒤로는 둥근 아이콘 단추 · 제목 가운데', (await page.locator('button.back').evaluate((e) => getComputedStyle(e).borderRadius)) === '50%'
 		&& Math.abs(await page.locator('.topbar .title').evaluate((e) => { const r = e.getBoundingClientRect(); return r.left + r.width / 2 - innerWidth / 2; })) < 2);
 	const rematch = page.getByRole('switch', { name: '만났던 사람 다시 만나기' });
 	check('매칭: "만났던 사람 다시 만나기" 스위치 — 기본 꺼짐', (await rematch.count()) === 1 && !(await rematch.isChecked()));
@@ -185,10 +185,10 @@ try {
 	await recommendLetters.click(); await page.waitForTimeout(400);
 	check('추천 스위치는 별도 프로필 필드만 저장', JSON.stringify(patches.at(-1)) === '{"letters_recommend":false}' && !(await recommendLetters.isChecked()));
 	await recommendLetters.click(); await page.waitForTimeout(400);
-	check('색 후보 4개 — 파랑만 단색, 나머지는 그라데이션', await page.evaluate(() => {
+	check('색 후보 5개 — 기본 인스타는 그라데이션, 나머지는 두 색 반반', await page.evaluate(() => {
 		const dots = [...document.querySelectorAll('.swatch')].map((l) => ({ n: l.querySelector('input').getAttribute('aria-label'), bg: getComputedStyle(l.querySelector('.dot')).backgroundImage }));
 		const cols = (bg) => new Set(bg.match(/rgb\([^)]*\)/g)).size;
-		return dots.length === 4 && dots.every((d) => (d.n === '파랑' ? cols(d.bg) === 1 : cols(d.bg) >= 2));
+		return dots.length === 5 && dots[0].n === '인스타' && cols(dots[0].bg) === 3 && dots.slice(1).every((d) => cols(d.bg) === 2);
 	}));
 	const pwRow = page.getByRole('button', { name: /^비밀번호 (바꾸기|만들기)$/ });
 	await pwRow.click(); await page.waitForTimeout(150);
@@ -214,29 +214,30 @@ try {
 	await page.screenshot({ path: `${SP}/settings-dark.png`, fullPage: true });
 	await page.emulateMedia({ colorScheme: 'light' });
 	const swatch = (name) => page.locator('.swatch', { has: page.getByRole('radio', { name }) });
-	check('기본 색이 골라져 있다', (await page.getByRole('radio', { name: '기본' }).isChecked()) && (await swatch('기본').getAttribute('class')).includes('on'));
+	check('기본 색(인스타)이 골라져 있다', (await page.getByRole('radio', { name: '인스타' }).isChecked()) && (await swatch('인스타').getAttribute('class')).includes('on'));
+	check('★ 기본 말풍선 · 주 버튼 = 옅은 인스타 그라데이션 (분홍 → 자주)', before.includes('#d8325f') && before.includes('#b9338f'), before);
 	check('색 동그라미 아래 글자 없음 (이름은 화면 낭독기에만)', (await page.locator('.swatches').innerText()).trim() === '');
-	await swatch('파랑').click(); await page.waitForTimeout(200);
+	await swatch('일렉트릭 블루와 형광 주황').click(); await page.waitForTimeout(200);
 	const blue = await fill();
-	check('★ 파랑을 고르면 대비를 높인 말풍선 색이 바로 바뀐다', blue !== before && blue.includes('#3173cc'), blue);
+	check('★ 다른 조합을 고르면 말풍선이 그 색 단색으로 바로 바뀐다', blue !== before && blue.includes('#2a3bff') && !blue.includes('#d8325f'), blue);
 	const mine = await page.locator('.preview .mine .bubble').first().evaluate((e) => getComputedStyle(e).backgroundImage);
-	check('미리보기 말풍선에도 입혀진다', mine.includes('49, 115, 204'), mine);
-	const tok = () => page.evaluate(() => { const cs = getComputedStyle(document.documentElement); return ['--accent-fill', '--accent', '--brand'].map((k) => cs.getPropertyValue(k).trim()); });
-	const [af, ac, br] = await tok();
-	check('★ 앱 전체 색이 바뀐다 — 대비를 높인 버튼·글자와 원래 로고색', af.includes('#3173cc') && ac === '#3173cc' && br.includes('#3b8af6'), JSON.stringify([af, ac, br]));
-	check('설정 안의 포인트(화면 모드 고른 칸)도 파랑', (await page.locator('[aria-labelledby="theme-h"] .seg-btn.on').evaluate((e) => getComputedStyle(e).backgroundImage)).includes('49, 115, 204'));
-	check('이 기기에 저장', (await page.evaluate(() => localStorage.getItem('chat-color-v1'))) === 'ocean');
+	check('미리보기 말풍선에도 입혀진다', mine.includes('42, 59, 255'), mine);
+	const tok = () => page.evaluate(() => { const cs = getComputedStyle(document.documentElement); return ['--primary', '--primary-text', '--point'].map((k) => cs.getPropertyValue(k).trim()); });
+	const [pr, pt, po] = await tok();
+	check('★ 앱 전체 색이 바뀐다 — 주 색 · 글자 색 · 두 번째 색', pr === '#2a3bff' && pt === '#2a3bff' && po === '#ff5a00', JSON.stringify([pr, pt, po]));
+	check('설정 안의 구간 선택 고른 칸은 색 없이 흰 면', (await page.locator('[aria-labelledby="theme-h"] .seg-btn.on').evaluate((e) => getComputedStyle(e).backgroundColor)) === 'rgb(255, 255, 255)');
+	check('이 기기에 저장', (await page.evaluate(() => localStorage.getItem('theme-combo-v1'))) === 'volt');
 	await page.screenshot({ path: `${SP}/settings-color.png` });
 	check('긴 설정 화면에서도 머리글 52px 그대로 (눌려 줄지 않음)', Math.round((await page.locator('.topbar').boundingBox()).height) === 52, String((await page.locator('.topbar').boundingBox()).height));
 	await page.reload(); await page.locator('.swatch.on').waitFor({ timeout: 8000 });
-	check('다시 열어도 그대로', (await fill()).includes('#3173cc') && (await page.getByRole('radio', { name: '파랑' }).isChecked()));
-	await page.goto(`${BASE}/`); await page.locator('a.logo').waitFor(); await page.waitForTimeout(400);
+	check('다시 열어도 그대로', (await fill()).includes('#2a3bff') && (await page.getByRole('radio', { name: '일렉트릭 블루와 형광 주황' }).isChecked()));
+	await page.goto(`${BASE}/`); await page.locator('.topbar.root .title').waitFor(); await page.waitForTimeout(400);
 	await page.screenshot({ path: `${SP}/home-theme-blue.png` });
-	check('★ 홈 로고도 테마 색 (파랑)', (await page.locator('a.logo').evaluate((e) => { const cs = getComputedStyle(e); return cs.backgroundImage + cs.color; })).includes('59, 138, 246'));
+	check('★ 홈 주 버튼도 그 색', (await page.locator('.dock-action .btn').evaluate((e) => getComputedStyle(e).backgroundImage)).includes('42, 59, 255'));
 	await page.goto(`${BASE}/settings`); await page.locator('.swatch.on').waitFor({ timeout: 8000 });
-	await swatch('기본').click(); await page.waitForTimeout(200);
-	check('기본으로 되돌리면 저장값도 지운다', (await fill()) === before && (await page.evaluate(() => localStorage.getItem('chat-color-v1'))) === null);
-	check('기본으로 되돌리면 앱 색도 원래대로', (await tok()).every((v) => !v.includes('#3b8af6')) && (await tok())[0].includes('#843ed8'), JSON.stringify(await tok()));
+	await swatch('인스타').click(); await page.waitForTimeout(200);
+	check('기본으로 되돌리면 저장값도 지운다', (await fill()) === before && (await page.evaluate(() => localStorage.getItem('theme-combo-v1'))) === null);
+	check('기본으로 되돌리면 앱 색도 원래대로', (await tok())[0] === '#d62976' && (await fill()).includes('#d8325f'), JSON.stringify(await tok()));
 
 	console.log('[설정 · 글자 크기 · 이 기기 설정 (Phase 43)]');
 	const prefs = () => page.evaluate(() => localStorage.getItem('prefs-v1'));
@@ -314,23 +315,23 @@ try {
 		return row.getBoundingClientRect().height < 60 && lab.right < gr.left && g.innerText.trim() === '' && g.querySelectorAll('svg').length === 3;
 	}));
 	await mode('다크 모드').click(); await page.waitForTimeout(200);
-	check('★ 다크 모드를 고르면 폰이 라이트여도 바로 어두워진다', (await bg()) === 'rgb(12, 10, 11)' && (await page.evaluate(() => document.documentElement.dataset.theme)) === 'dark');
-	check('상단 바 색도 어둡게', (await bar()) === '#0c0a0b,#0c0a0b', await bar());
+	check('★ 다크 모드를 고르면 폰이 라이트여도 바로 어두워진다', (await bg()) === 'rgb(30, 30, 30)' && (await page.evaluate(() => document.documentElement.dataset.theme)) === 'dark');
+	check('상단 바 색도 어둡게', (await bar()) === '#1e1e1e,#1e1e1e', await bar());
 	check('이 기기에 저장', (await page.evaluate(() => localStorage.getItem('theme-v1'))) === 'dark');
 	await page.screenshot({ path: `${SP}/settings-theme-dark.png` });
 	await page.reload(); await page.getByRole('radiogroup', { name: '화면' }).waitFor({ timeout: 8000 });
 	check('★ 다시 켜도 그대로 (첫 화면부터)', (await page.evaluate(() => document.documentElement.dataset.theme)) === 'dark' && (await mode('다크 모드').getAttribute('aria-checked')) === 'true');
 	await page.emulateMedia({ colorScheme: 'dark' });
 	await mode('라이트 모드').click(); await page.waitForTimeout(200);
-	check('★ 라이트 모드 — 폰이 다크여도 밝게', (await bg()) === 'rgb(251, 249, 247)' && (await bar()) === '#fbf9f7,#fbf9f7', await bar());
+	check('★ 라이트 모드 — 폰이 다크여도 밝게', (await bg()) === 'rgb(255, 255, 255)' && (await bar()) === '#ffffff,#ffffff', await bar());
 	await mode('기기 설정 따르기').click(); await page.waitForTimeout(200);
-	check('기기 설정 따르기 → 폰 설정(다크)대로 · 저장값 지움', (await bg()) === 'rgb(12, 10, 11)' && (await page.evaluate(() => localStorage.getItem('theme-v1'))) === null
-		&& (await page.evaluate(() => document.documentElement.dataset.theme)) === undefined && (await bar()) === '#fbf9f7,#0c0a0b', await bar());
+	check('기기 설정 따르기 → 폰 설정(다크)대로 · 저장값 지움', (await bg()) === 'rgb(30, 30, 30)' && (await page.evaluate(() => localStorage.getItem('theme-v1'))) === null
+		&& (await page.evaluate(() => document.documentElement.dataset.theme)) === undefined && (await bar()) === '#ffffff,#1e1e1e', await bar());
 	await page.emulateMedia({ colorScheme: 'light' });
 
 	console.log('[처음 사용법 안내 · 빈 홈 (Phase 44)]');
-	await page.goto(`${BASE}/`); await page.locator('a.logo').waitFor(); await page.waitForTimeout(600);
-	check('★ 빈 홈 — 숫자(10:00) 대신 두 말풍선', (await page.locator('.hero .talk .say').count()) === 2 && !(await page.locator('.hero').innerText()).includes(':00'), await page.locator('.hero').innerText());
+	await page.goto(`${BASE}/`); await page.locator('.topbar.root .title').waitFor(); await page.waitForTimeout(600);
+	check('★ 빈 홈 — 아이콘 원 + 제목 한 줄 (설명 문장 없음)', (await page.locator('.pt-empty .pt-empty-icon').count()) === 1 && (await page.locator('.pt-empty').innerText()).trim() === '아직 대화가 없어요', await page.locator('.pt-empty').innerText());
 	check('자동 테스트에서는 사용법 안내가 저절로 뜨지 않는다', (await page.getByRole('dialog', { name: '사용법 안내' }).count()) === 0);
 	await page.goto(`${BASE}/?tour`);
 	const tour = page.getByRole('dialog', { name: '사용법 안내' });
@@ -340,8 +341,8 @@ try {
 	await page.screenshot({ path: `${SP}/tour-1.png` });
 	await tour.getByRole('button', { name: '알려 주세요' }).click(); await page.waitForTimeout(700);
 	const near = (a, b, pad) => Math.abs(a.x - (b.x - pad)) < 3 && Math.abs(a.y - (b.y - pad)) < 3 && Math.abs(a.width - (b.width + pad * 2)) < 3;
-	check('★ "새 대화 찾기" 자리를 비춘다', (await tour.innerText()).includes('새 대화 찾기') && near(await page.locator('.tour .hole').boundingBox(), await page.locator('.cta').boundingBox(), 6),
-		JSON.stringify([await page.locator('.tour .hole').boundingBox(), await page.locator('.cta').boundingBox()]));
+	check('★ "새 대화 찾기" 자리를 비춘다', (await tour.innerText()).includes('새 대화 찾기') && near(await page.locator('.tour .hole').boundingBox(), await page.locator('.dock-action').boundingBox(), 6),
+		JSON.stringify([await page.locator('.tour .hole').boundingBox(), await page.locator('.dock-action').boundingBox()]));
 	await page.screenshot({ path: `${SP}/tour-2.png` });
 	await tour.getByRole('button', { name: '다음' }).click(); await page.waitForTimeout(400);
 	check('시간 규칙은 운영 설정 값으로 (첫 대화 · 연장)', (await tour.innerText()).includes('첫 대화는 10분') && (await tour.innerText()).includes('10분씩'));
@@ -351,7 +352,7 @@ try {
 	await page.screenshot({ path: `${SP}/tour-3.png` });
 	await tour.getByRole('button', { name: '건너뛰기' }).click(); await page.waitForTimeout(400);
 	check('★ 건너뛰기 → 닫히고 이 기기에 "봤음"', (await page.getByRole('dialog', { name: '사용법 안내' }).count()) === 0 && (await page.evaluate(() => localStorage.getItem('tour-v1'))) === '1');
-	await page.goto(`${BASE}/?tour`); await page.locator('a.logo').waitFor(); await page.waitForTimeout(700);
+	await page.goto(`${BASE}/?tour`); await page.locator('.topbar.root .title').waitFor(); await page.waitForTimeout(700);
 	check('한 번 보면 다시 뜨지 않는다', (await page.getByRole('dialog', { name: '사용법 안내' }).count()) === 0);
 	await page.goto(`${BASE}/settings`); await page.getByRole('button', { name: '사용법 다시 보기' }).click();
 	await page.getByRole('dialog', { name: '사용법 안내' }).waitFor({ timeout: 8000 });
@@ -430,9 +431,9 @@ try {
 	check('★ 우체통을 비춘다', (await tour.locator('h2').innerText()) === '우체통' && near(await page.locator('.tour .hole').boundingBox(), await page.locator('.wall .post').boundingBox(), 6));
 	await page.screenshot({ path: `${SP}/tour-letters.png` });
 	await tour.getByRole('button', { name: '다음' }).click(); await page.waitForTimeout(600);
-	check('편지 보관함 이름표를 비춘다', (await tour.locator('h2').innerText()) === '편지 보관함' && near(await page.locator('.tour .hole').boundingBox(), await page.locator('.desk .plate').boundingBox(), 6));
+	check('편지 보관함 줄을 비춘다', (await tour.locator('h2').innerText()) === '편지 보관함' && near(await page.locator('.tour .hole').boundingBox(), await page.locator('.letter-shelf').boundingBox(), 6));
 	await tour.getByRole('button', { name: '다음' }).click(); await page.waitForTimeout(600);
-	check('★ 편지 쓰기 단추를 비춘다', (await tour.locator('h2').innerText()) === '편지 쓰기' && near(await page.locator('.tour .hole').boundingBox(), await page.locator('a.fab').boundingBox(), 6));
+	check('★ 편지 쓰기 단추를 비춘다', (await tour.locator('h2').innerText()) === '편지 쓰기' && near(await page.locator('.tour .hole').boundingBox(), await page.locator('.dock-action a.btn').boundingBox(), 6));
 	await tour.getByRole('button', { name: '다음' }).click(); await page.waitForTimeout(300);
 	check('마지막 장 — 버리기 · 차단 · 신고 · 편지 받기 끄기', (await tour.innerText()).includes('차단') && (await tour.innerText()).includes('편지 받기'));
 	await tour.getByRole('button', { name: '확인' }).click(); await page.waitForTimeout(500);
@@ -449,13 +450,13 @@ try {
 	await page.goto(`${BASE}/letters`); await page.getByText('100명이 모이면 열려요').waitFor({ timeout: 8000 }).catch(() => {});
 	check('★ 잠겨 있으면 편지함 대신 "100명이 모이면 열려요" · 실시간 가입 42/100', (await page.locator('.gate h1').innerText()).includes('100명이 모이면 열려요')
 		&& (await page.locator('.gate .big').innerText()) === '42' && (await page.locator('.gate .left').innerText()).includes('58명 더'), await page.locator('.gate').innerText().catch(() => ''));
-	check('편지 쓰기 단추 · 편지함 요청 없음', (await page.locator('a.fab').count()) === 0);
+	check('편지 쓰기 단추 · 편지함 요청 없음', (await page.locator('.dock-action a.btn').count()) === 0);
 	await page.screenshot({ path: `${SP}/letters-gate.png` });
 	await page.goto(`${BASE}/letters/new`); await page.locator('.gate').waitFor({ timeout: 8000 }).catch(() => {});
 	check('편지 쓰기 주소로 와도 잠금 화면', (await page.locator('.gate').count()) === 1 && (await page.getByRole('searchbox').count()) === 0);
 	GATE = false;
-	await page.goto(`${BASE}/letters`); await page.locator('a.fab').waitFor({ timeout: 8000 }).catch(() => {});
-	check('잠금을 끄면 평소 편지함', (await page.locator('.gate').count()) === 0 && (await page.locator('a.fab').count()) === 1);
+	await page.goto(`${BASE}/letters`); await page.locator('.dock-action a.btn').waitFor({ timeout: 8000 }).catch(() => {});
+	check('잠금을 끄면 평소 편지함', (await page.locator('.gate').count()) === 0 && (await page.locator('.dock-action a.btn').count()) === 1);
 	check('페이지 오류 없음', errors.length === 0, errors.join(' / '));
 } finally { await browser.close(); }
 console.log(`\n${pass} passed, ${fail} failed`);

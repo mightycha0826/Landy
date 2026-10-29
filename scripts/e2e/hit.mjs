@@ -82,7 +82,7 @@ const audit = (page) =>
 			// 가운데가 다른 것(고정 머리글 · 탭바)에 가려 있으면 이 요소 탓이 아니다
 			if (!owns(el, cx, cy)) {
 				const top = document.elementFromPoint(cx, cy);
-				if (top && getComputedStyle(top.closest('.topbar, .tabbar, .cta, .toasts') ?? document.body).position !== 'static') continue;
+				if (top && getComputedStyle(top.closest('.topbar, .tabbar, .dock-action, .toasts') ?? document.body).position !== 'static') continue;
 			}
 			const pts = [[cx - 21, cy], [cx + 21, cy], [cx, cy - 21], [cx, cy + 21], [cx, cy]];
 			const miss = pts.filter(([x, y]) => !owns(el, x, y)).length;

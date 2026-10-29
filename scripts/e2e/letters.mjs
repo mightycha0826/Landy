@@ -188,7 +188,7 @@ try {
 	}
 	const w = world();
 	const { page, errors } = await openApp(browser, w);
-	await page.locator('a.logo').waitFor({ timeout: 8000 });
+	await page.locator('.topbar.root .title').waitFor({ timeout: 8000 });
 
 	console.log('[편지함]');
 	await page.waitForTimeout(600);
@@ -208,45 +208,15 @@ try {
 	check('★ 투입구에 봉투 끝이 보이지 않는다 — 빨간 점만', (await page.locator('.post svg g[clip-path]').count()) === 0 && (await page.locator('.post svg rect[fill="#fffaf0"]').count()) === 1);
 	check('채팅 말풍선은 없다 (편지만)', (await page.locator('.bubble').count()) === 0 && (await page.getByRole('textbox', { name: '메시지' }).count()) === 0);
 	check('"새로 온 편지가 없어요" 문구는 없다', (await page.getByText('새로 온 편지가 없어요').count()) === 0);
-	const scene = await page.evaluate(() => {
-		const r = (q) => document.querySelector(q)?.getBoundingClientRect();
-		const box = r('.wall .post .postbox'), wall = r('.wall'), surf = r('.surface');
-		return { boxW: box.width, boxH: box.height, wallL: wall.left, wallR: wall.right - innerWidth, touch: Math.abs(wall.bottom - surf.top),
-			desk: !!document.querySelector('.surface .desk-area .desk') };
-	});
-	check('★ 한 장면 — 벽에 걸린 2D 네모 우체통 → 바로 아래 책상 한 장에 서류 더미 (Phase 73)', scene.boxW > scene.boxH * 1.3 && scene.wallL <= 0 && scene.wallR >= 0 && scene.touch < 1 && scene.desk, JSON.stringify(scene));
-	const rowOf = (pg) => pg.evaluate(() => {
-		const p = document.querySelector('.desk .plate').getBoundingClientRect(), f = document.querySelector('.desk-area .fab').getBoundingClientRect();
-		return { dy: Math.abs(p.top - f.top) + Math.abs(p.bottom - f.bottom), gap: f.left - p.right, plateW: p.width, fabW: f.width };
-	});
-	const row1 = await rowOf(page);
-	check('★ 편지 보관함 이름표 · 편지 쓰기 단추가 한 줄 · 같은 높이', row1.dy < 1.5 && row1.gap > 0 && row1.gap < 20 && row1.fabW > 100, JSON.stringify(row1));
-	const bleed = await page.evaluate(() => {
-		const r = document.querySelector('.desk .wood').getBoundingClientRect();
-		return { l: r.left, r: r.right - innerWidth, pressed: r.width * 0.985 - innerWidth, sx: document.documentElement.scrollWidth - innerWidth };
-	});
-	check('★ 책상은 화면보다 양옆으로 넓다 — (Phase 71) 모서리에 바깥 바탕이 비치지 않는다 · 가로 스크롤 없음', bleed.l <= -8 && bleed.r >= 8 && bleed.pressed > 0 && bleed.sx <= 0, JSON.stringify(bleed));
-	// 누른 것만 반응 (Phase 82) — 책상이 통째로 줄지 않는다
-	const pressAt = async (sel) => {
-		const b = await page.locator(sel).boundingBox();
-		await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down(); await page.waitForTimeout(350);
-		const st = await page.evaluate(() => {
-			const sc = (q) => getComputedStyle(document.querySelector(q)).scale;
-			return { desk: getComputedStyle(document.querySelector('button.desk')).transform, pile: sc('.desk .pile'), plate: sc('.desk .plate'), mug: getComputedStyle(document.querySelector('.desk .mug')).transform };
-		});
-		await page.mouse.move(5, 5); await page.mouse.up(); await page.waitForTimeout(300);
-		return st;
-	};
-	const onPile = await pressAt('.desk .pile .top-env'), onPlate = await pressAt('.desk .plate');
-	check('★ 편지 더미를 누르면 더미만 눌린다 — 책상 · 물건 · 이름표는 그대로', onPile.desk === 'none' && onPile.pile === '0.95' && onPile.plate === 'none' && onPile.mug === 'none', JSON.stringify(onPile));
-	check('★ 이름표를 누르면 이름표만 눌린다', onPlate.desk === 'none' && onPlate.plate === '0.97' && onPlate.pile === 'none', JSON.stringify(onPlate));
-	await page.locator('.desk .mug').click(); await page.waitForTimeout(80);
-	const mugTap = { anim: await page.locator('.desk .mug').evaluate((e) => e.getAnimations().length), others: await page.locator('.desk .pen').evaluate((e) => e.getAnimations().length) };
-	await page.waitForTimeout(500);
-	check('★ 물건(머그)을 누르면 그것만 톡 튀어 오르고 보관함으로 가지 않는다', mugTap.anim > 0 && mugTap.others === 0 && new URL(page.url()).pathname === '/letters', JSON.stringify(mugTap));
-	const desk = page.locator('button.desk');
-	check('★ 아래 책상 위 서류 더미 = 편지 보관함 (읽은 편지 · 보낸 편지)', (await desk.getAttribute('aria-label')) === '편지 보관함 — 받은 편지 1통, 보낸 편지 1통' && (await desk.locator('.layer').count()) >= 3 && (await desk.locator('.top-env .env').count()) === 1,
-		await desk.getAttribute('aria-label'));
+	const shelf = await page.evaluate(() => ({
+		news: [...document.querySelectorAll('.new-letters .lr-name')].map((e) => e.textContent.trim()),
+		rows: [...document.querySelectorAll('.letter-shelf .list-row')].map((e) => e.innerText.replace(/\s+/g, ' ').trim()),
+		write: !!document.querySelector('.dock-action a.btn[href="/letters/new"]'),
+		sx: document.documentElement.scrollWidth - innerWidth
+	}));
+	check('★ 우체통 아래 — 새 편지 줄(안 읽은 편지) · 편지 보관함 줄(받은 · 보낸) · 하단 편지 쓰기 (포인트 디자인 구조)', shelf.news.length === 2
+		&& shelf.rows[0] === '받은 편지 1' && shelf.rows[1] === '보낸 편지 1' && shelf.write && shelf.sx <= 0, JSON.stringify(shelf));
+	const desk = page.locator('.letter-shelf a.list-row').first();
 	await page.screenshot({ path: `${SP}/letters-1-inbox.png`, fullPage: true });
 
 	await desk.click(); await page.waitForURL('**/letters/archive'); await page.locator('.archive .stack .item').first().waitFor(); await page.waitForTimeout(700);
@@ -363,11 +333,11 @@ try {
 	check('★ 화면 위쪽 우체통 — 봉투가 작아져 투입구에 맞춰 들어간다 (Phase 71 · 72)', posted.up && posted.dx < 3 && posted.dy < 3 && posted.fits, JSON.stringify(posted));
 	await page.screenshot({ path: `${SP}/letters-4d-post.png` });
 	await page.waitForURL(/\/letters$/, { timeout: 8000 }); await page.waitForTimeout(500);
-	const back = await page.evaluate(() => ({ plus: document.querySelector('.post .plus')?.getAnimations().length ?? 0, land: !!document.querySelector('.desk .top-env.land') }));
-	check('★ 보내고 돌아오면 우체통 위 "+✉" · 보낸 편지가 책상 더미에 내려앉는다 (Phase 72)', back.plus > 0 && back.land, JSON.stringify(back));
+	const back = await page.evaluate(() => ({ plus: document.querySelector('.post .plus')?.getAnimations().length ?? 0 }));
+	check('★ 보내고 돌아오면 우체통 위 "+✉" (Phase 72)', back.plus > 0, JSON.stringify(back));
 	check('★ 답장 → dm_reply_to (받은 편지 한 통에 · 이름으로 받은 쪽은 서명 없음)', JSON.stringify(called(w, 'dm_reply_to').at(-1)?.[1]) === JSON.stringify({ p_msg: 70, p_body: '고마워! 너도 잘 지내', p_fmt: null, p_nick: null }));
 	check('보내기 성공 후 답장 초안 삭제', !(await page.evaluate(() => Object.keys(localStorage).some(key => key.startsWith('landy-draft-v1:') && localStorage.getItem(key).includes('고마워! 너도 잘 지내')))));
-	await page.locator('button.desk').click(); await page.waitForURL('**/letters/archive'); await page.locator('.archive .stack .item').first().waitFor(); await page.waitForTimeout(300);
+	await page.locator('.letter-shelf a.list-row').first().click(); await page.waitForURL('**/letters/archive'); await page.locator('.archive .stack .item').first().waitFor(); await page.waitForTimeout(300);
 	check('★ 날아간 뒤 보관함은 보낸 편지 칸 — 맨 위에 방금 답장 (To. 익명의 여학생)', (await page.getByRole('tab', { name: '보낸 편지' }).getAttribute('aria-selected')) === 'true'
 		&& (await page.locator('.archive .stack .item').first().getAttribute('aria-label')) === '익명의 여학생에게 보낸 답장');
 
@@ -461,8 +431,8 @@ try {
 	console.log('[예전 주소 · 대화 목록 길게 누르기]');
 	await page.goto(`${BASE}/letters/7`); await page.waitForURL(/\/letters$/, { timeout: 5000 }).catch(() => {});
 	check('예전 편지 주소(/letters/7) → 편지함', new URL(page.url()).pathname === '/letters');
-	await page.goto(`${BASE}/`); await page.locator('button.room').first().waitFor({ timeout: 8000 });
-	await page.locator('button.room').first().click({ button: 'right' }); await page.waitForTimeout(300);
+	await page.goto(`${BASE}/`); await page.locator('.rooms button.list-row').first().waitFor({ timeout: 8000 });
+	await page.locator('.rooms button.list-row').first().click({ button: 'right' }); await page.waitForTimeout(300);
 	check('대화 줄 오른쪽 클릭 → 신고 · 차단 · 나가기', (await page.locator('.sheet .item').allInnerTexts()).join(',') === '신고하기,차단하기,대화 나가기,취소');
 	await page.keyboard.press('Escape');
 
@@ -522,19 +492,7 @@ try {
 		const w9 = world();
 		const r9 = await openApp(browser, w9);
 		const p9 = r9.page;
-		await p9.locator('a.logo').waitFor({ timeout: 8000 }); await p9.waitForTimeout(600);
-		// 로고 — 그라디언트를 칠하는 칸이 y 꼬리(줄 높이 1 에서 글자 칸 아래로 0.175em)까지 덮는다
-		const logo = await p9.locator('a.logo').evaluate(async (el) => {
-			await document.fonts.load('100px "Lotteria Chab"', 'Landy');
-			const c = document.createElement('canvas').getContext('2d'); c.font = '100px "Lotteria Chab"';
-			const m = c.measureText('Landy'), cs = getComputedStyle(el), fs = parseFloat(cs.fontSize), lh = parseFloat(cs.lineHeight);
-			const base = (lh - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent) * fs / 100) / 2 + m.fontBoundingBoxAscent * fs / 100;
-			const r = el.getBoundingClientRect();
-			return { inkBottom: r.top + parseFloat(cs.paddingTop) + base + m.actualBoundingBoxDescent * fs / 100, boxBottom: r.bottom };
-		});
-		check('★ 머리글 Landy 의 y 꼬리가 잘리지 않는다 (그라디언트 칸이 글자 아래 끝까지)', logo.boxBottom >= logo.inkBottom + 0.5, JSON.stringify(logo));
-		const font9 = await p9.locator('a.logo').evaluate((el) => ({ fam: getComputedStyle(el).fontFamily, ok: document.fonts.check('27px "Lotteria Chab"', 'Landy'), tab: getComputedStyle(document.querySelector('a.tab .label, a.tab span') ?? document.body).fontFamily }));
-		check('★ 로고 글꼴만 롯데리아 촵땡겨체 (Phase 83)', font9.fam.startsWith('"Lotteria Chab"') && font9.ok, JSON.stringify(font9));
+		await p9.locator('.topbar.root .title').waitFor({ timeout: 8000 }); await p9.waitForTimeout(600);
 		const splash = await p9.evaluate(() => {
 			const d = document.createElement('div'); d.className = 'splash'; d.innerHTML = '<span class="wordmark">Landy</span>'; document.body.append(d);
 			const w = d.querySelector('.wordmark'), cs = getComputedStyle(w), ds = getComputedStyle(d);
@@ -542,7 +500,6 @@ try {
 			d.remove(); return out;
 		});
 		check('★ 시작 화면(아이콘 + 이름)은 늘 어두운 바탕에 흰 이름', splash.bg === 'rgb(12, 10, 11)' && splash.fill === 'rgb(255, 255, 255)' && splash.img === 'none' && splash.fixed === 'fixed', JSON.stringify(splash));
-		await p9.locator('a.logo').screenshot({ path: `${SP}/logo.png` });
 
 		// 앱이 떠 있을 때 온 편지 푸시 → 위에서 알림 띠 → 누르면 편지함 우체통에서 꺼낸다
 		await p9.evaluate(() => navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: { type: 'push', note: { kind: 'letter', title: '새 편지가 왔어요', body: '봉투를 열어 확인해 보세요', url: '/letters/m/70', tag: 'dm-70' } } })));
@@ -567,7 +524,7 @@ try {
 		check('편지함에서는 편지 알림 띠를 띄우지 않는다', (await p9.locator('.inapp .card').count()) === 0);
 
 		// 시스템 알림을 누름 (서비스워커가 "열어 줘") — 다른 화면에 있어도 편지함 우체통을 거친다
-		await p9.goto(`${BASE}/`); await p9.locator('a.logo').waitFor({ timeout: 8000 });
+		await p9.goto(`${BASE}/`); await p9.locator('.topbar.root .title').waitFor({ timeout: 8000 });
 		await p9.evaluate(() => navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: { type: 'open', url: '/letters/m/55' } })));
 		await p9.waitForURL('**/letters/m/55', { timeout: 6000 }).catch(() => {});
 		await p9.locator('.stage').waitFor({ timeout: 2000 }).catch(() => {});
@@ -581,7 +538,7 @@ try {
 	{
 		const w9 = world();
 		const r9 = await openApp(browser, w9);
-		await r9.page.locator('a.logo').waitFor({ timeout: 8000 });
+		await r9.page.locator('.topbar.root .title').waitFor({ timeout: 8000 });
 		await r9.page.goto(`${BASE}/letters?take=70`);
 		await r9.page.waitForURL('**/letters/m/70', { timeout: 6000 }).catch(() => {});
 		check('★ 앱을 새로 열며 온 알림(/letters?take=번호)도 우체통을 거쳐 그 편지로', new URL(r9.page.url()).pathname === '/letters/m/70' && (await r9.page.locator('.stage').count()) === 1, r9.page.url());
@@ -593,7 +550,7 @@ try {
 	{
 		const look = async (scheme) => {
 			const r = await openApp(browser, world(), { colorScheme: scheme });
-			await r.page.locator('a.logo').waitFor({ timeout: 8000 });
+			await r.page.locator('.topbar.root .title').waitFor({ timeout: 8000 });
 			await r.page.locator('a.tab', { hasText: '익명편지' }).click(); await r.page.waitForURL('**/letters');
 			await r.page.locator('.post .dot').waitFor({ timeout: 4000 }); await r.page.waitForTimeout(600);
 			const c = await r.page.evaluate(() => [...document.querySelectorAll('.post linearGradient')[0].querySelectorAll('stop')].map((e) => getComputedStyle(e).stopColor));
@@ -734,9 +691,10 @@ try {
 	const w7 = world();
 	const r7 = await openApp(browser, w7);
 	const p7 = r7.page;
-	await p7.goto(`${BASE}/letters`); await p7.locator('button.desk').waitFor(); await p7.waitForTimeout(400);
-	const counts7 = { plate: (await p7.locator('.plate .muted').innerText()).replace(/\s+/g, ' '), label: await p7.locator('button.desk').getAttribute('aria-label') };
-	await p7.locator('button.desk').click(); await p7.waitForURL('**/letters/archive'); await p7.locator('.archive .stack .item').first().waitFor(); await p7.waitForTimeout(500);
+	await p7.goto(`${BASE}/letters`); await p7.locator('.letter-shelf a.list-row').first().waitFor(); await p7.waitForTimeout(400);
+	const shelfRows = (pg) => pg.locator('.letter-shelf .list-row').allInnerTexts().then((a) => a.map((t) => t.replace(/\s+/g, ' ').trim()));
+	const counts7 = await shelfRows(p7);
+	await p7.locator('.letter-shelf a.list-row').first().click(); await p7.waitForURL('**/letters/archive'); await p7.locator('.archive .stack .item').first().waitFor(); await p7.waitForTimeout(500);
 	check('보관함에 "선택" · 폴더가 없으면 서랍 줄도 없다 (Phase 69 — "고르기"에서 이름 바꿈)', (await p7.getByRole('button', { name: '선택', exact: true }).count()) === 1 && (await p7.getByRole('button', { name: '고르기' }).count()) === 0 && (await p7.locator('.folders').count()) === 0);
 	await p7.getByRole('button', { name: '선택', exact: true }).click(); await p7.waitForTimeout(250);
 	const putBtn = p7.getByRole('button', { name: '폴더에 넣기' });
@@ -765,10 +723,10 @@ try {
 	await p7.screenshot({ path: `${SP}/letters-folder-3-shelf.png` });
 	await p7.goBack(); await p7.waitForTimeout(600);
 	check('★ 뒤로가기 한 번이면 편지함 — 시트 · 선택 기록이 남지 않는다', new URL(p7.url()).pathname === '/letters', p7.url());
-	check('편지함 책상 이름표에 폴더 수', (await p7.locator('.plate .muted').innerText()).includes('폴더 1'));
-	const after7 = { plate: (await p7.locator('.plate .muted').innerText()).replace(/\s+/g, ' '), label: await p7.locator('button.desk').getAttribute('aria-label') };
-	check('★ 폴더에 넣어도 받은 · 보낸 편지 수는 그대로 (폴더에 든 편지도 센다)', after7.plate === `${counts7.plate} · 폴더 1` && after7.label === `${counts7.label}, 폴더 1개`, JSON.stringify({ counts7, after7 }));
-	await p7.locator('button.desk').click(); await p7.waitForURL('**/letters/archive'); await p7.waitForTimeout(500);
+	const after7 = await shelfRows(p7);
+	check('편지 보관함에 폴더 줄 · 폴더 수', after7[2] === '폴더 1', JSON.stringify(after7));
+	check('★ 폴더에 넣어도 받은 · 보낸 편지 수는 그대로 (폴더에 든 편지도 센다)', after7[0] === counts7[0] && after7[1] === counts7[1], JSON.stringify({ counts7, after7 }));
+	await p7.locator('.letter-shelf a.list-row').first().click(); await p7.waitForURL('**/letters/archive'); await p7.waitForTimeout(500);
 
 	await p7.locator('.folders .folder').click(); await p7.waitForURL('**/letters/f/1'); await p7.locator('.stack .item').first().waitFor(); await p7.waitForTimeout(500);
 	check('★ 폴더 화면: 폴더 이름 · 받은 편지와 보낸 편지가 섞여 최근 것부터', (await p7.locator('.topbar .title').innerText()) === '소중한 편지'
@@ -840,8 +798,8 @@ try {
 	w8.filed.set(50, 1);
 	const r8 = await openApp(browser, w8);
 	const p8 = r8.page;
-	await p8.goto(`${BASE}/letters`); await p8.locator('button.desk').waitFor(); await p8.waitForTimeout(400);
-	await p8.locator('button.desk').click(); await p8.waitForURL('**/letters/archive'); await p8.locator('.archive .stack .item').first().waitFor(); await p8.waitForTimeout(500);
+	await p8.goto(`${BASE}/letters`); await p8.locator('.letter-shelf a.list-row').first().waitFor(); await p8.waitForTimeout(400);
+	await p8.locator('.letter-shelf a.list-row').first().click(); await p8.waitForURL('**/letters/archive'); await p8.locator('.archive .stack .item').first().waitFor(); await p8.waitForTimeout(500);
 	await p8.getByRole('button', { name: '선택', exact: true }).click(); await p8.waitForTimeout(250);
 	const env8 = (label) => p8.locator(`.archive .stack .item[aria-label^="${label}"]`);
 	await env8('익명의 남학생에게서 온 편지').click(); await p8.waitForTimeout(150);
@@ -884,24 +842,23 @@ try {
 	check('페이지 오류 없음 (삭제)', r8.errors.length === 0, r8.errors.join(' / '));
 	await r8.ctx.close();
 
-	console.log('[아이패드 사파리 — 책상이 폭을 채운다 (Phase 59)]');
+	console.log('[아이패드 사파리 — 목록 줄이 폭을 채운다 (Phase 59)]');
 	{
 		const r9 = await openApp(browser, world(), { viewport: { width: 1180, height: 820 } });
 		const p9 = r9.page;
-		await p9.goto(`${BASE}/letters`); await p9.locator('button.desk').waitFor(); await p9.waitForTimeout(500);
+		await p9.goto(`${BASE}/letters`); await p9.locator('.letter-shelf a.list-row').first().waitFor(); await p9.waitForTimeout(500);
 		// 사파리 18 까지의 기본 스타일(button { align-items: flex-start })을 흉내 — :where() 라 앱의 button 초기화보다 약하다(기본 스타일처럼)
 		await p9.addStyleTag({ content: ':where(button) { align-items: flex-start; }' }); await p9.waitForTimeout(300);
 		const fill = await p9.evaluate(() => {
 			const w = (s) => document.querySelector(s).getBoundingClientRect().width;
-			return { desk: w('button.desk'), wood: w('.desk .wood'), plate: w('.desk .plate'), fab: w('.desk-area .fab') };
+			return { page: w('.mailbox'), row: w('.letter-shelf .list-row'), write: w('.dock-action a.btn') };
 		});
 		await p9.screenshot({ path: `${SP}/letters-ipad-safari.png` });
-		// 이름표 + 틈 10 + 편지 쓰기 = 책상 폭 - 양옆(화면 여백 16 + 넓힌 14)
-		check('★ 사파리 기본 스타일에서도 책상 판자 · [이름표 | 편지 쓰기] 줄이 폭을 채운다', Math.abs(fill.wood - fill.desk) < 1 && Math.abs(fill.plate + 10 + fill.fab - (fill.desk - 60)) < 2, JSON.stringify(fill));
+		check('★ 사파리 기본 스타일에서도 편지 보관함 줄 · 편지 쓰기 단추가 폭을 채운다', Math.abs(fill.row - (fill.page - 32)) < 1 && Math.abs(fill.write - (fill.page - 32)) < 1, JSON.stringify(fill));
 		await r9.ctx.close();
 	}
 
-	console.log('[내 프로필 — 낮은 이름 카드 · 교복 (Phase 60)]');
+	console.log('[내 프로필 — 이름 줄 · 교복 (Phase 60)]');
 	for (const gender of ['m', 'f']) {
 		const w10 = world();
 		w10.prof.gender = gender;
@@ -916,8 +873,9 @@ try {
 		await p10.goto(`${BASE}/me`); await p10.locator('.uniform').waitFor(); await p10.waitForTimeout(400);
 		if (gender === 'm') {
 			const card = await p10.locator('.who').boundingBox();
-			check('★ 이름 카드: 표지 위에 이름 · "업적 1/2 ›" (누르면 업적 화면) · 낮게', (await p10.locator('.who .nick').innerText()) === '푸른고래' && (await p10.locator('.who .ach-link').innerText()).includes('업적 1/2')
-				&& (await p10.locator('.who .ach-link').getAttribute('href')) === '/me/achievements' && card.height < 200, JSON.stringify(card));
+			const nameRow = p10.locator('.who a.list-row');
+			check('★ 이름 줄: 얼굴 · 이름 · "업적 1/2" (누르면 업적 화면) + 매너 온도 카드 · 낮게', (await p10.locator('.who .nick').innerText()) === '푸른고래' && (await nameRow.locator('.lr-sub').innerText()).includes('업적 1/2')
+				&& (await nameRow.getAttribute('href')) === '/me/achievements' && card.height < 200, JSON.stringify(card));
 			check('★ 남학생 교복 = 넥타이 · 대표 업적 1개는 깃의 배지, 남은 2칸은 "+"', (await p10.locator('.uniform').getAttribute('data-neck')) === 'tie'
 				&& (await p10.locator('.uniform button.pin').count()) === 1 && (await p10.locator('.uniform a.empty').count()) === 2);
 			check('"명성" 카드는 없다', (await p10.locator('.fame').count()) === 0);
@@ -972,11 +930,10 @@ try {
 		const w8 = world();
 		const r8 = await openApp(browser, w8, { viewport: { width: 280, height: 574 } });
 		const p8 = r8.page;
-		await p8.goto(`${BASE}/letters`); await p8.locator('button.desk').waitFor(); await p8.waitForTimeout(700);
-		// 큰 글꼴 안드로이드(≈280×574): 편지 쓰기는 연필만 있는 네모 단추 — 이름표 옆 한 줄, 이름표 글을 가리지 않는다 (Phase 71)
-		await p8.evaluate(() => scrollTo(0, document.documentElement.scrollHeight)); await p8.waitForTimeout(300);
-		const row8 = await rowOf(p8);
-		check('★ 좁은 화면 — 편지 쓰기는 연필 네모 단추로 이름표 옆 한 줄 (겹치지 않음)', row8.dy < 1.5 && row8.gap > 0 && row8.fabW <= 64 && row8.plateW >= 150, JSON.stringify(row8));
+		await p8.goto(`${BASE}/letters`); await p8.locator('.letter-shelf a.list-row').first().waitFor(); await p8.waitForTimeout(700);
+		// 큰 글꼴 안드로이드(≈280×574): 편지 쓰기는 하단 주 버튼 — 화면 폭 안에, 탭 바로 위
+		const b8 = await p8.locator('.dock-action a.btn').boundingBox(), tab8 = await p8.locator('nav.tabbar').boundingBox();
+		check('★ 좁은 화면 — 편지 쓰기는 화면 안 하단 주 버튼 (탭 위)', b8.x >= 0 && b8.x + b8.width <= 280 && b8.y + b8.height <= tab8.y + 1, JSON.stringify([b8, tab8]));
 		check('단추 이름은 그대로 "편지 쓰기"', (await p8.getByRole('link', { name: '편지 쓰기' }).count()) === 1);
 		await p8.screenshot({ path: `${SP}/letters-fab-280.png` });
 		await r8.ctx.setOffline(true); await p8.waitForTimeout(300);

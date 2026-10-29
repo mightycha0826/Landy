@@ -160,7 +160,7 @@
 		<!-- 대화 목록을 한 번도 못 불러왔다 — 빈 홈으로 보이지 않게 오류 + 다시 시도 (UX G4) -->
 		<div class="pt-empty error" role="alert">
 			<span class="pt-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6" fill="none" stroke="currentColor" stroke-width="1.8" /><path d="M12 7.5v5.5M12 16.3v.1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg></span>
-			<h2>불러오지 못했어요</h2>
+			<h2>대화 목록을 불러오지 못했어요</h2>
 			<button class="btn-ghost" onclick={retryRooms} disabled={retrying} aria-busy={retrying}>{retrying ? '불러오는 중' : '다시 시도'}</button>
 		</div>
 	{:else if !inbox.loaded}
@@ -182,8 +182,8 @@
 		{#if offerBot && !bot}
 			<div class="notice-panel bot-choice">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="7.5" width="15" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.8" /><path d="M12 4v3.5M9.5 12.5v.1M14.5 12.5v.1" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
-				<span>AI와 대화<small>AI에 입력한 대화는 Cloudflare로 전달돼요</small></span>
-				<button class="notice-action" onclick={startBot} disabled={botBusy} aria-busy={botBusy}>{botBusy ? '준비 중' : '시작'}</button>
+				<span>기다리는 동안<small>AI에 입력한 대화는 Cloudflare로 전달돼요</small></span>
+				<button class="notice-action" onclick={startBot} disabled={botBusy} aria-busy={botBusy}>{botBusy ? '준비 중' : 'AI와 대화하기'}</button>
 			</div>
 		{/if}
 		{#if seeker.seeking}

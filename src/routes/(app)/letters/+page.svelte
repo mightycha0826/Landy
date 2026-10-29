@@ -73,7 +73,10 @@
 		if (wallEl && postEl && !reducedMotion() && PREFS.envelope && scrollY < 2) {
 			const w = wallEl.getBoundingClientRect();
 			const p = postEl.getBoundingClientRect();
-			KNOCK.hand = { w: p.width, top: p.top - w.top, wallH: w.height, count: unread.length };
+			// 이 화면 머리글(탭 첫 화면 64)이 편지 화면 머리글(--header-h 48)보다 높은 만큼 벽을 위로 늘려 넘긴다 — 우체통이 같은 자리에
+			const bar = document.querySelector<HTMLElement>('.topbar.root');
+			const lift = bar ? bar.offsetHeight - parseFloat(getComputedStyle(bar).paddingTop) - parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) : 0;
+			KNOCK.hand = { w: p.width, top: p.top - w.top + lift, wallH: w.height + lift, count: unread.length };
 			KNOCK.at = performance.now();
 		}
 		void goto(`/letters/m/${id}`);
@@ -160,7 +163,7 @@
 			<h2>새 편지</h2>
 			<span>{unread.length}</span>
 		</div>
-		<ul class="rows">
+		<ul class="rows new-letters">
 			{#each unread as it (it.id)}
 				<li>
 					<button class="list-row" onclick={() => takeOut(it.id)}>
@@ -180,7 +183,7 @@
 	<div class="section">
 		<h2>편지 보관함</h2>
 	</div>
-	<ul class="rows archive">
+	<ul class="rows letter-shelf">
 		<li>
 			<a class="list-row" href="/letters/archive">
 				<span class="lr-icon" aria-hidden="true">{@render tray()}</span>

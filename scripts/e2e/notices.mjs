@@ -58,7 +58,7 @@ try {
 	check('★ 안 본 공지 → 하트 오른쪽 위 빨간 점', (await page.locator('button.heart .dot').count()) === 1);
 	const dot = await box('button.heart .dot');
 	check('점 위치: 하트의 오른쪽 위', dot && dot.x + dot.width / 2 > b.x + b.width / 2 && dot.y + dot.height / 2 < b.y + b.height / 2, JSON.stringify({ dot, b }));
-	check('점 색은 빨강', (await page.locator('button.heart .dot').evaluate((e) => getComputedStyle(e).backgroundColor)) === 'rgb(255, 48, 64)');
+	check('점 색은 새 것 점(두 번째 색 주황)', (await page.locator('button.heart .dot').evaluate((e) => getComputedStyle(e).backgroundColor)) === 'rgb(245, 96, 64)');
 
 	console.log('[알림 화면 — 공지도 다른 알림과 같은 줄]');
 	await bell.click();
