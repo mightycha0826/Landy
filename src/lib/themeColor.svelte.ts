@@ -10,7 +10,7 @@ type ThemeColor = { id: string; label: string; primary: string; point: string };
 
 // 기본(첫 번째) 인스타 값은 app.css 에 미리 계산해 두었다. 나머지는 채도 높은 두 색을 맞붙인 단색 조합
 export const THEME_COLORS: ThemeColor[] = [
-	{ id: 'insta', label: '인스타', primary: '#db2777', point: '#14b8a6' },
+	{ id: 'insta', label: '인스타', primary: '#d6246e', point: '#00c2a0' },
 	{ id: 'volt', label: '일렉트릭 블루와 형광 주황', primary: '#2a3bff', point: '#ff5a00' },
 	{ id: 'acid', label: '마젠타와 라임', primary: '#ff0a78', point: '#b6f000' },
 	{ id: 'siren', label: '다홍과 시안', primary: '#ff3b1f', point: '#00d1ff' },
@@ -21,7 +21,7 @@ const KEY = 'theme-combo-v1';
 
 /** 색 동그라미 — 두 색을 반씩 (기본 인스타는 그라데이션 그대로) */
 export const fillOf = (c: ThemeColor) =>
-	c.id === DEFAULT ? 'linear-gradient(115deg, #e11d63, #db2777 50%, #c2189b)' : `linear-gradient(135deg, ${c.primary} 50%, ${c.point} 50%)`;
+	c.id === DEFAULT ? 'linear-gradient(115deg, #e5402a, #d6246e 50%, #8134af)' : `linear-gradient(135deg, ${c.primary} 50%, ${c.point} 50%)`;
 
 export const THEME_COLOR = $state({ id: DEFAULT });
 

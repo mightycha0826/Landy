@@ -10,9 +10,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
  *
  *   node scripts/generate-icons.mjs
  *
- * 원본은 흰 바탕 위의 로고 (정사각형이 아니어도 된다 — object-fit: cover 로 가운데를 기준삼아 정사각형으로 자른다).
+ * 원본은 짙은 회색(#1e1e1e) 바탕 위의 로고 (정사각형이 아니어도 된다 — object-fit: cover 로 가운데를 기준삼아 정사각형으로 자른다).
  * iOS·안드로이드가 각자 모양으로 모서리를 깎는다. 마스커블(안드로이드 적응형)은 지름 80% 원 밖이 잘릴 수 있어서
- * 로고를 68% 로 줄이고 둘레를 같은 흰 바탕으로 채운다 (render 의 scale).
+ * 로고를 68% 로 줄이고 둘레를 같은 짙은 회색 바탕으로 채운다 (render 의 scale).
  *
  * ⚠️ Windows 헤드리스 Chrome 은 DPI 스케일 때문에 --window-size 보다 크게 그려져
  *    잘릴 수 있으므로 --force-device-scale-factor=1 을 반드시 준다.
@@ -46,8 +46,8 @@ const dataUrl = `data:${mime};base64,${readFileSync(SOURCE).toString('base64')}`
 
 /** @param {number} size @param {number} scale 로고 크기 (1 = 원본 그대로) */
 const html = (size, scale) => `<!doctype html><meta charset="utf-8"><style>
-    html,body{margin:0;padding:0;background:#fff;overflow:hidden}
-    .i{width:${size}px;height:${size}px;overflow:hidden;background:#fefefe}
+    html,body{margin:0;padding:0;background:#1e1e1e;overflow:hidden}
+    .i{width:${size}px;height:${size}px;overflow:hidden;background:#1e1e1e}
     img{display:block;width:100%;height:100%;object-fit:cover;transform:scale(${scale})}
   </style><div class="i"><img src="${dataUrl}"></div>`;
 

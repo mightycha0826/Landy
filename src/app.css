@@ -34,17 +34,17 @@
 	--row: #f3f3f3;
 	--track: #dadada;
 	--control: #8a8a8a;
-	--primary: var(--c-primary-l, #db2777);
+	--primary: var(--c-primary-l, #d6246e);
 	/* 넓은 면(주 버튼 · 내 말풍선)은 인스타 색을 옅게 — 분홍 → 자주 세 점이 서로 가깝다. 세 점 모두 흰 글자 4.5:1 */
-	--primary-fill: linear-gradient(115deg, var(--c-stop-a, #e11d63), var(--c-stop-b, #db2777) 50%, var(--c-stop-c, #c2189b));
+	--primary-fill: linear-gradient(115deg, var(--c-stop-a, #e5402a), var(--c-stop-b, #d6246e) 50%, var(--c-stop-c, #8134af));
 	--on-primary: #ffffff;
-	--primary-mark: var(--c-primary-mark-l, #db2777);
-	--primary-text: var(--c-primary-text-l, #db2777);
-	--primary-icon: var(--c-primary-icon-l, #db2777);
-	--point: var(--c-point-l, #14b8a6);
-	--point-mark: var(--c-point-mark-l, #12a695);
-	--point-icon: var(--c-point-icon-l, #119c8d);
-	--point-text: var(--c-point-text-l, #0e8478);
+	--primary-mark: var(--c-primary-mark-l, #d6246e);
+	--primary-text: var(--c-primary-text-l, #d6246e);
+	--primary-icon: var(--c-primary-icon-l, #d6246e);
+	--point: var(--c-point-l, #00c2a0);
+	--point-mark: var(--c-point-mark-l, #00b894);
+	--point-icon: var(--c-point-icon-l, #00a884);
+	--point-text: var(--c-point-text-l, #00846a);
 	--danger-on-bg: #dc3229;
 	--danger-line: #e5342b;
 	--badge-bg: #ffffff;
@@ -76,9 +76,9 @@
 	/* 내 말풍선 — 화면 위(연보라)에서 아래(보라)로. 인스타 DM 처럼 말풍선 위치에 따라 색이 변한다 */
 	--bubble-fill: var(--primary-fill);
 	/* 위 그라디언트의 세 점 — 대화 화면이 그라디언트 위아래를 끝 색으로 늘려 쓴다 (ChatView) */
-	--bubble-a: var(--c-stop-a, #e11d63);
-	--bubble-b: var(--c-stop-b, #db2777);
-	--bubble-c: var(--c-stop-c, #c2189b);
+	--bubble-a: var(--c-stop-a, #e5402a);
+	--bubble-b: var(--c-stop-b, #d6246e);
+	--bubble-c: var(--c-stop-c, #8134af);
 	/* 작은 흰 글씨(배지 · 칩 · 스티커)가 올라가는 면 — 흰 글씨와 4.7:1 넘게 (큰 글씨 버튼은 --accent-fill 그대로) */
 	--accent-fill-deep: var(--primary-fill);
 	--on-accent: #ffffff;
@@ -183,14 +183,14 @@
 		--row: #2e2e2e;
 		--track: #3d3d3d;
 		--control: #808080;
-		--primary: var(--c-primary-d, #db2978);
-		--primary-mark: var(--c-primary-mark-d, #db2777);
-		--primary-text: var(--c-primary-text-d, #e45b98);
-		--primary-icon: var(--c-primary-icon-d, #dc2b7a);
-		--point: var(--c-point-d, #14b8a6);
-		--point-mark: var(--c-point-mark-d, #14b8a6);
-		--point-icon: var(--c-point-icon-d, #14b8a6);
-		--point-text: var(--c-point-text-d, #14b8a6);
+		--primary: var(--c-primary-d, #d6246e);
+		--primary-mark: var(--c-primary-mark-d, #d6246e);
+		--primary-text: var(--c-primary-text-d, #ec5c95);
+		--primary-icon: var(--c-primary-icon-d, #e8508d);
+		--point: var(--c-point-d, #00c2a0);
+		--point-mark: var(--c-point-mark-d, #00c2a0);
+		--point-icon: var(--c-point-icon-d, #00c2a0);
+		--point-text: var(--c-point-text-d, #00c2a0);
 		--danger: #ed716b;
 		--danger-on-bg: #e95049;
 		--badge-bg: #3b3b3b;
@@ -250,14 +250,14 @@
 	--row: #2e2e2e;
 	--track: #3d3d3d;
 	--control: #808080;
-	--primary: var(--c-primary-d, #db2978);
-	--primary-mark: var(--c-primary-mark-d, #db2777);
-	--primary-text: var(--c-primary-text-d, #e45b98);
-	--primary-icon: var(--c-primary-icon-d, #dc2b7a);
-	--point: var(--c-point-d, #14b8a6);
-	--point-mark: var(--c-point-mark-d, #14b8a6);
-	--point-icon: var(--c-point-icon-d, #14b8a6);
-	--point-text: var(--c-point-text-d, #14b8a6);
+	--primary: var(--c-primary-d, #d6246e);
+	--primary-mark: var(--c-primary-mark-d, #d6246e);
+	--primary-text: var(--c-primary-text-d, #ec5c95);
+	--primary-icon: var(--c-primary-icon-d, #e8508d);
+	--point: var(--c-point-d, #00c2a0);
+	--point-mark: var(--c-point-mark-d, #00c2a0);
+	--point-icon: var(--c-point-icon-d, #00c2a0);
+	--point-text: var(--c-point-text-d, #00c2a0);
 	--danger: #ed716b;
 	--danger-on-bg: #e95049;
 	--badge-bg: #3b3b3b;
@@ -736,9 +736,9 @@ a {
 	/* 로고 글자에만 옅은 인스타 그라데이션 — 큰 글자라 흰색을 섞어 채도를 한 단계 낮춘다 (회색을 섞으면 탁해진다) */
 	background: linear-gradient(
 		115deg,
-		color-mix(in srgb, var(--c-stop-a, #e11d63) 76%, #fff),
-		color-mix(in srgb, var(--c-stop-b, #db2777) 76%, #fff) 50%,
-		color-mix(in srgb, var(--c-stop-c, #c2189b) 76%, #fff)
+		color-mix(in srgb, var(--c-stop-a, #e5402a) 76%, #fff),
+		color-mix(in srgb, var(--c-stop-b, #d6246e) 76%, #fff) 50%,
+		color-mix(in srgb, var(--c-stop-c, #8134af) 76%, #fff)
 	);
 	-webkit-background-clip: text;
 	background-clip: text;

@@ -45,7 +45,7 @@ export const ENAMEL: Record<string, string> = {
 	good: '#3b82f6',
 	kind: '#ff5d8f',
 	fun: '#ffb020',
-	listen: '#14b8a6',
+	listen: '#00c2a0',
 	fast: '#ffd23f',
 	manner: '#4f46e5',
 	rater: '#22c55e',
