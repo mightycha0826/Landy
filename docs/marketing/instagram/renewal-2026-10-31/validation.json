@@ -4,15 +4,15 @@
   "coverConnection": "pixel-identical after reassembly",
   "coverLayout": [
     {
-      "title": "우리학교,\n더 가까이.",
+      "title": "우리학교\n더 가까이",
       "overflow": false
     },
     {
-      "title": "이름보다\n이야기 먼저.",
+      "title": "이름보다\n이야기 먼저",
       "overflow": false
     },
     {
-      "title": "첫마디는,\nLandy.",
+      "title": "첫마디는\nLandy",
       "overflow": false
     }
   ],
@@ -26,31 +26,32 @@
       "pages": 5,
       "check": {
         "fontLoaded": true,
+        "punctuationRemaining": false,
         "redundantLabels": 0,
         "slides": [
           {
-            "title": "같은 복도,\n다른 이야기.",
+            "title": "같은 복도\n다른 이야기",
             "overflow": [],
             "textOverlap": false,
             "artOverlap": false,
             "copyFont": 48
           },
           {
-            "title": "이름을 몰라도,\n말은 통하니까.",
+            "title": "이름을 몰라도\n말은 통하니까",
             "overflow": [],
             "textOverlap": false,
             "artOverlap": false,
             "copyFont": 48
           },
           {
-            "title": "우연히 만나고.\n마음을 전하고.",
+            "title": "우연히 만나고\n마음을 전하고",
             "overflow": [],
             "textOverlap": false,
             "artOverlap": false,
             "copyFont": 48
           },
           {
-            "title": "내일 마주칠\n친구와,\n오늘 먼저.",
+            "title": "내일 마주칠\n친구와\n오늘 먼저",
             "overflow": [],
             "textOverlap": false,
             "artOverlap": false,
@@ -71,10 +72,11 @@
       "pages": 5,
       "check": {
         "fontLoaded": true,
+        "punctuationRemaining": false,
         "redundantLabels": 0,
         "slides": [
           {
-            "title": "이름은 나중에.\n첫마디는 지금.",
+            "title": "이름은 나중에\n첫마디는 지금",
             "overflow": [],
             "textOverlap": false,
             "artOverlap": false,
@@ -88,14 +90,14 @@
             "copyFont": 48
           },
           {
-            "title": "한 번에 말고,\n조금씩 가까이.",
+            "title": "한 번에 말고\n조금씩 가까이",
             "overflow": [],
             "textOverlap": false,
             "artOverlap": false,
             "copyFont": 48
           },
           {
-            "title": "잘 통했다면,\n다음 이야기도.",
+            "title": "잘 통했다면\n다음 이야기도",
             "overflow": [],
             "textOverlap": false,
             "artOverlap": false,
@@ -116,31 +118,32 @@
       "pages": 5,
       "check": {
         "fontLoaded": true,
+        "punctuationRemaining": false,
         "redundantLabels": 0,
         "slides": [
           {
-            "title": "고마웠다는 말,\n아직 못 했다면.",
+            "title": "고마웠다는 말\n아직 못 했다면",
             "overflow": [],
             "textOverlap": false,
             "artOverlap": false,
             "copyFont": 48
           },
           {
-            "title": "내 이름 대신,\n내 마음으로.",
+            "title": "내 이름 대신\n내 마음으로",
             "overflow": [],
             "textOverlap": false,
             "artOverlap": false,
             "copyFont": 48
           },
           {
-            "title": "한 통이,\n대화가 되도록.",
+            "title": "한 통이\n대화가 되도록",
             "overflow": [],
             "textOverlap": false,
             "artOverlap": false,
             "copyFont": 48
           },
           {
-            "title": "전하고 싶었던\n그 한마디.",
+            "title": "전하고 싶었던\n그 한마디",
             "overflow": [],
             "textOverlap": false,
             "artOverlap": false,
@@ -157,18 +160,16 @@
       ]
     }
   ],
+  "speechBubbles": "Single closed SVG path with a curved tail; square pseudo-element removed",
   "pdfVisualReview": {
     "renderer": "Poppler pdftoppm",
     "pages": 16,
-    "result": "passed",
-    "contactSheet": "source/pdf-qa/PDF-Contact-Sheet.png"
+    "contactSheet": "source/pdf-qa/PDF-Contact-Sheet.png",
+    "result": "passed"
   },
   "uploadArchive": {
     "pngCount": 15,
-    "captions": true,
-    "uploadGuide": true,
-    "crc": "passed",
-    "matchesCurrentPNGs": true
-  },
-  "copyRevision": "Removed header/footer, cover subtitles, series labels, navigation text, handwritten annotations and sample signature; body copy limited to 1-2 lines at 48px."
+    "matchesCurrentPNGs": true,
+    "crc": "passed"
+  }
 }

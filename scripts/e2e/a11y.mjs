@@ -22,7 +22,9 @@ try {
 	await page.goto(U('/dev/chat?s=chat&incoming'));
 	await bubble('안녕하세요!').waitFor(); await page.waitForTimeout(400);
 	const live = page.locator('.sr-only[aria-live]');
-	check('들어올 때 지난 대화는 읽지 않는다', (await live.innerText()).trim() === '', await live.innerText());
+	// 1.2초 뒤 오는 새 메시지(&incoming)는 느린 PC 에서 첫 말풍선보다 먼저 올 수 있다 — 그 안내는 맞는 동작. 지난 대화를 읽지 않는지만 본다
+	const first = (await live.innerText()).trim();
+	check('들어올 때 지난 대화는 읽지 않는다', first === '' || first === '새벽수달: 방금 온 메시지예요', first);
 	await bubble('방금 온 메시지예요').waitFor(); await page.waitForTimeout(200);
 	check('상대 새 메시지를 안내', (await live.innerText()).trim() === '새벽수달: 방금 온 메시지예요', await live.innerText());
 	check('목록에 이름표', (await page.getByRole('region', { name: '대화 내용' }).count()) === 1);

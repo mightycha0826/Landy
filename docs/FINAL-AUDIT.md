@@ -183,6 +183,7 @@
 | T03 | hit | "개인정보 처리방침 보기"가 실행마다 겹침으로 잡혔다 안 잡혔다(0 ↔ 1) | 닫힌 `<details>` 안 링크에도 Chrome 156 이 상자 크기를 준다 — 누를 수 없는 요소 | 닫힌 접기 안(요약 줄 제외)은 검사에서 뺌. 열린 접기는 그대로 검사 |
 | T04 | features | "✕ 로 답장 취소" · "입력창에 글이 있으면 도우미 숨김"이 가끔 실패 | 누르자마자 `count()===0` — 닫히는 연출(`out:expand`, G7.1 필수)이 끝나기 전 | 사라질 때까지(`detached`, 3초 안) 기다린 뒤 같은 단언 |
 | T06 | hit | 같은 화면이 실행마다 0 ~ 6개로 달랐다 | 고정 1.6초 뒤에 잼 — 이 PC 에서는 미리보기가 아직 그려지는 중이거나 들어오는 연출 중 (따로 재 보니 다 그려진 뒤에는 아무것도 가리지 않음) | 네트워크가 조용해지고 들어오는 연출이 끝날 때까지(최대 6초) 기다린 뒤 같은 기준으로 잼. 연속 2회 13/13 |
+| T07 | a11y | "들어올 때 지난 대화는 읽지 않는다"가 가끔 실패 | 미리보기가 1.2초 뒤 새 메시지를 보내는데, 느린 PC 에서는 첫 말풍선이 늦게 그려져 새 메시지 안내가 이미 나와 있다(맞는 동작) | 지난 대화가 안내되지 않는지(비었거나 새 메시지 한 줄)만 본다 |
 | T05 | admin-notices | 메뉴 이동 직후 확인이 가끔 실패 | `networkidle` 이 이동 시작 전에 끝날 수 있다 | 주소가 바뀔 때까지 기다린 뒤 같은 단언 |
 
 ### 수정하지 않은 관찰 (근거와 함께 유지)
@@ -234,7 +235,9 @@
 | `npm run build` | 성공 (가짜 공개 env · 빈 env 둘 다) | 클라이언트 산출물에서 `service_role` · `ADMIN_SESSION_SECRET` · `VAPID_PRIVATE_KEY` 0건 |
 | 운영 빌드 미리보기 (`vite preview` + 가짜 Supabase, 설치 · 로그인 학생) | 붙여넣은 `29999@cnsa.hs.kr` → 칸에 `29999` · 토큰 요청 이메일 `29999@cnsa.hs.kr` · `/dev/pins` · `/dev/chat` · `/dev/achievements` → 404(미리보기 내용 0) · `/chat` → `/` | 스크립트는 작업 폴더 밖 임시 폴더(저장소에 넣지 않음) |
 | `npm run test:ui` 전체 1회 (최종 코드) | **26/28 통과** — a11y 13 · achievements 76 · admin 16 · admin-ai 31 · admin-deletion 17 · admin-notices 15 · audit 138 · back 113 · bot 36 · design-shots · features 76 · intro 13 · letters 202 · live 15 · login 22 · motion 9 · notices 28 · product 44 · push-route 7 · requests 10 · security 17 · select 10 · sheet 11 · sw 19 · ux 36 · wrap 2 | 실패 2: hit(측정 시점 → T06 으로 고침) · react(첫 화면 30초 시간 초과) |
-| `hit` · `react` 따로 2회 | hit 13/13 · 13/13 · react 0(첫 화면 시간 초과) · 26/26 | react 는 기준선 26/26, 채팅 코드는 바꾸지 않음 → 이 PC 의 느린 첫 컴파일로 판단. **CI 에서 한 번 더 확인 권장** |
+| `hit` · `react` 따로 2회 | hit 13/13 · 13/13 · react 0(첫 화면 시간 초과) · 26/26 | |
+| 정리 리팩토링(`LoadError` 통합) 뒤 전체 1회 | **26/28** — 실패 a11y(T07, 고침) · react | 나머지 26 은 위와 같은 수 그대로 통과 |
+| `a11y` · `react` 따로 3회 | a11y 13/13 ×3 · react 26/26 ×3 | **react 는 전체 실행의 22번째쯤에서만 실패(최근 전체 3회 중 2회, 같은 단계: 두 번째 길게 누르기 600ms 가 450ms 타이머를 못 넘김)** — 따로는 매번 통과, 채팅 코드는 바꾸지 않음. 부하 아래 타이밍으로 보지만 확정하지 못했다 → CI 에서 확인, 계속되면 테스트의 누름 시간을 늘리는 것을 검토 |
 | 새로 넣은 e2e 단언 | login +2 (붙여넣기 · 다른 도메인) · notices +3 (새 공지 다시 읽기 · 못 불러옴 · 다시 시도) · ux +3 (문의 · 알림 · 편지 열기 실패) · product +2 (남은 조건 · aria-pressed) | 모두 통과 |
 | 실행하지 않음 | `test:e2e` · `test:match` · `dev-user` · `cleanup-test-users` · `review-postgres` | 실제 Supabase 계정 생성 · 부하 / 로컬 PostgreSQL 없음 |
 
