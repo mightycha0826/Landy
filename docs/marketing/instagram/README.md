@@ -1,5 +1,7 @@
 # Landy 인스타그램 소개 시리즈
 
+**최신 리뉴얼 · 2026-10-31:** 새 로고와 차콜·핑크·피치 디자인을 적용한 [리뉴얼 3개 게시물](./renewal-2026-10-31/README.md) · [연결 표지](./renewal-2026-10-31/Covers-Connected-Preview.png) · [전체 15장](./renewal-2026-10-31/All-Slides-Preview.png) · [업로드 ZIP](./renewal-2026-10-31/Landy-Instagram-Renewal-Upload.zip). 아래는 이전 버전의 기록이다.
+
 ‘우리학교 / 익명친구 / Landy’ 표지 3개를 연결한 시리즈다. 각 게시물은 5장이다. 2026-10-04 수정에서는 첫 대화·첫 편지를 궁금하게 만드는 문구에 핵심 기능 설명을 2~3줄씩 더하고 색감을 높였다.
 
 - [우리학교 · Landy 소개](./01-Landy-Introduction.pdf)

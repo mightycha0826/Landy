@@ -32,7 +32,8 @@
 
 	async function onInstall() {
 		installing = true;
-		const ok = await promptInstall();
+		// 설치 창은 한 번만 띄울 수 있다 — 이미 쓴 창이면 오류가 나도 버튼이 "처리 중"에 머물지 않게
+		const ok = await promptInstall().catch(() => false);
 		installing = false;
 		if (!ok) toast('설치 취소됨');
 	}

@@ -4,8 +4,10 @@
 	 * 답변은 개인 공지로도 온다(하트 · 공지 · 푸시) — 이 화면은 열 때 한 번만 읽는다.
 	 */
 	import BackButton from '$lib/ui/BackButton.svelte';
+	import LoadError from '$lib/ui/LoadError.svelte';
 	import { toast } from '$lib/toast.svelte';
 	import { S } from '$lib/state.svelte';
+	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { agoText } from '$lib/time';
 	import {
@@ -27,16 +29,23 @@
 	let error = $state('');
 	let list = $state<Inquiry[]>([]);
 	let loaded = $state(false);
+	// 못 불러온 것을 "보낸 문의가 없어요"로 보이지 않는다 (UX G4)
+	let loadFailed = $state(false);
 
 	const len = $derived(body.trim().length);
 	const canSend = $derived(len >= INQUIRY_MIN && len <= INQUIRY_MAX && !busy);
 
-	$effect(() => {
-		void fetchMyInquiries()
-			.then((r) => (list = r))
-			.catch(() => {})
-			.finally(() => (loaded = true));
-	});
+	async function loadList() {
+		loadFailed = false;
+		try {
+			list = await fetchMyInquiries();
+		} catch {
+			loadFailed = true;
+		} finally {
+			loaded = true;
+		}
+	}
+	onMount(() => void loadList());
 
 	async function send() {
 		if (!canSend) return;
@@ -50,7 +59,7 @@
 			}
 			body = '';
 			toast('문의를 보냈어요. 답변은 알림으로 알려 드릴게요');
-			list = await fetchMyInquiries().catch(() => list);
+			await loadList();
 		} catch {
 			error = '연결을 확인하고 다시 보내 주세요';
 		} finally {
@@ -95,6 +104,8 @@
 	<h2 class="g-head">내 문의</h2>
 	{#if !loaded}
 		<p class="g-foot">불러오는 중…</p>
+	{:else if loadFailed}
+		<LoadError msg="내 문의를 불러오지 못했어요. 연결을 확인해 주세요." onretry={() => void loadList()} />
 	{:else if list.length === 0}
 		<p class="g-foot">아직 보낸 문의가 없어요.</p>
 	{:else}

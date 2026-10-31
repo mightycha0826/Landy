@@ -9,12 +9,27 @@
 	import { S } from '$lib/state.svelte';
 	import { agoText } from '$lib/time';
 	import BackButton from '$lib/ui/BackButton.svelte';
+	import LoadError from '$lib/ui/LoadError.svelte';
 
 	const id = $derived(Number(page.params.id));
 	const notice = $derived(NOTICES.list.find((n) => n.id === id));
 
+	// 열 때 한 번 새로 읽는다 — 앱이 기억한 목록에는 방금 알림으로 온 새 공지가 없을 수 있다 ("찾을 수 없어요"로 단정하지 않게).
+	// 못 불러오면 뼈대를 계속 띄우지 않고 다시 시도를 보인다 (오프라인으로 알림을 눌러 들어온 경우, UX G4)
+	let failed = $state(false);
+	let checked = $state(false);
+	async function load() {
+		failed = false;
+		const ok = await loadNotices(true);
+		failed = !ok;
+		checked = ok;
+	}
 	$effect(() => {
-		if (!NOTICES.loaded) void loadNotices(true);
+		void id;
+		untrack(() => {
+			checked = false;
+			void load();
+		});
 	});
 	// 이 공지까지 본 것으로 — 알림(하트)에서 곧장 들어와도 빨간 점이 꺼진다 (Phase 39)
 	$effect(() => {
@@ -35,7 +50,9 @@
 			<span class="muted when">{agoText(notice.created_at, S.now)}</span>
 			{#if notice.body}<p class="body selectable">{notice.body}</p>{/if}
 		</article>
-	{:else if !NOTICES.loaded}
+	{:else if failed}
+		<LoadError msg="공지를 불러오지 못했어요. 연결을 확인해 주세요." onretry={() => void load()} />
+	{:else if !checked}
 		<!-- 제목 · 시각 · 본문 자리 (알림을 눌러 곧바로 들어온 경우) -->
 		<p class="sr-only">불러오는 중…</p>
 		<div class="sk" aria-hidden="true">

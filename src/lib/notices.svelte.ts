@@ -35,21 +35,27 @@ onAccountChange(() => {
 	request++;
 });
 
-/** force = 공지 화면처럼 지금 꼭 최신이어야 할 때 */
-export async function loadNotices(force = false) {
-	if (!currentAccountId()) return;
-	if (!force && NOTICES.loaded && Date.now() - lastLoad < FRESH_MS) return;
+/**
+ * force = 공지 화면처럼 지금 꼭 최신이어야 할 때.
+ * false 를 돌려주면 못 불러왔다 — 화면은 "불러오는 중"에 머물지 말고 다시 시도를 보인다 (UX G4)
+ */
+export async function loadNotices(force = false): Promise<boolean> {
+	if (!currentAccountId()) return false;
+	if (!force && NOTICES.loaded && Date.now() - lastLoad < FRESH_MS) return true;
 	const token = accountToken();
 	const sequence = ++request;
 	const { data, error } = await supabase.rpc('my_notices');
 	const d = data as { notices?: Notice[]; last_seen?: number; personal?: PersonalNotice[] } | null;
-	// 모양이 다르면(아직 schema.sql 을 반영하지 않은 DB 등) 조용히 넘어간다 — 하트만 점 없이 보인다
-	if (!accountIsCurrent(token) || sequence !== request || error || !Array.isArray(d?.notices)) return;
+	// 늦게 온 옛 응답 — 그 사이 더 새 요청이 맡았다
+	if (!accountIsCurrent(token) || sequence !== request) return NOTICES.loaded;
+	// 오류 · 모양이 다르면(아직 schema.sql 을 반영하지 않은 DB 등) 목록은 그대로 — 하트만 점 없이 보인다
+	if (error || !Array.isArray(d?.notices)) return false;
 	lastLoad = Date.now();
 	NOTICES.list = d.notices.map((n) => ({ ...n, id: Number(n.id) }));
 	NOTICES.personal = (d.personal ?? []).map((n) => ({ ...n, id: Number(n.id) }));
 	NOTICES.lastSeen = Number(d.last_seen);
 	NOTICES.loaded = true;
+	return true;
 }
 
 /**

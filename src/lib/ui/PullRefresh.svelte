@@ -5,13 +5,26 @@
 	 * 머리글 아래에서 동그라미가 따라 내려오고, 충분히 당기면 화살표가 돌아 색이 차고, 놓으면 돌면서 새로 불러온다.
 	 * 다시 불러오면 서비스워커도 새 버전을 확인한다 (화면은 네트워크 먼저라 최신을 받는다).
 	 * 창(시트 · 모달)이 떠 있거나 두 손가락이면 움직이지 않는다.
+	 * 10초 안에 다시 당기면 부르지 않는다(G13.3). 상대를 찾는 동안은 앱 틀이 이 컴포넌트를 내린다 — 다시 불러오면 찾기가 끊긴다.
+	 * ★ G13.3 은 "그 탭의 로더만"을 요구한다 — 탭별 새로 읽기로 바꿀지는 제품 결정 (docs/FINAL-AUDIT.md D1)
 	 */
 	import { select } from '$lib/haptics';
 	import { reloadApp } from '$lib/reload';
+	import { toast } from '$lib/toast.svelte';
 	import { rubberBand } from '$lib/motion';
 
 	const MAX = 120; // 당길 수 있는 최대 거리 (px)
 	const GO = 72; // 이만큼 당기면 놓았을 때 새로고침
+	// 다시 불러오기는 앱을 처음부터 부팅한다(요청 여러 개) — 10초에 한 번까지 (UX G13.3). 새로 뜬 화면이 기억해야 해서 sessionStorage
+	const AGAIN_MS = 10_000;
+	const KEY = 'ptr-at';
+	function tooSoon() {
+		try {
+			return Date.now() - Number(sessionStorage.getItem(KEY) ?? 0) < AGAIN_MS;
+		} catch {
+			return false;
+		}
+	}
 
 	let pull = $state(0);
 	let busy = $state(false);
@@ -59,7 +72,15 @@
 			if (!armed) return;
 			armed = false;
 			dragging = false;
-			if (pull >= GO) {
+			if (pull >= GO && tooSoon()) {
+				pull = 0;
+				toast('방금 새로 불러왔어요');
+			} else if (pull >= GO) {
+				try {
+					sessionStorage.setItem(KEY, String(Date.now()));
+				} catch {
+					/* 저장소를 못 쓰면 제한 없이 */
+				}
 				busy = true;
 				pull = GO;
 				void reloadApp();

@@ -20,6 +20,7 @@
 	import DeleteLettersSheet from '$lib/letters/DeleteLettersSheet.svelte';
 	import { MailSelection } from '$lib/letters/selection.svelte';
 	import { BOX, filed, loadMore, refreshMailbox, retryBox } from '$lib/letters/mailbox.svelte';
+	import LoadError from '$lib/ui/LoadError.svelte';
 	import { LIST } from '$lib/letters/unread.svelte';
 	import { toast } from '$lib/state.svelte';
 
@@ -74,10 +75,7 @@
 	{/if}
 
 	{#if BOX.error[tab]}
-		<div class="center" role="status">
-			<p class="muted">{BOX.error[tab]}</p>
-			<button class="btn-text" onclick={() => retryBox(tab)}>다시 시도</button>
-		</div>
+		<LoadError msg={BOX.error[tab]} onretry={() => retryBox(tab)} />
 	{/if}
 	{#if BOX.loaded[tab] && !BOX.loading[tab] && list.length === 0 && !BOX.error[tab]}
 		<p class="muted center">

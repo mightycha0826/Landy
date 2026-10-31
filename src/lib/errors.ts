@@ -32,6 +32,9 @@ export function errMsg(e: unknown): string {
 	// 이름 편지 (Phase 23)
 	if (m.includes('name_in_roster')) return '학교 명단에 있는 이름이에요. 학교 이메일로 가입했는지 확인해 주세요';
 	if (m.includes('bad_name')) return '이름은 한글 또는 영문 2~20자로 적어 주세요';
+	// Supabase 는 틀린 코드와 만료된 코드에 같은 문구를 준다 — "만료"라고만 하면 오타에도 새 코드를 받으러 가서 메일 한도를 쓴다
+	if (m.includes('Token has expired or is invalid'))
+		return '인증 코드가 맞지 않거나 만료됐어요. 숫자를 확인하고, 계속 안 되면 코드를 다시 받아 주세요';
 	if (m.includes('Token has expired') || m.includes('expired'))
 		return '인증 코드 유효 시간 만료. 다시 받아 주세요';
 	if (m.includes('Invalid token') || m.includes('invalid'))

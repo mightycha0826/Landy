@@ -45,6 +45,8 @@ async function open(opts = {}) {
 		if (p === '/auth/v1/token') return json(session);
 		if (p.startsWith('/auth/v1/')) return json({});
 		if (p.endsWith('rpc/my_account')) return json({ has_password: true });
+		// opts.down — 이 RPC 들은 네트워크가 끊긴 것처럼 (못 불러온 것을 "없음"으로 보이지 않는지, G4)
+		if (opts.down?.some((n) => p.endsWith(`rpc/${n}`))) return route.abort('internetdisconnected');
 		if (p.endsWith('rpc/my_rooms') && st.roomsDown) return route.abort('internetdisconnected');
 		if (p.endsWith('rpc/my_rooms')) return json({ rooms: [room(LIVE, '새벽수달'), room(ENDED, '끝난고래'), room(FLAKY, '느린거북')], server_now: iso() });
 		if (p.endsWith('rpc/my_notices')) return json({ notices: [{ id: 3, title: '세 번째 공지', body: '본문', created_at: iso(-60) }, { id: 2, title: '두 번째 공지', body: '본문', created_at: iso(-3600) }], last_seen: 1 });
@@ -252,6 +254,24 @@ try {
 		await page.waitForTimeout(800);
 		check('★ 연 공지(2번)까지 본 것으로 저장', st.marks.includes(2), JSON.stringify(st.marks));
 		check('더 새 공지(3번)는 본 것으로 치지 않는다', !st.marks.includes(3), JSON.stringify(st.marks));
+		await ctx.close();
+	}
+	console.log('[못 불러온 것을 "없음"으로 보이지 않는다 (G4)]');
+	{
+		const { ctx, page } = await open({ down: ['my_inquiries', 'my_rooms', 'dm_mailbox', 'my_notices', 'dm_open'] });
+		await login(page);
+		await page.goto(`${BASE}/settings/contact`);
+		await page.getByText('내 문의를 불러오지 못했어요').waitFor({ timeout: 8000 }).catch(() => {});
+		check('★ 문의 목록을 못 불러오면 "다시 시도" — "보낸 문의가 없어요" 아님',
+			await page.getByText('내 문의를 불러오지 못했어요').isVisible() && (await page.getByText('아직 보낸 문의가 없어요').count()) === 0);
+		await page.goto(`${BASE}/activity`);
+		await page.getByText('알림을 다 불러오지 못했어요').waitFor({ timeout: 8000 }).catch(() => {});
+		check('★ 알림을 못 불러오면 "다시 시도" — "모두 확인했어요" · 끝없는 뼈대 아님',
+			await page.getByText('알림을 다 불러오지 못했어요').isVisible() && (await page.getByText('새 알림을 모두 확인했어요').count()) === 0);
+		await page.goto(`${BASE}/letters/m/5`);
+		await page.getByRole('button', { name: '다시 시도' }).waitFor({ timeout: 8000 }).catch(() => {});
+		check('★ 편지를 못 가져오면 "다시 시도" — "가져오는 중"에 머물거나 "찾을 수 없어요" 아님',
+			await page.getByRole('button', { name: '다시 시도' }).isVisible() && (await page.getByText('편지를 찾을 수 없어요').count()) === 0);
 		await ctx.close();
 	}
 } catch (e) { fail++; console.error(e); }

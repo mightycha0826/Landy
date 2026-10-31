@@ -97,6 +97,9 @@ try {
 		await page.locator('.opts').first().getByRole('button', { name: '남자', exact: true }).click();
 		check('성별을 골라도 대화 상대 선호 자동 선택 없음', await page.locator('.opts').nth(1).locator('.on').count() === 0);
 		check('선호를 직접 선택하기 전 시작 불가', await page.getByRole('button', { name: '동의하고 시작하기' }).isDisabled());
+		// 꺼진 시작 버튼 아래에 남은 조건 (UX G6.3) · 고른 것은 낭독기에도 (aria-pressed)
+		check('★ 꺼진 시작 버튼이 남은 조건을 알려 준다', (await page.locator('#ob-left').innerText()).includes('이야기하고 싶은 상대를 골라 주세요') && !(await page.locator('#ob-left').innerText()).includes('성별'));
+		check('고른 성별은 aria-pressed', (await page.locator('.opts').first().getByRole('button', { name: '남자', exact: true }).getAttribute('aria-pressed')) === 'true');
 		check('가입 전에 상대·운영자 공개 범위 안내', await page.locator('.privacy-body').innerText().then((s) => s.includes('신원 열람 권한') && s.includes('성별') && s.includes('이름·학년·학번')));
 		await page.getByRole('button', { name: '상관없어요' }).click();
 		await page.locator('.opts').first().getByRole('button', { name: '여자', exact: true }).click();

@@ -138,8 +138,8 @@
 	</aside>
 {/if}
 
-<!-- 당겨서 새로고침 (Phase 37) — 탭 첫 화면 맨 위에서 -->
-{#if showTabs}<PullRefresh />{/if}
+<!-- 당겨서 새로고침 (Phase 37) — 탭 첫 화면 맨 위에서. 상대를 찾는 동안은 끈다 — 앱을 다시 불러오면 찾기가 말없이 끊긴다 (UX P3) -->
+{#if showTabs && !seeker.seeking}<PullRefresh />{/if}
 
 <!-- 새로 딴 업적 축하 (Phase 31) — 탭 첫 화면에서만 뜬다 -->
 <AchievementCelebrate />

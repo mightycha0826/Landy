@@ -8,6 +8,7 @@
 	import { page } from '$app/state';
 	import { untrack } from 'svelte';
 	import BackButton from '$lib/ui/BackButton.svelte';
+	import LoadError from '$lib/ui/LoadError.svelte';
 	import MoreButton from '$lib/ui/MoreButton.svelte';
 	import Sheet from '$lib/ui/Sheet.svelte';
 	import MailStack from '$lib/letters/MailStack.svelte';
@@ -144,10 +145,7 @@
 
 <div class="page folder" class:selecting={selection.active}>
 	{#if folder.error}
-		<div class="center" role="status">
-			<p class="muted">{folder.error}</p>
-			<button class="btn-text" onclick={() => folder.retry()}>다시 시도</button>
-		</div>
+		<LoadError msg={folder.error} onretry={() => folder.retry()} />
 	{/if}
 	{#if folder.gone}
 		<p class="muted center">폴더를 찾을 수 없어요</p>

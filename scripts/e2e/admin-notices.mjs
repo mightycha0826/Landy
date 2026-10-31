@@ -50,7 +50,7 @@ try {
 	const acked = () => page.evaluate(() => [...document.querySelectorAll('[data-ack]')].map((b) => b.dataset.ackMsg).join(' ') + ' ' + [...document.querySelectorAll('.toast')].map((t) => t.textContent).join(' '));
 	console.log(`\n[${ROLE}]`);
 	await page.goto(`http://localhost:${PORT}/admin`); await settle();
-	await page.locator('.side nav a', { hasText: '공지사항' }).click(); await settle();
+	await page.locator('.side nav a', { hasText: '공지사항' }).click(); await page.waitForURL('**/admin/notices', { timeout: 10000 }).catch(() => {}); await settle();
 	check('메뉴 "공지사항" → 목록', page.url().endsWith('/admin/notices') && (await page.getByText('기존 공지').count()) === 1);
 	if (ROLE === 'admin') {
 		await page.getByPlaceholder('제목 (80자까지)').fill('  ');
@@ -79,7 +79,7 @@ try {
 		check('★ 운영진이 직접 요청해도 서버가 막음', calls.length === 0 && (await r.text()).includes('관리자만'), String(r.status()));
 	}
 	console.log('  [문의]');
-	await page.locator('.side nav a', { hasText: '문의' }).click(); await settle();
+	await page.locator('.side nav a', { hasText: '문의' }).click(); await page.waitForURL('**/admin/inquiries', { timeout: 10000 }).catch(() => {}); await settle();
 	check('★ 메뉴 "문의" → 답변 대기 · 답변한 문의', page.url().endsWith('/admin/inquiries') && (await page.locator('h1').innerText()).includes('답변 대기 1개')
 		&& (await page.locator('.list li').first().innerText()).includes('편지 봉투가 안 열려요') && (await page.locator('.a-card.done').innerText()).includes('답했어요'));
 	check(ROLE === 'admin' ? '관리자: 보낸 학생 이름표 (기록에 남음)' : '운영진: 이름표 없이 "보낸 학생 보기"',

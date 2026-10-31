@@ -97,6 +97,13 @@ try {
 		check('★ 학번이 모자라면 형식 안내 · 코드 받기 꺼짐', (await page.getByRole('status').innerText()).includes('학번 5자리') && await sendBtn.isDisabled());
 		await page.getByPlaceholder('학교 이메일 앞부분').fill('40101');
 		check('학년이 1~3 이 아니면 안 된다', await sendBtn.isDisabled());
+		// 학교 메일 전체를 붙여 넣으면 도메인을 떼어 받는다 (UX G6.2) — 영어(cnsa)가 있다고 선생님 안내로 막지 않는다
+		await page.getByPlaceholder('학교 이메일 앞부분').fill('19998@CNSA.hs.kr');
+		check('★ 학교 메일 전체를 붙여 넣으면 학번만 남고 코드 받기가 켜진다',
+			(await page.getByPlaceholder('학교 이메일 앞부분').inputValue()) === '19998' && await sendBtn.isEnabled() && (await page.getByText('선생님이신가요?').count()) === 0);
+		await page.getByPlaceholder('학교 이메일 앞부분').fill('19998@gmail.com');
+		check('★ 다른 도메인이면 학교 이메일만 된다고 알리고 코드 받기 꺼짐',
+			(await page.getByRole('status').innerText()).includes('@cnsa.hs.kr') && await sendBtn.isDisabled() && (await page.getByText('선생님이신가요?').count()) === 0);
 		check('여기까지 인증 코드는 한 번도 안 보냄', log.otp.length === 0);
 		await page.getByPlaceholder('학교 이메일 앞부분').fill('19998');
 		await page.getByRole('button', { name: '인증 코드 받기' }).click();

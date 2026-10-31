@@ -61,6 +61,8 @@ const audit = (page) =>
 		const vw = innerWidth, vh = innerHeight;
 		const visible = (el) => {
 			if (el.closest('[inert], [aria-hidden="true"], [data-hit-exempt]')) return false;
+			const shut = el.closest('details:not([open])');
+			if (shut && !el.closest('summary')) return false; // 닫힌 접기 안의 링크는 누를 수 없다 (Chrome 은 상자 크기를 그대로 준다)
 			const r = el.getBoundingClientRect();
 			if (r.width < 1 || r.height < 1) return false;
 			const cs = getComputedStyle(el);
@@ -128,7 +130,10 @@ try {
 		await page.locator('button.heart').waitFor({ timeout: 15000 });
 		for (const [name, path] of SCREENS.slice(1)) {
 			await page.goto(`${BASE}${path}`);
-			await page.waitForTimeout(1600);
+			// 화면이 다 그려지고 들어오는 연출이 끝난 뒤에 잰다 — 고정 1.6초는 느린 PC 에서 아직 그리는 중이거나 미끄러져 들어오는 중이라 실행마다 결과가 달랐다
+			await page.waitForLoadState('networkidle').catch(() => {});
+			await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity), null, { timeout: 6000 }).catch(() => {});
+			await page.waitForTimeout(600);
 			if (process.env.SHOTS) await page.screenshot({ path: `${OUT}/hit-${name}-${w}.png` }); // SHOTS=1 이면 화면마다 스크린샷 (눈으로 확인)
 			const bad = await audit(page);
 			worst[name] = Math.max(worst[name] ?? 0, bad.length);

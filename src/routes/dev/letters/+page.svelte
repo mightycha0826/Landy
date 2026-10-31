@@ -5,9 +5,8 @@
 	 *   /dev/letters?dark    다크 모드로
 	 *   /dev/letters?stamp   봉인 연출만 크게 — 도장 찍기(보낼 때) · 금 가기(받을 때). 누르면 다시 (Phase 58)
 	 *                        화면 테스트는 document.getAnimations() 를 멈추고 시각을 옮겨 가며 찍는다
-	 * 배포 빌드에서는 아무것도 그리지 않고 홈으로 보낸다.
+	 * 배포 빌드에서는 dev/+layout.ts 가 404 로 막는다.
 	 */
-	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Envelope from '$lib/letters/Envelope.svelte';
 	import LetterSheet from '$lib/letters/LetterSheet.svelte';
@@ -19,8 +18,7 @@
 	const body = '안녕! 오늘 급식 카레 진짜 맛있지 않았어?\n수행평가 끝나면 같이 매점 가자.\n답장 기다릴게 :)';
 
 	$effect(() => {
-		if (!import.meta.env.DEV) void goto('/', { replaceState: true });
-		else if (page.url.searchParams.has('dark')) document.documentElement.dataset.theme = 'dark';
+		if (import.meta.env.DEV && page.url.searchParams.has('dark')) document.documentElement.dataset.theme = 'dark';
 	});
 </script>
 

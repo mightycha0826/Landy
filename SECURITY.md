@@ -45,7 +45,7 @@
 | 사칭 막기 | 이름은 명렬표(학교 이메일 앞자리 = 학번)에서 붙고 학생이 못 고침. 명렬표에 없는 학생만 한 번 적고, 명렬표에 있는 이름은 못 적음 | `private.person` · `set_my_name` |
 | 찾히지 않을 권리 | 설정 > 편지 받기 끄면 검색에도 안 나오고 새 편지도 안 옴(기본 켜짐). 검색은 두 글자 이상 · 10명까지 · 이름 · 학년 · 학번. 차단 · 수신 거부 · 정지는 검색 결과를 바꾸지 않는다 | `profiles.letters_open` · `dm_search` |
 | 보낸 사람 익명 | 받는 사람에게는 편지마다 새로 뽑은 익명 이름만. 목록 · 편지 · 푸시 알림 어디에도 보낸 사람 계정 · 이름 없음 | `dm_inbox` · `dm_thread` · `dm_push_payload` |
-| 도배 | 새 편지는 편지 한도(기본 하루 3통), 이어 쓰기는 댓글 한도. 상대가 답하기 전에는 3개까지 | `letter_bucket_take` · `private.dm_streak` |
+| 도배 | 새 편지는 편지 토큰(현재 기본 50개 · 하루 약 50통 분량 보충 — schema.sql `letter_burst` · `letter_refill_per_sec`, 운영 설정으로 바뀜), 이어 쓰기는 댓글 한도. 상대가 답하기 전에는 3개까지 | `letter_bucket_take` · `private.dm_streak` |
 | 끊기 | 받는 사람이 편지를 버리면 그 보낸 사람의 새 편지는 다시 전달되지 않는다. 발신자가 먼저 버렸어도 수신 거부는 독립적으로 보존한다. 편지 차단 · 신고는 기존 랜덤채팅도 닫는다 | `dm_send` · `dm_block` · `private.dm_threads.recipient_refused` |
 | 신고 | 신고 = 자동 차단 + 끝내기 + 증거 사본 + 누적 신고 자동 정지. 규칙 필터 · AI 검토도 편지에 적용 | `dm_report` · `private.auto_report_dm` |
 | 운영진 | 신고된 편지의 보낸 사람 확인(관리자, 기록 먼저) · 편지 내리기(기록) | `admin_remove_dm` · `revealIdentity` |

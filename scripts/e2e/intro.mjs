@@ -19,7 +19,8 @@ try {
 	const intro = page.locator('.intro');
 	check('맨 위에 상대 소개 카드', (await page.locator('.list > *').first().getAttribute('class'))?.includes('intro'));
 	check('상대의 익명 이름', (await intro.locator('h2').innerText()) === '새벽수달');
-	check('둘째 줄: MBTI · 관심사 2개', (await intro.locator('p').innerText()) === 'INFP · 밴드 · 기타', await intro.locator('p').innerText());
+	const line = intro.locator(':scope > p'); // 카드 안 공개 범위 안내(PrivacySummary)의 문단은 빼고 카드의 둘째 줄만
+	check('둘째 줄: MBTI · 관심사 2개', (await line.innerText()) === 'INFP · 밴드 · 기타', await line.innerText());
 	check('큰 아바타 + 접속 점', (await intro.locator('.av').boundingBox()).width === 88 && (await intro.locator('.av .dot').count()) === 1);
 	const ib = await intro.boundingBox(), fb = await page.locator('.list .sys').first().boundingBox();
 	check('카드가 첫 안내 문구보다 위', ib.y + ib.height <= fb.y + 1);

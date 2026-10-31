@@ -28,6 +28,15 @@
 	const ready = $derived(
 		(!needName || nameOk) && (onlyName || (!!gender && !!want && (!needPassword || passwordOk)))
 	);
+	// 꺼진 시작 버튼 아래에 무엇이 남았는지 (UX G6.3)
+	const left = $derived(
+		[
+			needName && !nameOk ? '이름을 적어 주세요' : '',
+			!onlyName && needPassword && !passwordOk ? '비밀번호를 정해 주세요' : '',
+			!onlyName && !gender ? '성별을 골라 주세요' : '',
+			!onlyName && !want ? '이야기하고 싶은 상대를 골라 주세요' : ''
+		].filter(Boolean).join(' · ')
+	);
 
 	async function submit() {
 		if (!ready || busy) return;
@@ -66,7 +75,7 @@
 	{:else if needName}
 		<section>
 			<h2>내 이름</h2>
-			<input class="field" bind:value={nameDraft} maxlength="20" placeholder="실명" autocomplete="name" aria-label="내 이름" />
+			<input class="field" bind:value={nameDraft} maxlength="20" placeholder="실명" autocomplete="name" enterkeyhint="done" aria-label="내 이름" />
 			<p class="hint muted">실명을 적어 주세요. <strong>바꿀 수 없어요.</strong></p>
 		</section>
 	{/if}
@@ -82,8 +91,8 @@
 	<section>
 		<h2>나는</h2>
 		<div class="opts">
-			<button class="opt" class:on={gender === 'm'} onclick={() => pickGender('m')}>남자</button>
-			<button class="opt" class:on={gender === 'f'} onclick={() => pickGender('f')}>여자</button>
+			<button class="opt" class:on={gender === 'm'} aria-pressed={gender === 'm'} onclick={() => pickGender('m')}>남자</button>
+			<button class="opt" class:on={gender === 'f'} aria-pressed={gender === 'f'} onclick={() => pickGender('f')}>여자</button>
 		</div>
 	</section>
 
@@ -91,9 +100,9 @@
 		<h2>이런 사람과 이야기하고 싶어요</h2>
 		<p class="hint muted">친구와 이야기하고 싶은 범위를 직접 골라 주세요. 나중에 프로필에서 바꿀 수 있어요.</p>
 		<div class="opts">
-			<button class="opt" class:on={want === 'm'} onclick={() => (want = 'm')}>남자</button>
-			<button class="opt" class:on={want === 'f'} onclick={() => (want = 'f')}>여자</button>
-			<button class="opt" class:on={want === 'any'} onclick={() => (want = 'any')}>상관없어요</button>
+			<button class="opt" class:on={want === 'm'} aria-pressed={want === 'm'} onclick={() => (want = 'm')}>남자</button>
+			<button class="opt" class:on={want === 'f'} aria-pressed={want === 'f'} onclick={() => (want = 'f')}>여자</button>
+			<button class="opt" class:on={want === 'any'} aria-pressed={want === 'any'} onclick={() => (want = 'any')}>상관없어요</button>
 		</div>
 	</section>
 	{/if}
@@ -109,9 +118,10 @@
 	</div>
 
 	<div class="foot">
-		<button aria-busy={busy} class="btn" onclick={submit} disabled={!ready || busy}>
+		<button aria-busy={busy} class="btn" onclick={submit} disabled={!ready || busy} aria-describedby={left ? 'ob-left' : undefined}>
 			{busy ? '저장 중…' : onlyName ? '저장' : '동의하고 시작하기'}
 		</button>
+		{#if left}<p class="left muted" id="ob-left">{left}</p>{/if}
 	</div>
 </div>
 
@@ -195,6 +205,11 @@
 
 	.foot {
 		margin-top: auto;
+	}
+	.left {
+		margin: 8px 0 0;
+		font-size: 13px;
+		text-align: center;
 	}
 
 	.me {

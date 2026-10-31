@@ -21,7 +21,7 @@ const KEY = 'theme-combo-v1';
 
 /** 색 동그라미 — 두 색을 반씩 (기본 인스타는 그라데이션 그대로) */
 export const fillOf = (c: ThemeColor) =>
-	c.id === DEFAULT ? 'linear-gradient(115deg, #e5402a, #d6246e 50%, #8134af)' : `linear-gradient(135deg, ${c.primary} 50%, ${c.point} 50%)`;
+	c.id === DEFAULT ? 'linear-gradient(115deg, #d33b27, #d6246e 50%, #8134af)' : `linear-gradient(135deg, ${c.primary} 50%, ${c.point} 50%)`;
 
 export const THEME_COLOR = $state({ id: DEFAULT });
 

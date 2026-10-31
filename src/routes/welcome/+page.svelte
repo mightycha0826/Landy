@@ -14,9 +14,9 @@
 <svelte:head><title>Landy · 우리 학교에서 시작하는 대화</title><meta name="description" content="학교 이메일로 인증하는 익명 대화와 편지. 설치 전에 샘플과 익명 범위를 둘러보세요." /></svelte:head>
 
 <main class="welcome">
+	<!-- 시작 버튼은 아래에 늘 붙어 있다 (.cta) — 머리글에 같은 링크를 또 두지 않는다 -->
 	<header>
-		<a class="brand" href="/welcome" aria-label="Landy 소개"><img class="appicon" src="/icon-192.png" alt="" width="32" height="32" /><span class="wordmark">Landy</span></a>
-		<a class="start-link" href="/install">시작하기</a>
+		<div class="brand"><img class="appicon" src="/icon-192.png" alt="" width="32" height="32" /><span class="wordmark">Landy</span></div>
 	</header>
 
 	<section class="hero">
@@ -86,7 +86,6 @@
 	header { display: flex; align-items: center; justify-content: space-between; min-height: 56px; }
 	.brand { display: flex; align-items: center; gap: 10px; }
 	.brand .wordmark { font-size: 26px; line-height: 34px; }
-	.start-link { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border-radius: 999px; background: var(--row); color: var(--text); font-size: 14px; font-weight: 600; }
 
 	.hero { padding: 36px 0 12px; }
 	.eyebrow { display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 6px 12px; border-radius: 999px; background: var(--row); color: var(--text-2); font-size: 13px; font-weight: 600; }

@@ -7,9 +7,8 @@
 	 *                                (배지 3개짜리는 꾹 눌러 칸을 옮길 수 있다 — Phase 69)
 	 *   /dev/achievements?ribbon     업적 전체를 리본 교복으로
 	 *   /dev/achievements?five       대표 칸 5개 (Phase 84 — 금 뱃지 5개) · ?uniform 에는 5칸 교복도
-	 * 배포 빌드에서는 아무것도 그리지 않고 홈으로 보낸다.
+	 * 배포 빌드에서는 dev/+layout.ts 가 404 로 막는다.
 	 */
-	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import AchievementsView from '$lib/ui/AchievementsView.svelte';
 	import AchievementCelebrate from '$lib/ui/AchievementCelebrate.svelte';
@@ -87,9 +86,6 @@
 		return true;
 	}
 
-	$effect(() => {
-		if (!import.meta.env.DEV) void goto('/', { replaceState: true });
-	});
 </script>
 
 {#if import.meta.env.DEV}

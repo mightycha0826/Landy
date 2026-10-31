@@ -14,6 +14,7 @@
 	import { navigateFromOverlay } from '$lib/overlay.svelte';
 	import { page } from '$app/state';
 	import BackButton from '$lib/ui/BackButton.svelte';
+	import LoadError from '$lib/ui/LoadError.svelte';
 	import MoreButton from '$lib/ui/MoreButton.svelte';
 	import Envelope from '$lib/letters/Envelope.svelte';
 	import Postbox, { slotRect } from '$lib/letters/Postbox.svelte';
@@ -33,6 +34,9 @@
 	const id = $derived(Number(page.params.id));
 	let letter = $state<Letter | null>(null);
 	let gone = $state(false);
+	// 못 가져왔다(네트워크) — "가져오는 중"에 머물거나 "없음"으로 보이지 않고 이유와 다시 시도 (UX G4)
+	let failed = $state<string | null>(null);
+	let attempt = $state(0);
 	let menu = $state(false);
 
 	type Phase = 'init' | 'slot' | 'emerge' | 'land' | 'front' | 'back' | 'crack' | 'open' | 'out' | 'unfold' | 'read';
@@ -62,6 +66,7 @@
 
 	$effect(() => {
 		const target = id;
+		void attempt;
 		let cancelled = false;
 		void (async () => {
 			try {
@@ -105,7 +110,7 @@
 							)
 						: play([[0, () => (phase = 'read')]]);
 			} catch (e) {
-				if (!cancelled && accountIsCurrent(account)) toast(errMsg(e));
+				if (!cancelled && accountIsCurrent(account) && !letter) failed = errMsg(e);
 			}
 		})();
 		return () => { cancelled = true; stop(); };
@@ -201,6 +206,8 @@
 
 {#if gone}
 	<div class="page"><p class="muted center">편지를 찾을 수 없어요</p></div>
+{:else if failed && !letter}
+	<div class="page"><LoadError msg={failed} onretry={() => ((failed = null), attempt++)} /></div>
 {:else if (letter || hand) && staging}
 	<!-- 봉투 열기 연출 — 누르면 건너뛴다. 우체통을 눌러 왔으면 편지를 받아 오는 동안에도 우체통부터 (편지함과 같은 자리 · 크기) -->
 	<button

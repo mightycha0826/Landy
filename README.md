@@ -1,6 +1,6 @@
 # Landy
 
-충남삼성고 교내 익명 대화 앱. 모르는 사람과 10분, 둘 다 원할 때만 연장.
+충남삼성고 교내 익명 대화 앱. 모르는 사람과 짧게(기본 5분, 운영 설정) 이야기하고, 둘 다 원할 때만 연장.
 
 - 전체 설계: `~/.claude/plans/dynamic-purring-acorn.md`
 - 스택: SvelteKit 2 + Svelte 5 (runes) + Supabase + Cloudflare Pages
@@ -215,7 +215,7 @@ node scripts/dev-user.mjs simbun-test3@cnsa.hs.kr 비밀번호 m      # 성별�
 | `src/lib/themeColor.svelte.ts` | 테마 색상(앱 전체 포인트 색 — 로고 · 버튼 · 링크 · 내 말풍선) — 설정 화면에서 고르고 이 기기에만 저장 |
 | `src/lib/admin/` | 운영자 화면 공용 조각 — 신고 상세 카드(`ReportHeader` · `ReportedCard` · `ReporterCard` · `IdentityCard`), `AccountStatus`, `FormMsg`, `SanctionForm` |
 | `src/lib/server/` | 서버 전용 — 운영자 세션·권한, `reports.ts`(채팅·편지 신고 공용 로드·액션), 푸시 (`/api/push` 는 요청 키 → DB 판단 함수 표, 받을 기기는 DB `private.push_target`), `ai.ts`(Workers AI 호출) · `moderation.ts`(검열 판정 프롬프트) · `aiChat.ts`(AI 대화 프롬프트) |
-| `src/lib/ai/` · `src/lib/moderation.ts` | AI 대화 상대 화면(`AiChat`, 홈 위에 덮어 띄움) · 글을 올린 뒤 검열봇 부르기(`/api/moderate`) |
+| `src/lib/bot/` · `src/lib/moderation.ts` | AI 대화 상대(`BotChat` — 찾는 중 홈 위에 덮어 띄움, `api.ts` · `persona.ts`) · 글을 올린 뒤 검열봇 부르기(`/api/moderate`) |
 | `src/params/` | 라우트 주소 검사 — `[id=uuid]`, `[id=int]` (모양이 틀린 주소는 곧바로 404) |
 
 ## 명령어
@@ -241,7 +241,7 @@ node scripts/dev-user.mjs simbun-test3@cnsa.hs.kr 비밀번호 m      # 성별�
 | `node scripts/vapid-keys.mjs` | 푸시 알림용 VAPID 키를 만들어 `.env` 에 추가 (이미 있으면 그대로) |
 | `node scripts/import-roster.mjs <csv> [--dry-run]` | 학번-이름 명렬표를 DB 에 반영 (관리자 화면의 이메일 확인 옆 이름 표시용) |
 | `npm run test:admin` | 운영자 세션 쿠키 — 위조·변조·만료·키 교체가 거부되는지 |
-| `npm run test:ui [-- 이름…]` | 화면(브라우저) 테스트 24묶음 — `scripts/e2e/`. `hit`(누름 영역 44px) · `ux`(흐름이 말없이 끊기지 않는지)는 UX 가이드라인 검사. 가짜 Supabase·`/dev` 미리보기로 돌아 계정 불필요. 이름을 주면 그것만 (`-- react sheet`). 스크린샷은 OS 임시 폴더 `landy-e2e/` |
+| `npm run test:ui [-- 이름…]` | 화면(브라우저) 테스트 28묶음 — `scripts/e2e/`. `hit`(누름 영역 44px) · `ux`(흐름이 말없이 끊기지 않는지)는 UX 가이드라인 검사. 가짜 Supabase·`/dev` 미리보기로 돌아 계정 불필요. 이름을 주면 그것만 (`-- react sheet`). 스크린샷은 OS 임시 폴더 `landy-e2e/` |
 | `node scripts/generate-badge.mjs` | 알림 배지(`static/badge-96.png`) 재생성 — 앱 아이콘의 로고(보라)만 남기고 흰 바탕은 투명 (안드로이드는 배지의 투명도만 써서 컬러 아이콘이면 흰 네모가 된다) |
 | `node scripts/generate-crest.mjs` | 교표(`static/school-crest.png`) 재생성 — 원본 `branding/school-crest-source.jpg` 의 가장자리에서 이어진 흰 바탕만 투명하게 (교복 프로필, Phase 60) |
 | `node scripts/generate-icons.mjs` | PWA 아이콘 재생성 — 원본은 `branding/icon-source.*`(png/webp/jpg 아무거나) (헤드리스 Chrome 사용) |
@@ -258,7 +258,7 @@ node scripts/dev-user.mjs simbun-test3@cnsa.hs.kr 비밀번호 m      # 성별�
 
 - `/dev/chat?s=chat|fresh|vote|waiting|pending|ended|paused|hints|question|pin|pinned|rate|pinrate` — 대화방 화면 미리보기 (Supabase 불필요, 개발 모드 전용).
   `&matched` 연결 화면, `&incoming` 상대 새 메시지, `&sheet=menu|report|block|profile` 시트
-- `/dev/ai?s=ok|limit|full|off` — AI 대화 상대 화면 미리보기 (`&turns=2` 턴 한도, `&short` 20초 뒤 끝, `&down` AI 오류)
+- `/dev/bot` — AI 대화 상대 화면 미리보기 (`&turns=2` 턴 한도, `&short` 20초 뒤 끝, `&down` AI 오류, `&fast` 기다림 1/20). `/dev/*` 는 운영 빌드에서 404 (`src/routes/dev/+layout.ts`)
 - `AI_FAKE=1 npm run dev` — Workers AI 대신 정해진 답 (검열: 글에 `[flag:harassment]` 가 있으면 걸림 / 대화: "AI 답: …").
   개발 서버는 원격 바인딩을 붙이지 않는다 — 진짜 AI 는 `npx wrangler login` 뒤 `CF_REMOTE=1 npm run dev`. 모델은 `AI_MODEL` 로 맨 앞에 둘 수 있다 (기본: Gemma 4 26B A4B → GLM 4.7 Flash 순서로, 되는 것을 쓴다)
 - `?gate` — 개발 모드에서 PWA 설치 게이트 화면을 강제로 띄운다

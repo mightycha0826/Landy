@@ -5,9 +5,8 @@
 	 *   /dev/bot   (&turns=2 턴 한도, &short 20초 뒤 시간 끝, &down AI 오류, &fast 기다리는 시간 1/20 — 화면 테스트용)
 	 *
 	 * 봇 답은 "봇 답: <내 말>" (여러 줄이면 말풍선도 여러 개). 전화번호는 규칙 필터처럼 막힌다.
-	 * 배포 빌드에서는 아무것도 그리지 않고 홈으로 보낸다.
+	 * 배포 빌드에서는 dev/+layout.ts 가 404 로 막는다.
 	 */
-	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import BotChat from '$lib/bot/BotChat.svelte';
 	import type { BotApi, BotStart, Line } from '$lib/bot/api';
@@ -49,9 +48,6 @@
 		}
 	};
 
-	$effect(() => {
-		if (!import.meta.env.DEV) void goto('/', { replaceState: true });
-	});
 </script>
 
 {#if import.meta.env.DEV}

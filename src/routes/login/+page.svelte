@@ -4,6 +4,7 @@
 		SCHOOL_DOMAIN,
 		UI,
 		errMsg,
+		schoolLocal,
 		sendOtp,
 		sendResetOtp,
 		signInWithPassword,
@@ -37,11 +38,22 @@
 	// (도메인 강제는 DB 트리거가 한다. 여기는 UX 용.)
 	// 학생 앱이라 앞부분은 학번(5자리, 학년으로 시작)만 (Phase 44). 영어가 섞였으면 선생님 계정 — 학생 전용이라고 알린다
 	const STUDENT_NO = /^[1-3][0-9]{4}$/;
+	// 학교 메일 전체를 붙여 넣거나 자동 완성하면 도메인을 떼어 받는다 (UX G6.2). 다른 도메인은 그대로 두고 아래에 알린다
+	const takeLocal = (v: string) => (localPart = schoolLocal(v));
+	// 형식 안내는 입력 중에는 회색으로, 칸을 떠난 뒤에만 빨간 오류로 (UX G6.3 · G6.4)
+	let localLeft = $state(false);
 	const typed = $derived(localPart.trim());
 	const localOk = $derived(STUDENT_NO.test(typed));
-	const teacher = $derived(/[a-zA-Z]/.test(typed));
+	const otherDomain = $derived(typed.includes('@'));
+	const teacher = $derived(!otherDomain && /[a-zA-Z]/.test(typed));
 	const localHint = $derived(
-		!typed || localOk || teacher ? '' : /^[0-9]+$/.test(typed) ? '학번 5자리를 입력해 주세요 (예: 20101)' : '학번만 입력해 주세요 (예: 20101)'
+		!typed || localOk || teacher
+			? ''
+			: otherDomain
+				? `학교 이메일(@${SCHOOL_DOMAIN})의 학번만 입력해 주세요`
+				: /^[0-9]+$/.test(typed)
+					? '학번 5자리를 입력해 주세요 (예: 20101)'
+					: '학번만 입력해 주세요 (예: 20101)'
 	);
 	const pwReady = $derived(localOk && pw.length >= 6);
 	// 숫자만 · 자릿수는 OtpInput 이 지킨다 (Supabase 설정 Email OTP Length 와 같은 6)
@@ -103,14 +115,16 @@
 	<div class="emailfield">
 		<input
 			class="local"
-			bind:value={localPart}
+			bind:value={() => localPart, takeLocal}
 			type="text"
 			inputmode="email"
 			autocomplete="username"
+			enterkeyhint={onEnter ? 'send' : 'next'}
 			autocapitalize="off"
 			autocorrect="off"
 			spellcheck="false"
 			placeholder="학교 이메일 앞부분"
+			onblur={() => (localLeft = true)}
 			onkeydown={(e) => e.key === 'Enter' && onEnter?.()}
 		/>
 		<span class="domain">@{SCHOOL_DOMAIN}</span>
@@ -122,7 +136,7 @@
 			<span>랜디는 <b>학생들을 위한</b> 익명 대화 앱이에요. 학번으로 된 학생 계정으로만 가입 · 로그인할 수 있어요.</span>
 		</div>
 	{:else if localHint}
-		<p class="local-hint" role="status">{localHint}</p>
+		<p class="local-hint" class:err={localLeft} role="status">{localHint}</p>
 	{/if}
 {/snippet}
 
@@ -139,6 +153,7 @@
 				bind:value={pw}
 				type="password"
 				autocomplete="current-password"
+				enterkeyhint="go"
 				placeholder="비밀번호"
 				onkeydown={(e) => e.key === 'Enter' && onPassword()}
 			/>
@@ -358,6 +373,9 @@
 		margin: -4px 4px 0;
 		font-size: 12px;
 		font-weight: 600;
+		color: var(--text-2);
+	}
+	.local-hint.err {
 		color: var(--danger);
 	}
 	.row {

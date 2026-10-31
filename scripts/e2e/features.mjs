@@ -50,6 +50,7 @@ try {
 	check('답장 막대의 세로줄 = 테마 색상 (설정에서 고른 색)', barBg.includes('59, 138, 246'), barBg);
 	await page.evaluate(() => document.documentElement.style.removeProperty('--bubble-fill'));
 	await page.locator('.replying-x').click();
+	await page.locator('.replying').waitFor({ state: 'detached', timeout: 3000 }).catch(() => {}); // 닫히는 연출(out:expand)이 끝날 때까지
 	check('✕ 로 답장 취소', (await page.locator('.replying').count()) === 0);
 	await bubble('공연도 가봤어요?').click({ button: 'right' }); await page.getByRole('menuitem', { name: '답장' }).click();
 	await page.locator('textarea').fill('아직 못 가봤어요!'); await page.keyboard.press('Enter'); await page.waitForTimeout(500);
@@ -127,6 +128,7 @@ try {
 	check('↻ 다른 질문', chips2.length === 3 && chips2.join() !== chips.join(), JSON.stringify(chips2));
 	await page.locator('.starters .chip').first().click(); await page.waitForTimeout(100);
 	check('누르면 입력창에 채워지고 보내지는 않음', (await page.locator('textarea').inputValue()) === chips2[0] && (await page.locator('.row.mine').count()) === 0);
+	await page.locator('.starters').waitFor({ state: 'detached', timeout: 3000 }).catch(() => {}); // 닫히는 연출(out:expand)이 끝날 때까지
 	check('입력창에 글이 있으면 도우미 숨김', (await page.locator('.starters').count()) === 0);
 	await page.keyboard.press('Enter'); await page.waitForTimeout(500);
 	check('★ 한 마디 보내면 도우미 사라짐', (await page.locator('.row.mine').count()) === 1 && (await page.locator('.starters').count()) === 0);

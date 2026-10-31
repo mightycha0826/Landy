@@ -35,8 +35,8 @@
 	--track: #dadada;
 	--control: #8a8a8a;
 	--primary: var(--c-primary-l, #d6246e);
-	/* 넓은 면(주 버튼 · 내 말풍선)은 인스타 색을 옅게 — 분홍 → 자주 세 점이 서로 가깝다. 세 점 모두 흰 글자 4.5:1 */
-	--primary-fill: linear-gradient(115deg, var(--c-stop-a, #e5402a), var(--c-stop-b, #d6246e) 50%, var(--c-stop-c, #8134af));
+	/* 넓은 면(주 버튼 · 내 말풍선)은 인스타 색을 옅게 — 주황 → 분홍 → 자주. 세 점 모두 흰 작은 글자 4.7:1 이상 (#d33b27 4.75 · #d6246e 4.84 · #8134af 6.90) */
+	--primary-fill: linear-gradient(115deg, var(--c-stop-a, #d33b27), var(--c-stop-b, #d6246e) 50%, var(--c-stop-c, #8134af));
 	--on-primary: #ffffff;
 	--primary-mark: var(--c-primary-mark-l, #d6246e);
 	--primary-text: var(--c-primary-text-l, #d6246e);
@@ -76,7 +76,7 @@
 	/* 내 말풍선 — 화면 위(연보라)에서 아래(보라)로. 인스타 DM 처럼 말풍선 위치에 따라 색이 변한다 */
 	--bubble-fill: var(--primary-fill);
 	/* 위 그라디언트의 세 점 — 대화 화면이 그라디언트 위아래를 끝 색으로 늘려 쓴다 (ChatView) */
-	--bubble-a: var(--c-stop-a, #e5402a);
+	--bubble-a: var(--c-stop-a, #d33b27);
 	--bubble-b: var(--c-stop-b, #d6246e);
 	--bubble-c: var(--c-stop-c, #8134af);
 	/* 작은 흰 글씨(배지 · 칩 · 스티커)가 올라가는 면 — 흰 글씨와 4.7:1 넘게 (큰 글씨 버튼은 --accent-fill 그대로) */
@@ -736,7 +736,7 @@ a {
 	/* 로고 글자에만 옅은 인스타 그라데이션 — 큰 글자라 흰색을 섞어 채도를 한 단계 낮춘다 (회색을 섞으면 탁해진다) */
 	background: linear-gradient(
 		115deg,
-		color-mix(in srgb, var(--c-stop-a, #e5402a) 76%, #fff),
+		color-mix(in srgb, var(--c-stop-a, #d33b27) 76%, #fff),
 		color-mix(in srgb, var(--c-stop-b, #d6246e) 76%, #fff) 50%,
 		color-mix(in srgb, var(--c-stop-c, #8134af) 76%, #fff)
 	);

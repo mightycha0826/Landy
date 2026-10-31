@@ -325,8 +325,14 @@ export async function promptInstall() {
 
 export const SCHOOL_DOMAIN = 'cnsa.hs.kr';
 
+/** 학교 메일 전체(20101@cnsa.hs.kr)를 붙여 넣으면 앞부분만 (UX G6.2). 다른 도메인은 그대로 둬서 화면이 알릴 수 있게 */
+export function schoolLocal(v: string) {
+	const at = v.lastIndexOf('@');
+	return at >= 0 && v.slice(at + 1).trim().toLowerCase() === SCHOOL_DOMAIN ? v.slice(0, at) : v;
+}
+
 /** 입력칸은 학교 이메일 앞부분만 받는다 — 도메인은 여기서 붙인다 */
-export const schoolEmail = (localPart: string) => `${localPart.trim().toLowerCase()}@${SCHOOL_DOMAIN}`;
+export const schoolEmail = (localPart: string) => `${schoolLocal(localPart).trim().toLowerCase()}@${SCHOOL_DOMAIN}`;
 
 export async function sendOtp(localPart: string) {
 	const email = schoolEmail(localPart);

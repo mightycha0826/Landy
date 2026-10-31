@@ -93,6 +93,25 @@ try {
 	await page.goto(`${BASE}/notices/99`);
 	await page.getByText('공지를 찾을 수 없어요').waitFor({ timeout: 8000 }).catch(() => {});
 	check('없는 공지', await page.getByText('공지를 찾을 수 없어요').isVisible());
+	// 앱이 공지 목록을 기억하는 동안 새 공지가 올라오고, 알림을 눌러(앱 안 이동) 그 공지로 — 기억한 목록만 보고 "없다"고 하지 않는다
+	const seenBefore = lastSeen; // 이 묶음이 5번을 본 것으로 저장한다 — 끝나면 되돌려 아래 "새 공지" 검사에 남기지 않는다
+	notices = [{ id: 5, title: '방금 올린 공지', body: '알림으로 들어옴', created_at: ago(0) }, ...notices];
+	await page.evaluate(() => { const a = document.createElement('a'); a.href = '/notices/5'; document.body.append(a); a.click(); });
+	await page.waitForURL('**/notices/5');
+	await page.locator('article h1').waitFor({ timeout: 8000 }).catch(() => {});
+	check('★ 기억한 목록에 없던 새 공지도 열면 새로 읽어 보여 준다', (await page.locator('article h1').innerText().catch(() => '')) === '방금 올린 공지');
+	notices = notices.filter((n) => n.id !== 5);
+	lastSeen = seenBefore;
+	// 못 불러오면 뼈대만 계속 띄우지 않는다 — 이유와 다시 시도
+	await page.route('https://fake-proj.supabase.co/rest/v1/rpc/my_notices', (route) => route.fulfill({ status: 503, contentType: 'application/json', body: '{"message":"down"}' }));
+	await page.goto(`${BASE}/notices/1`);
+	await page.getByText('공지를 불러오지 못했어요').waitFor({ timeout: 8000 }).catch(() => {});
+	check('★ 공지를 못 불러오면 "불러오지 못했어요 · 다시 시도" (끝없는 불러오는 중 · "없음" 아님)',
+		await page.getByText('공지를 불러오지 못했어요').isVisible() && (await page.getByText('공지를 찾을 수 없어요').count()) === 0);
+	await page.unroute('https://fake-proj.supabase.co/rest/v1/rpc/my_notices');
+	await page.getByRole('button', { name: '다시 시도' }).click();
+	await page.locator('article h1').waitFor({ timeout: 8000 }).catch(() => {});
+	check('★ 다시 시도하면 공지가 보인다', (await page.locator('article h1').innerText().catch(() => '')) === '처음 공지');
 	await page.goto(`${BASE}/notices`);
 	await page.waitForURL('**/activity', { timeout: 4000 }).catch(() => {});
 	check('★ 예전 공지사항 주소(푸시 알림) → 알림 화면', page.url().endsWith('/activity'), page.url());

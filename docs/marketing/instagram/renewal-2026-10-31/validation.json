@@ -1,0 +1,174 @@
+{
+  "logoSource": "branding/icon-source.png",
+  "logoSHA256": "8a4484087beb61d4e68aa8778ae5c85a26d15478c79bef823379e5f19e204d13",
+  "coverConnection": "pixel-identical after reassembly",
+  "coverLayout": [
+    {
+      "title": "우리학교,\n더 가까이.",
+      "overflow": false
+    },
+    {
+      "title": "이름보다\n이야기 먼저.",
+      "overflow": false
+    },
+    {
+      "title": "첫마디는,\nLandy.",
+      "overflow": false
+    }
+  ],
+  "pngSize": [
+    1080,
+    1440
+  ],
+  "posts": [
+    {
+      "post": "01-Landy-Introduction",
+      "pages": 5,
+      "check": {
+        "fontLoaded": true,
+        "redundantLabels": 0,
+        "slides": [
+          {
+            "title": "같은 복도,\n다른 이야기.",
+            "overflow": [],
+            "textOverlap": false,
+            "artOverlap": false,
+            "copyFont": 48
+          },
+          {
+            "title": "이름을 몰라도,\n말은 통하니까.",
+            "overflow": [],
+            "textOverlap": false,
+            "artOverlap": false,
+            "copyFont": 48
+          },
+          {
+            "title": "우연히 만나고.\n마음을 전하고.",
+            "overflow": [],
+            "textOverlap": false,
+            "artOverlap": false,
+            "copyFont": 48
+          },
+          {
+            "title": "내일 마주칠\n친구와,\n오늘 먼저.",
+            "overflow": [],
+            "textOverlap": false,
+            "artOverlap": false,
+            "copyFont": 48
+          }
+        ]
+      },
+      "pngs": [
+        "C:\\Users\\차유근\\Documents\\GitHub\\cnsalit-neo\\CNSATINDER\\docs\\marketing\\instagram\\renewal-2026-10-31\\png\\01-우리학교\\01.png",
+        "C:\\Users\\차유근\\Documents\\GitHub\\cnsalit-neo\\CNSATINDER\\docs\\marketing\\instagram\\renewal-2026-10-31\\png\\01-우리학교\\02.png",
+        "C:\\Users\\차유근\\Documents\\GitHub\\cnsalit-neo\\CNSATINDER\\docs\\marketing\\instagram\\renewal-2026-10-31\\png\\01-우리학교\\03.png",
+        "C:\\Users\\차유근\\Documents\\GitHub\\cnsalit-neo\\CNSATINDER\\docs\\marketing\\instagram\\renewal-2026-10-31\\png\\01-우리학교\\04.png",
+        "C:\\Users\\차유근\\Documents\\GitHub\\cnsalit-neo\\CNSATINDER\\docs\\marketing\\instagram\\renewal-2026-10-31\\png\\01-우리학교\\05.png"
+      ]
+    },
+    {
+      "post": "02-Landy-Random-Chat",
+      "pages": 5,
+      "check": {
+        "fontLoaded": true,
+        "redundantLabels": 0,
+        "slides": [
+          {
+            "title": "이름은 나중에.\n첫마디는 지금.",
+            "overflow": [],
+            "textOverlap": false,
+            "artOverlap": false,
+            "copyFont": 48
+          },
+          {
+            "title": "“조금 더\n얘기할래?”",
+            "overflow": [],
+            "textOverlap": false,
+            "artOverlap": false,
+            "copyFont": 48
+          },
+          {
+            "title": "한 번에 말고,\n조금씩 가까이.",
+            "overflow": [],
+            "textOverlap": false,
+            "artOverlap": false,
+            "copyFont": 48
+          },
+          {
+            "title": "잘 통했다면,\n다음 이야기도.",
+            "overflow": [],
+            "textOverlap": false,
+            "artOverlap": false,
+            "copyFont": 48
+          }
+        ]
+      },
+      "pngs": [
+        "C:\\Users\\차유근\\Documents\\GitHub\\cnsalit-neo\\CNSATINDER\\docs\\marketing\\instagram\\renewal-2026-10-31\\png\\02-익명친구\\01.png",
+        "C:\\Users\\차유근\\Documents\\GitHub\\cnsalit-neo\\CNSATINDER\\docs\\marketing\\instagram\\renewal-2026-10-31\\png\\02-익명친구\\02.png",
+        "C:\\Users\\차유근\\Documents\\GitHub\\cnsalit-neo\\CNSATINDER\\docs\\marketing\\instagram\\renewal-2026-10-31\\png\\02-익명친구\\03.png",
+        "C:\\Users\\차유근\\Documents\\GitHub\\cnsalit-neo\\CNSATINDER\\docs\\marketing\\instagram\\renewal-2026-10-31\\png\\02-익명친구\\04.png",
+        "C:\\Users\\차유근\\Documents\\GitHub\\cnsalit-neo\\CNSATINDER\\docs\\marketing\\instagram\\renewal-2026-10-31\\png\\02-익명친구\\05.png"
+      ]
+    },
+    {
+      "post": "03-Landy-Anonymous-Letters",
+      "pages": 5,
+      "check": {
+        "fontLoaded": true,
+        "redundantLabels": 0,
+        "slides": [
+          {
+            "title": "고마웠다는 말,\n아직 못 했다면.",
+            "overflow": [],
+            "textOverlap": false,
+            "artOverlap": false,
+            "copyFont": 48
+          },
+          {
+            "title": "내 이름 대신,\n내 마음으로.",
+            "overflow": [],
+            "textOverlap": false,
+            "artOverlap": false,
+            "copyFont": 48
+          },
+          {
+            "title": "한 통이,\n대화가 되도록.",
+            "overflow": [],
+            "textOverlap": false,
+            "artOverlap": false,
+            "copyFont": 48
+          },
+          {
+            "title": "전하고 싶었던\n그 한마디.",
+            "overflow": [],
+            "textOverlap": false,
+            "artOverlap": false,
+            "copyFont": 48
+          }
+        ]
+      },
+      "pngs": [
+        "C:\\Users\\차유근\\Documents\\GitHub\\cnsalit-neo\\CNSATINDER\\docs\\marketing\\instagram\\renewal-2026-10-31\\png\\03-Landy\\01.png",
+        "C:\\Users\\차유근\\Documents\\GitHub\\cnsalit-neo\\CNSATINDER\\docs\\marketing\\instagram\\renewal-2026-10-31\\png\\03-Landy\\02.png",
+        "C:\\Users\\차유근\\Documents\\GitHub\\cnsalit-neo\\CNSATINDER\\docs\\marketing\\instagram\\renewal-2026-10-31\\png\\03-Landy\\03.png",
+        "C:\\Users\\차유근\\Documents\\GitHub\\cnsalit-neo\\CNSATINDER\\docs\\marketing\\instagram\\renewal-2026-10-31\\png\\03-Landy\\04.png",
+        "C:\\Users\\차유근\\Documents\\GitHub\\cnsalit-neo\\CNSATINDER\\docs\\marketing\\instagram\\renewal-2026-10-31\\png\\03-Landy\\05.png"
+      ]
+    }
+  ],
+  "pdfVisualReview": {
+    "renderer": "Poppler pdftoppm",
+    "pages": 16,
+    "result": "passed",
+    "contactSheet": "source/pdf-qa/PDF-Contact-Sheet.png"
+  },
+  "uploadArchive": {
+    "pngCount": 15,
+    "captions": true,
+    "uploadGuide": true,
+    "crc": "passed",
+    "matchesCurrentPNGs": true
+  },
+  "copyRevision": "Removed header/footer, cover subtitles, series labels, navigation text, handwritten annotations and sample signature; body copy limited to 1-2 lines at 48px."
+}

@@ -45,6 +45,7 @@
 	}
 
 	async function run(fn: () => Promise<void>) {
+		if (busy) return; // Enter 를 연달아 눌러도 로그인 요청은 하나
 		busy = true;
 		msg = null;
 		try {

@@ -9,6 +9,7 @@
 	 */
 	import { onMount } from 'svelte';
 	import BackButton from '$lib/ui/BackButton.svelte';
+	import LoadError from '$lib/ui/LoadError.svelte';
 	import Badge from '$lib/ui/Badge.svelte';
 	import { fetchMyAchievements, type Achievement } from '$lib/achievements';
 	import {
@@ -29,15 +30,31 @@
 
 	let defs = $state<Achievement[] | null>(null);
 	let mine = $state<MyBadgeRequest[] | null>(null);
+	// 못 불러온 것을 "뱃지가 없어요 · 보낸 요청 없음"으로 보이지 않는다 (UX G4) — 보낸 요청이 안 보이면 거두지 못하고 또 보내게 된다
+	let defsFailed = $state(false);
+	let mineFailed = $state(false);
 	// 들어올 때 한 번 — 뱃지 목록(내 업적) · 보낸 요청
 	onMount(() => {
-		fetchMyAchievements()
-			.then((d) => (defs = d.items.filter((a) => a.category === 'cnsa')))
-			.catch(() => (defs = []));
+		loadDefs();
 		void loadMine();
 	});
+	function loadDefs() {
+		defs = null;
+		defsFailed = false;
+		fetchMyAchievements()
+			.then((d) => (defs = d.items.filter((a) => a.category === 'cnsa')))
+			.catch(() => {
+				defsFailed = true;
+				defs = [];
+			});
+	}
 	async function loadMine() {
-		mine = await myBadgeRequests().catch(() => []);
+		try {
+			mine = await myBadgeRequests();
+			mineFailed = false;
+		} catch {
+			mineFailed = true;
+		}
 	}
 
 	let kind = $state<RequestKind>('proof');
@@ -133,7 +150,9 @@
 		if (canceling) return;
 		canceling = r.id;
 		try {
-			if (await cancelBadgeRequest(r.id)) toast('요청을 거뒀어요 · 사진도 지웠어요');
+			// 사진 삭제는 바로 시도하고 실패하면 예약 작업이 다시 한다 — "지웠어요"로 단정하지 않는다 (PRD 7)
+			if (await cancelBadgeRequest(r.id)) toast('요청을 거뒀어요 · 사진은 곧 지워져요');
+			else toast('이미 처리된 요청이에요');
 			await loadMine();
 		} catch (e) {
 			toast(errMsg(e));
@@ -176,6 +195,8 @@
 			<h2>어떤 뱃지인가요?</h2>
 			{#if defs === null}
 				<p class="muted small">불러오는 중…</p>
+			{:else if defsFailed}
+				<LoadError msg="뱃지 목록을 불러오지 못했어요." onretry={loadDefs} />
 			{:else if proofable.length}
 				<div class="picks">
 					{#each proofable as a (a.code)}
@@ -191,6 +212,7 @@
 			<p class="hint">동아리 뱃지는 기장이 "동아리 기장 제출"로 보내요. 기본 CNSA 뱃지는 Landy 금 뱃지를 처음 따면 저절로 열려요.</p>
 		{:else if kind === 'club'}
 			<h2>어느 동아리인가요?</h2>
+			{#if defsFailed}<LoadError msg="뱃지 목록을 불러오지 못했어요." onretry={loadDefs} />{/if}
 			<div class="picks">
 				{#each clubs as a (a.code)}
 					<button class="pick" class:on={!clubNew && code === a.code} aria-pressed={!clubNew && code === a.code} onclick={() => ((clubNew = false), (code = a.code))}>
@@ -239,6 +261,9 @@
 		<p class="privacy">사진은 관리자만 보고, 확인이 끝나면 지워요.</p>
 	</section>
 
+	{#if mineFailed}
+		<LoadError msg="보낸 요청을 불러오지 못했어요." onretry={() => void loadMine()} />
+	{/if}
 	{#if mine?.length}
 		<section class="mine" aria-labelledby="mine-h">
 			<h2 id="mine-h">보낸 요청</h2>

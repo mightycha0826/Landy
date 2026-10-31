@@ -5,6 +5,7 @@
 	 * 두 아이콘은 같은 크기 · 같은 선 굵기 · 같은 누르는 칸(40px).
 	 * 공지는 화면이 보이는 동안 5분마다, 앱으로 돌아올 때 새로 확인한다 (탭을 오가도 1분 안이면 다시 부르지 않는다).
 	 */
+	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { NOTICES, hasNewNotice, loadNotices, unreadPersonal } from '$lib/notices.svelte';
 	import { INBOX } from '$lib/inbox.svelte';
@@ -12,7 +13,7 @@
 	import { whileVisible } from '$lib/visible';
 
 	$effect(() => {
-		void loadNotices(); // 탭을 오가며 다시 그려질 때 — 1분 안이면 건너뛴다
+		untrack(() => void loadNotices()); // 탭을 오가며 다시 그려질 때 — 1분 안이면 건너뛴다 (NOTICES.loaded 를 읽어도 다시 돌지 않게, G14.2)
 		// 5분마다 · 앱으로 돌아올 때는 꼭 새로 (그사이 올라온 공지에 바로 점이 뜨게)
 		return whileVisible(() => void loadNotices(true), 300_000);
 	});

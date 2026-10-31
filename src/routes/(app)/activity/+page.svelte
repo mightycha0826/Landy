@@ -11,6 +11,7 @@
 	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import BackButton from '$lib/ui/BackButton.svelte';
+	import LoadError from '$lib/ui/LoadError.svelte';
 	import Avatar from '$lib/ui/Avatar.svelte';
 	import { INBOX } from '$lib/inbox.svelte';
 	import { BOX, refreshMailbox } from '$lib/letters/mailbox.svelte';
@@ -29,19 +30,24 @@
 	};
 	const snap = () => ({ notice: NOTICES.lastSeen, personal: NOTICES.personal.filter((n) => !n.read).map((n) => n.id) });
 
-	$effect(() => {
+	// 공지를 못 불러왔다 — 대화 목록(INBOX.failed) · 편지함(BOX.error)과 함께, 못 불러온 것을 "모두 확인했어요"로 보이지 않는다 (UX G4)
+	let noticeFailed = $state(false);
+	const someFailed = $derived(INBOX.failed || !!BOX.error.received || noticeFailed);
+
+	function load() {
 		void INBOX.load();
 		refreshMailbox();
 		untrack(() => {
 			if (NOTICES.loaded && !seen) seen = snap();
 		});
 		void (async () => {
-			await loadNotices(true);
+			noticeFailed = !(await loadNotices(true));
 			untrack(() => (seen ??= snap()));
 			await markNoticesSeen();
 			void clearNotifications('pn-', true);
 		})();
-	});
+	}
+	$effect(() => untrack(load));
 
 	const newNotice = (id: number) => id > (seen?.notice ?? NOTICES.lastSeen);
 	const newPersonal = (n: { id: number; read: boolean }) => (seen ? seen.personal.includes(n.id) : !n.read);
@@ -116,7 +122,7 @@
 		for (const n of NOTICES.list.filter((x) => !newNotice(x.id)).slice(0, 8)) out.push(notice(n));
 		return out.sort(byTime);
 	});
-	const ready = $derived(INBOX.loaded || BOX.loaded.received || NOTICES.loaded);
+	const ready = $derived(INBOX.loaded || BOX.loaded.received || NOTICES.loaded || someFailed);
 </script>
 
 <div class="topbar">
@@ -166,10 +172,13 @@
 			{#each [0, 1, 2] as i (i)}<li class="skel"><i class="skeleton"></i><span><b class="skeleton"></b><em class="skeleton"></em></span></li>{/each}
 		</ul>
 	{:else}
+		{#if someFailed}
+			<LoadError msg="알림을 다 불러오지 못했어요. 연결을 확인해 주세요." onretry={load} />
+		{/if}
 		<h2>새 알림</h2>
 		{#if fresh.length}
 			<ul class="list">{#each fresh as it, i (it.key)}{@render row(it, i, true)}{/each}</ul>
-		{:else}
+		{:else if !someFailed}
 			<div class="none">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3s-7.6-4.6-7.6-10.3A4.4 4.4 0 0 1 12 7.2a4.4 4.4 0 0 1 7.6 2.8c0 5.7-7.6 10.3-7.6 10.3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /></svg>
 				<p>새 알림을 모두 확인했어요</p>

@@ -5,9 +5,8 @@
 	 *
 	 *   /dev/chat?s=chat | fresh | vote | waiting | pending | ended | paused | hints | question | pin | pinned | rate | pinrate   (&sheet=menu|report|block|profile 로 시트 열기, &matched 로 연결 화면, &incoming 으로 상대 새 메시지)
 	 *
-	 * 배포 빌드에서는 아무것도 그리지 않고 홈으로 보낸다.
+	 * 배포 빌드에서는 dev/+layout.ts 가 404 로 막는다.
 	 */
-	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { ChatRoom } from '$lib/chat/room.svelte';
 	import ChatView from '$lib/chat/ChatView.svelte';
@@ -260,10 +259,7 @@
 	let loading = $state(true);
 
 	$effect(() => {
-		if (!import.meta.env.DEV) {
-			void goto('/', { replaceState: true });
-			return;
-		}
+		if (!import.meta.env.DEV) return;
 		const r = new ChatRoom(ROOM, new PreviewTransport());
 		room = r;
 		void r.open().then(() => (loading = false));

@@ -8,11 +8,12 @@
 	import { page } from '$app/state';
 	import { onDestroy } from 'svelte';
 	import BackButton from '$lib/ui/BackButton.svelte';
+	import LoadError from '$lib/ui/LoadError.svelte';
 	import EnvelopeCompose from '$lib/letters/EnvelopeCompose.svelte';
 	import type { LetterFmt } from '$lib/letters/rich';
 	import { anonName, fromLabel, openLetter, replyToLetter, type Letter } from '$lib/letters/api';
 	import { afterSent, deliver } from '$lib/letters/send';
-	import { S, errMsg, toast } from '$lib/state.svelte';
+	import { S, errMsg } from '$lib/state.svelte';
 	// 계정이 바뀌면 루트 레이아웃이 화면을 통째로 다시 만든다 ({#key S.accountVersion}) — 떠 있는지만 보면 된다
 	let alive = true;
 	onDestroy(() => (alive = false));
@@ -22,12 +23,17 @@
 	const back = $derived(`/letters/m/${id}`);
 	let letter = $state<Letter | null>(null);
 	let gone = $state(false);
+	// 못 가져왔다(네트워크) — 빈 화면에 머물지 않고 이유와 다시 시도 (UX G4)
+	let failed = $state<string | null>(null);
+	let attempt = $state(0);
 
 	$effect(() => {
 		const target = id;
+		void attempt;
 		let active = true;
 		letter = null;
 		gone = false;
+		failed = null;
 		void (async () => {
 			try {
 				const r = await openLetter(target);
@@ -35,7 +41,7 @@
 				if (r.status !== 'ok' || r.role !== 'received' || !r.can_reply) gone = true;
 				else letter = r;
 			} catch (e) {
-				if (active && current()) toast(errMsg(e));
+				if (active && current()) failed = errMsg(e);
 			}
 		})();
 		return () => { active = false; };
@@ -56,6 +62,8 @@
 
 {#if gone}
 	<div class="page"><p class="muted center">답장할 수 없는 편지예요</p></div>
+{:else if failed}
+	<div class="page"><LoadError msg={failed} onretry={() => attempt++} /></div>
 {:else if letter}
 	<EnvelopeCompose
 		draftKey={`letter:reply:${letter.id}`}
@@ -67,6 +75,8 @@
 		onsend={send}
 		ondone={() => { if (current()) afterSent('답장을 보냈어요'); }}
 	/>
+{:else}
+	<div class="page"><p class="muted center" role="status">편지를 가져오는 중…</p></div>
 {/if}
 
 <style>

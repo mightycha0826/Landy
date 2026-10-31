@@ -29,11 +29,12 @@ export function lettersState(): 'open' | 'locked' | 'checking' {
 async function load() {
 	if (!currentAccountId()) return;
 	const token = accountToken();
-	const { data } = await supabase.from('signup_stats').select('students').maybeSingle();
-	if (!accountIsCurrent(token)) return;
+	const { data, error } = await supabase.from('signup_stats').select('students').maybeSingle();
+	// 못 읽었으면 판단을 미룬다 — 열린 것으로 치면 편지를 다 쓴 뒤에야 서버가 "잠겨 있어요"라고 거절한다. 앱으로 돌아올 때 다시 읽는다
+	if (!accountIsCurrent(token) || error) return;
 	const n = (data as { students: number } | null)?.students;
-	// 표가 없으면(DB 반영 전) 잠그지 않는다 — 서버도 잠그지 않는다
-	GATE.students = typeof n === 'number' ? n : Number.MAX_SAFE_INTEGER;
+	// 통계 행이 없으면 서버도 잠근다 (private.letters_locked 의 coalesce(…, true), R24) — 화면도 같이
+	GATE.students = typeof n === 'number' ? n : 0;
 	if (GATE.students >= gateMin()) GATE.opened = true;
 }
 

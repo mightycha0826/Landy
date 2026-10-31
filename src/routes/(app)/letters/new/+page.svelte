@@ -1,12 +1,14 @@
 <script lang="ts">
 	/**
 	 * 새 편지 (Phase 32) — 1) 받을 학생을 이름으로 찾고 → 2) 봉투를 열어 편지지에 쓰고 → 봉투에 담아 보낸다 (EnvelopeCompose).
-	 * 받는 사람에게 나는 "익명의 ○학생"(성별만) 또는 내가 적은 서명으로만 보인다 (Phase 35). 받기를 끈 사람 · 차단한 사이는 검색에 나오지 않는다.
+	 * 받는 사람에게 나는 "익명의 ○학생"(성별만) 또는 내가 적은 서명으로만 보인다 (Phase 35). 받기를 끈 사람은 검색에 나오지 않는다.
+	 * 차단 · 수신 거부 · 정지는 검색 결과를 바꾸지 않는다 — 결과 차이로 익명 상대를 찾을 수 없게 (SECURITY.md 2-1).
 	 * 찾기 결과에는 학년 · 학번 — 같은 학년 동명이인을 구분한다. 대표 뱃지도 (Phase 84 — 순서는 그 사람이 정한 대로).
 	 * 아직 찾지 않았으면 아래에 추천 3명 (Phase 84 — 들어올 때 한 번, "다른 추천"을 누르면 다시 — 하루 3번까지. 추천에 안 나오기는 설정 › 편지).
 	 */
 	import { onDestroy, onMount } from 'svelte';
 	import BackButton from '$lib/ui/BackButton.svelte';
+	import LoadError from '$lib/ui/LoadError.svelte';
 	import PrivacySummary from '$lib/ui/PrivacySummary.svelte';
 	import Avatar from '$lib/ui/Avatar.svelte';
 	import Badge from '$lib/ui/Badge.svelte';
@@ -14,7 +16,7 @@
 	import type { LetterFmt } from '$lib/letters/rich';
 	import { anonName, recommendPeople, searchPeople, sendLetter, type DmPerson } from '$lib/letters/api';
 	import { afterSent, deliver } from '$lib/letters/send';
-	import { S, errMsg, toast } from '$lib/state.svelte';
+	import { S, errMsg } from '$lib/state.svelte';
 	// 계정이 바뀌면 루트 레이아웃이 화면을 통째로 다시 만든다 ({#key S.accountVersion}) — 떠 있는지만 보면 된다
 	let alive = true;
 	onDestroy(() => (alive = false));
@@ -23,12 +25,18 @@
 	let q = $state('');
 	let results = $state<DmPerson[] | null>(null);
 	let searching = $state(false);
+	// 검색 실패를 "찾는 사람이 없어요" · "두 글자 이상"으로 보이지 않는다 (UX G4) — 그 자리에 이유와 다시 시도
+	let searchError = $state<string | null>(null);
+	let searchRetry = $state(0);
 	let to = $state<DmPerson | null>(null);
 
 	$effect(() => {
 		const term = q.trim();
+		void searchRetry;
+		searchError = null;
 		if (term.length < 2) {
 			results = null;
+			searching = false;
 			return;
 		}
 		searching = true;
@@ -38,7 +46,7 @@
 				const r = await searchPeople(term);
 				if (active && current() && q.trim() === term) results = r;
 			} catch (e) {
-				if (active && current()) toast(errMsg(e));
+				if (active && current()) searchError = errMsg(e);
 			} finally {
 				if (active && current()) searching = false;
 			}
@@ -62,6 +70,7 @@
 	}
 	let recLeft = $state(REC_REFRESH - refreshesUsed());
 	let recs = $state<DmPerson[] | null>(null);
+	let recFailed = $state(false);
 	let recBusy = $state(false);
 	async function loadRecs(refresh = false) {
 		if (recBusy || !current()) return;
@@ -76,11 +85,15 @@
 			recLeft = Math.max(0, recLeft - 1);
 		}
 		recBusy = true;
+		recFailed = false;
 		try {
 			const r = await recommendPeople();
 			if (current()) recs = (r ?? []).slice(0, REC_SHOW);
 		} catch {
-			if (current()) recs = [];
+			if (current()) {
+				recFailed = true;
+				recs ??= [];
+			}
 		} finally {
 			if (current()) recBusy = false;
 		}
@@ -146,12 +159,18 @@
 			/>
 		</label>
 
-		{#if results === null}
+		{#if searchError && q.trim().length >= 2}
+			<LoadError msg={searchError} onretry={() => searchRetry++} label="다시 찾기" />
+		{:else if results === null && q.trim().length >= 2}
+			<p class="muted center" role="status">찾는 중…</p>
+		{:else if results === null}
 			<p class="prompt muted">이름을 두 글자 이상 적어 주세요</p>
 			<!-- 추천 3명 (Phase 84) -->
 			{#if recs === null}
 				<p class="sr-only">추천을 불러오는 중…</p>
 				<div class="rec-sk" aria-hidden="true">{#each [0, 1, 2] as i (i)}<i class="skeleton"></i>{/each}</div>
+			{:else if recFailed && !recs.length}
+				<LoadError msg="추천을 불러오지 못했어요." onretry={() => loadRecs()} label="다시 불러오기" busy={recBusy} />
 			{:else if recs.length}
 				<section class="recs" aria-labelledby="rec-h">
 					<div class="rec-head">
