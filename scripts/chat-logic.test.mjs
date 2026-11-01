@@ -54,9 +54,10 @@ try {
 	write('moderation', 'export const requestModeration = () => {};');
 	write('manner', 'export const ratePartner = () => { throw new Error("unexpected rating in unit test"); };');
 	write('haptics', 'export const match = () => {};');
+	write('achievements', 'export const noClubs = (xs) => xs.filter((x) => !x.code.startsWith("club_"));');
 	build('src/lib/chat/message-ledger.svelte.ts', 'ledger');
 	build('src/lib/chat/supabase-transport.ts', 'transport', {
-		'../supabase': 'supabase', '../rpc': 'rpc', '../push': 'push', '../moderation': 'moderation', '../manner': 'manner'
+		'../supabase': 'supabase', '../rpc': 'rpc', '../push': 'push', '../moderation': 'moderation', '../manner': 'manner', '../achievements': 'achievements'
 	});
 	build('src/lib/chat/room.svelte.ts', 'room', { './supabase-transport': 'transport', './message-ledger.svelte': 'ledger' });
 	build('src/lib/pollSeeker.svelte.ts', 'pollSeeker');

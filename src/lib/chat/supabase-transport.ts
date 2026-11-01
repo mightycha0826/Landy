@@ -4,6 +4,7 @@ import { rpc } from '../rpc';
 import { notifyReaction, notifySent } from '../push';
 import { requestModeration } from '../moderation';
 import { ratePartner, type Reason, type Score } from '../manner';
+import { noClubs } from '../achievements';
 import type { ChatTransport, TransportHandlers } from './transport';
 import type {
 	MsgRow,
@@ -276,7 +277,7 @@ export class SupabaseTransport implements ChatTransport {
 	}
 
 	partnerProfile(roomId: string) {
-		return rpc<PartnerProfile>('partner_profile', { p_room: roomId });
+		return rpc<PartnerProfile>('partner_profile', { p_room: roomId }).then((p) => (p?.badges ? { ...p, badges: noClubs(p.badges) } : p));
 	}
 
 	typing(seat: 1 | 2) {

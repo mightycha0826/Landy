@@ -63,19 +63,27 @@ export const CATEGORIES: { k: Category | 'all'; label: string }[] = [
 	{ k: 'cnsa', label: 'CNSA' }
 ];
 
+/**
+ * 동아리 뱃지(club_) — 출시판에서는 학생 화면 어디에도 보이지 않는다 (Phase 91). 서버에서 오는 뱃지 목록은 이걸 거쳐 그린다.
+ * 개발 미리보기(/dev/*)는 가짜 데이터를 바로 넘겨 그대로 보인다. 다시 열 때는 이 거르기를 걷어 낸다.
+ */
+export const isClub = (code: string) => code.startsWith('club_');
+export const noClubs = <T extends { code: string }>(xs: T[]) => xs.filter((x) => !isClub(x.code));
+
 /** 비어 있으면(Phase 31 전 DB 등) 오류로 — 화면이 "불러오지 못했어요"를 띄운다 */
 export async function fetchMyAchievements(): Promise<MyAchievements> {
 	const r = await rpc<MyAchievements | null>('my_achievements');
 	if (!r?.items) throw new Error('no_achievements');
-	FAME.last = r;
-	return r;
+	const d = { ...r, items: noClubs(r.items), featured: noClubs(r.featured ?? []), chosen: (r.chosen ?? []).filter((c) => !isClub(c)) };
+	FAME.last = d;
+	return d;
 }
 /** 마지막으로 읽은 내 업적 — 프로필을 다시 열 때 교복의 배지가 바로 보이게 (그 뒤 새로 읽어 맞춘다) */
 export const FAME = { last: null as MyAchievements | null };
 onAccountChange(() => (FAME.last = null));
 /** 새로 딴 업적 — Phase 31 전 DB 면 빈 목록 */
 export const fetchNewAchievements = () =>
-	rpc<BadgeLite[] | null>('new_achievements').then((r) => r ?? [], () => [] as BadgeLite[]);
+	rpc<BadgeLite[] | null>('new_achievements').then((r) => noClubs(r ?? []), () => [] as BadgeLite[]);
 export const markAchievementsSeen = () => rpc<void>('mark_achievements_seen');
 export const setFeaturedBadges = (codes: string[]) =>
 	rpc<{ status: 'ok' | 'too_many' | 'not_owned'; featured?: BadgeLite[] }>('set_featured_badges', { p_codes: codes });

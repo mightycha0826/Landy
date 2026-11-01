@@ -4,8 +4,10 @@
 	 * 구름처럼 물결진 두 칸이 붙은 판(위 · 아래 가운데가 오목하게 꺾인다): 굵은 금 테 · 파란 에나멜에 도드라진 금 글자 "品格".
 	 * 글자는 글꼴 대신 획을 하나씩 사진에서 재어 그린다 (명조처럼 세로획은 굵고 가로획은 가늘게, 기기마다 같게).
 	 * 모양은 사진에서 잰 점 그대로 (사진을 격자에 대고 잰 것, 판 폭 ≈ 97).
+	 * 자율위원(Jayul) · 창의위원(Changui) 뱃지도 같은 판 — 글자 획(strokes)만 넘겨 받는다 (Phase 91).
 	 */
-	let { shine = false, delay = 0 }: { shine?: boolean; delay?: number } = $props();
+	type Strokes = [string, number][];
+	let { shine = false, delay = 0, strokes }: { shine?: boolean; delay?: number; strokes?: Strokes } = $props();
 	const uid = $props.id();
 
 	// 바깥 선 — 왼쪽 위에서 시계 방향. 위 가장자리마다 작은 오목 · 가운데 V, 옆은 위가 좁고 아래가 불룩, 아래 가운데도 오목
@@ -20,13 +22,14 @@
 	});
 	const BOXES = [box(18.5, 35, 15.5, 31.5, 14.5, 32, 18.4, 29.2), box(12.5, 23.5, 34, 57, 34.5, 56, 37.2, 51.8), box(30.5, 42, 34, 56, 34, 55.5, 37.2, 51.8), box(71.2, 85, 39.5, 56, 39, 55.5, 41, 52)];
 	// 획마다 [길, 굵기] — 品 은 口 셋, 格 은 木(세로 · 가로 · 삐침 · 점) + 各(夂 넷 · 口)
-	const STROKES: [string, number][] = [
+	const PUMGYEOK: Strokes = [
 		[BOXES.map((b) => b.v).join('') + 'M61.2 15V56', 3.3],
 		[BOXES.map((b) => b.h).join('') + 'M54 23.8H67.5M70.5 21.6L84 19.6', 2.1],
 		['M60 27.5L53.2 44.5M74.5 14.5L68.5 24.5M83.8 20.5Q79 30 69.5 37.5', 2.7],
 		['M63 29L66.2 33.5', 2.5],
 		['M73.5 25L88 34.5', 3.1]
 	];
+	const STROKES = $derived(strokes ?? PUMGYEOK);
 </script>
 
 <svg class="pin-art" viewBox="-1.5 0 102 69" aria-hidden="true">

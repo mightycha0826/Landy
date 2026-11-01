@@ -5,9 +5,37 @@
 	 * 세 면마다 도드라진 금 막대(글자 획)가 면의 결을 따라 놓인다. 오른쪽 아래 칸에는 "MSMP" 가 새겨져 있다.
 	 * 모두 한 덩어리 금이라 색 대신 빛으로 구분한다 — 도드라진 선은 위가 밝고 아래로 그림자.
 	 * 모양은 사진에서 잰 점 그대로 (사진을 격자에 대고 잰 것, 사진 픽셀 × 0.1).
+	 * silver — 은뱃지 (Phase 91, MsmpSilver.svelte): 모양은 같고 색만 은.
 	 */
-	let { shine = false, delay = 0 }: { shine?: boolean; delay?: number } = $props();
+	let { shine = false, delay = 0, silver = false }: { shine?: boolean; delay?: number; silver?: boolean } = $props();
 	const uid = $props.id();
+
+	// 금속 색 — [바탕 그라데이션 다섯] · 세 면 · 두께 · 테 · 도드라진 선(그림자 · 몸 · 빛) · 글자 빛
+	const GOLD = {
+		plate: ['#fff0a8', '#f0c94a', '#d9a722', '#f6d766', '#b8820f'],
+		top: ['#f7dc72', '#e8bf3c'],
+		left: ['#e9c243', '#d4a522', '#fbe08a'],
+		right: ['#dcb02c', '#c8951a'],
+		base: '#8a5f08',
+		edge: '#fbe7a0',
+		shadow: '#9a6b0c',
+		ridge: '#e7b737',
+		light: '#fff6c8',
+		text: '#fff3bc'
+	};
+	const SILVER = {
+		plate: ['#ffffff', '#d9dde3', '#b4bac3', '#e6e9ee', '#8d939c'],
+		top: ['#eef0f3', '#cfd4da'],
+		left: ['#d6dae0', '#b3b9c2', '#f1f3f6'],
+		right: ['#c4c9d0', '#a3a9b2'],
+		base: '#5d636b',
+		edge: '#f4f6f8',
+		shadow: '#6c727b',
+		ridge: '#c9ced5',
+		light: '#ffffff',
+		text: '#f7f8fa'
+	};
+	const M = $derived(silver ? SILVER : GOLD);
 
 	type Pt = readonly [number, number];
 	const pts = (...p: Pt[]) => p.map((q) => q.join(' ')).join(' ');
@@ -34,24 +62,20 @@
 	<defs>
 		<clipPath id="{uid}-clip"><polygon points={hex} /></clipPath>
 		<linearGradient id="{uid}-gold" x1="0" y1="0" x2="1" y2="1">
-			<stop offset="0" stop-color="#fff0a8" />
-			<stop offset="0.3" stop-color="#f0c94a" />
-			<stop offset="0.55" stop-color="#d9a722" />
-			<stop offset="0.78" stop-color="#f6d766" />
-			<stop offset="1" stop-color="#b8820f" />
+			{#each [0, 0.3, 0.55, 0.78, 1] as o, i (o)}<stop offset={o} stop-color={M.plate[i]} />{/each}
 		</linearGradient>
 		<linearGradient id="{uid}-top" x1="0" y1="0" x2="1" y2="1">
-			<stop offset="0" stop-color="#f7dc72" />
-			<stop offset="1" stop-color="#e8bf3c" />
+			<stop offset="0" stop-color={M.top[0]} />
+			<stop offset="1" stop-color={M.top[1]} />
 		</linearGradient>
 		<linearGradient id="{uid}-left" x1="0" y1="0" x2="1" y2="1">
-			<stop offset="0" stop-color="#e9c243" />
-			<stop offset="0.7" stop-color="#d4a522" />
-			<stop offset="1" stop-color="#fbe08a" />
+			<stop offset="0" stop-color={M.left[0]} />
+			<stop offset="0.7" stop-color={M.left[1]} />
+			<stop offset="1" stop-color={M.left[2]} />
 		</linearGradient>
 		<linearGradient id="{uid}-right" x1="0" y1="0" x2="1" y2="1">
-			<stop offset="0" stop-color="#dcb02c" />
-			<stop offset="1" stop-color="#c8951a" />
+			<stop offset="0" stop-color={M.right[0]} />
+			<stop offset="1" stop-color={M.right[1]} />
 		</linearGradient>
 		<linearGradient id="{uid}-sweep" x1="0" y1="0" x2="1" y2="0">
 			<stop offset="0.3" stop-color="#fff" stop-opacity="0" />
@@ -61,8 +85,8 @@
 	</defs>
 
 	<!-- 금판 두께 · 바탕 -->
-	<polygon points={hex} fill="#8a5f08" stroke="#8a5f08" stroke-width="2" stroke-linejoin="round" transform="translate(0 1.8)" />
-	<polygon points={hex} fill="url(#{uid}-gold)" stroke="#fbe7a0" stroke-width="1" stroke-linejoin="round" />
+	<polygon points={hex} fill={M.base} stroke={M.base} stroke-width="2" stroke-linejoin="round" transform="translate(0 1.8)" />
+	<polygon points={hex} fill="url(#{uid}-gold)" stroke={M.edge} stroke-width="1" stroke-linejoin="round" />
 
 	<!-- 세 면 -->
 	<polygon points={faceTop} fill="url(#{uid}-top)" />
@@ -71,18 +95,18 @@
 
 	<!-- 도드라진 테 · 선: 아래 그림자 → 몸 → 위쪽 빛 -->
 	<g fill="none" stroke-linecap="square" stroke-linejoin="miter">
-		<polygon points={rim} stroke="#9a6b0c" stroke-width="2.6" transform="translate(0.5 0.9)" />
-		<path d={RIDGES} stroke="#9a6b0c" stroke-width="2.6" transform="translate(0.5 0.9)" />
-		<polygon points={rim} stroke="#e7b737" stroke-width="2.4" />
-		<path d={RIDGES} stroke="#e7b737" stroke-width="2.4" />
-		<polygon points={rim} stroke="#fff6c8" stroke-width="0.8" transform="translate(-0.4 -0.6)" />
-		<path d={RIDGES} stroke="#fff6c8" stroke-width="0.8" transform="translate(-0.4 -0.6)" />
+		<polygon points={rim} stroke={M.shadow} stroke-width="2.6" transform="translate(0.5 0.9)" />
+		<path d={RIDGES} stroke={M.shadow} stroke-width="2.6" transform="translate(0.5 0.9)" />
+		<polygon points={rim} stroke={M.ridge} stroke-width="2.4" />
+		<path d={RIDGES} stroke={M.ridge} stroke-width="2.4" />
+		<polygon points={rim} stroke={M.light} stroke-width="0.8" transform="translate(-0.4 -0.6)" />
+		<path d={RIDGES} stroke={M.light} stroke-width="0.8" transform="translate(-0.4 -0.6)" />
 	</g>
 
 	<!-- 글자 칸 — MSMP (오른면의 결을 따라 기울어진 새김) -->
 	<g transform="translate(72.5 94.8) skewY(-23.5)" font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="6.2" letter-spacing="0.3">
-		<text x="0.3" y="0.55" fill="#9a6b0c">MSMP</text>
-		<text fill="#fff3bc">MSMP</text>
+		<text x="0.3" y="0.55" fill={M.shadow}>MSMP</text>
+		<text fill={M.text}>MSMP</text>
 	</g>
 
 	<!-- 광택 — 왼쪽 아래 모서리의 강한 빛 · 윗면의 긁힌 듯한 결 -->

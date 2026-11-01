@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
 	 * CNSA 뱃지 안내 (Phase 84 · 89) — 프로필 안내의 끝에 이어서 한 번 (lib/badgeTour.svelte.ts), 업적 화면 CNSA 탭 · 설정 › 뱃지에서 다시.
-	 * 다섯 장: 무엇인가 → Landy 에서 얻는 법(기본 뱃지는 금 뱃지로 · 나머지는 사진으로 운영진에게) → 앱에 없는 뱃지 · 동아리 뱃지(기장이 부원까지) →
+	 * 다섯 장: 무엇인가(기본 CNSA 뱃지 · 금뱃지) → Landy 에서 얻는 법(기본 뱃지는 금 뱃지로 · 나머지는 사진으로 운영진에게) → 앱에 없는 뱃지(추가 요청 — 동아리 뱃지는 출시판에서 숨겨 두어 안내하지 않는다, Phase 91) →
 	 *   어디에 보일지(랜덤채팅에서 뱃지마다 숨기기 · 편지 찾기의 뱃지 순서 — 여기서 바로 정한다) → 금 뱃지 5개면 대표 칸 5개.
 	 * 마지막 장에서 "뱃지 제출하기"로 바로 간다. 닫거나 끝까지 보면 이 기기에 "봤음".
 	 */
@@ -52,7 +52,7 @@
 		void navigateFromOverlay('/me/achievements/submit');
 		closeBadgeTour();
 	}
-	const PINS = ['cnsa_student', 'msmp_gold', 'club_beatus', 'club_geukjakso'];
+	const PINS = ['cnsa_student', 'msmp_gold'];
 </script>
 
 <svelte:window onkeydown={(e) => BADGE_TOUR.open && e.key === 'Escape' && closeBadgeTour()} />
@@ -69,7 +69,7 @@
 				<div class="inner" data-step={STEPS[step]}>
 					{#if STEPS[step] === 'what'}
 						<div class="pins" aria-hidden="true">
-							{#each PINS as c, i (c)}<span style:--i={i}><Badge code={c} tier={3} size={58} /></span>{/each}
+							{#each PINS as c, i (c)}<span style:--i={i}><Badge code={c} tier={3} size={72} /></span>{/each}
 						</div>
 						<h2>CNSA 뱃지란?</h2>
 						<p>충남삼성고 학생들이 <b>동아리 · 행사 · 수상</b>처럼 여러 활동으로 받는 실제 뱃지예요. Landy에서는 교복 깃에 달아 보여 줄 수 있어요.</p>
@@ -90,15 +90,11 @@
 							<span class="way" class:soon={!insta}>{insta ? `인스타그램 DM @${insta}` : '인스타그램 DM · 준비 중'}</span>
 						</div>
 					{:else if STEPS[step] === 'club'}
-						<h2>앱에 없는 뱃지 · 동아리 뱃지</h2>
+						<h2>앱에 없는 뱃지</h2>
 						<ul class="rows">
 							<li>
 								<span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" /><path d="M12 8.5v7M8.5 12h7" /></svg></span>
 								<span><b>없는 뱃지는 추가 요청</b>뱃지 사진과 이름을 보내 주시면 앱에 새로 만들어요.</span>
-							</li>
-							<li>
-								<span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="9" r="3" /><circle cx="16.5" cy="10" r="2.3" /><path d="M3.5 19c.6-3 2.8-4.8 5.5-4.8s4.9 1.8 5.5 4.8M14.5 15c2.6-.6 5.2.7 6 3.6" /></svg></span>
-								<span><b>동아리 뱃지는 기장만</b>기장 인증 사진과 <b class="em">부원 학번</b>을 함께 보내면 부원 모두에게 한 번에 달려요.</span>
 							</li>
 						</ul>
 					{:else if STEPS[step] === 'where'}
@@ -235,10 +231,10 @@
 	.lead {
 		font-size: 13px;
 	}
-	/* 첫 장 — 핀 넷이 차례로 톡 */
+	/* 첫 장 — 기본 CNSA 뱃지 · 금뱃지가 차례로 톡 */
 	.pins {
 		display: flex;
-		gap: 6px;
+		gap: 14px;
 		margin: 6px 0 4px;
 	}
 	.pins span {

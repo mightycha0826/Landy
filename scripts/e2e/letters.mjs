@@ -109,7 +109,7 @@ async function openApp(browser, w, opts = {}) {
 		if (rpc === 'dm_open') return json(open(w, a.p_msg));
 		if (rpc === 'dm_search') {
 			const q = String(a.p_q ?? '');
-			return json(q.length >= 2 && '박받음'.includes(q) ? [{ id: 'u-b', name: '박받음', grade: 2, no: 20314, checked: true, badges: [{ code: 'fun', title: '이야기꾼', icon: '🎉', tier: 3 }, { code: 'club_beatus', title: 'Beatus', icon: '💻', tier: 3 }] }, { id: 'u-c', name: '박받음', grade: 2, no: 20522, checked: true, badges: [] }] : []);
+			return json(q.length >= 2 && '박받음'.includes(q) ? [{ id: 'u-b', name: '박받음', grade: 2, no: 20314, checked: true, badges: [{ code: 'fun', title: '이야기꾼', icon: '🎉', tier: 3 }, { code: 'msmp_gold', title: 'MSMP 우수 금뱃지', icon: '🥇', tier: 3 }, { code: 'club_beatus', title: 'Beatus', icon: '💻', tier: 3 }] }, { id: 'u-c', name: '박받음', grade: 2, no: 20522, checked: true, badges: [] }] : []);
 		}
 		// 추천 5명 (Phase 84) — 가짜로 둘
 		if (rpc === 'dm_recommend') return json([
@@ -361,7 +361,7 @@ try {
 	await search.fill('박받'); await page.waitForTimeout(600);
 	const people = await page.locator('.person .who').allInnerTexts();
 	check('★ 이름으로 찾기 — 동명이인은 학년 · 학번으로 구분', people.length === 2 && people[0].includes('2학년') && people[0].includes('학번 20314') && people[1].includes('학번 20522'), JSON.stringify(people));
-	check('★ 찾기 결과에 대표 뱃지 (Phase 84) · 찾으면 추천은 걷힌다', (await page.locator('.person').first().locator('.badges .medal').count()) === 2 && (await page.locator('.person').nth(1).locator('.badges').count()) === 0 && (await page.locator('.recs').count()) === 0);
+	check('★ 찾기 결과에 대표 뱃지 (Phase 84 — 동아리 뱃지는 숨는다, Phase 91) · 찾으면 추천은 걷힌다', (await page.locator('.person').first().locator('.badges .medal').count()) === 2 && (await page.locator('.person').nth(1).locator('.badges').count()) === 0 && (await page.locator('.recs').count()) === 0);
 	await page.locator('.person').first().click();
 	await page.waitForFunction(() => document.querySelector('.compose')?.getAttribute('data-phase') === 'write', null, { timeout: 4000 });
 	check('마우스 · 키보드가 있는 기기는 편지지에 바로 커서', await page.evaluate(() => !!document.activeElement?.closest('.le-doc')));
@@ -583,7 +583,8 @@ try {
 				def('cnsa_student', 'CNSA 뱃지', 'cnsa', 3),
 				def('msmp_gold', 'MSMP 우수 금뱃지', 'cnsa', 0),
 				def('club_beatus', 'Beatus', 'cnsa', 0),
-				def('club_geukjakso', '극작소', 'cnsa', 0)
+				def('club_geukjakso', '극작소', 'cnsa', 0),
+				def('library', '도서부', 'cnsa', 0)
 			],
 			featured: [{ code: 'fun', title: '이야기꾼', icon: '', tier: 3 }], chosen: [], slots: 3, golds: 1, chat: { fun: true, cnsa_student: false }
 		};
@@ -605,14 +606,15 @@ try {
 		check('★ CNSA 뱃지를 가졌어도 업적 화면에서 안내가 저절로 뜨지 않는다 (Phase 89)', (await tour.count()) === 0);
 		await p11.getByRole('button', { name: 'CNSA', exact: true }).click(); await p11.getByRole('button', { name: 'CNSA 뱃지 안내' }).click();
 		await tour.waitFor({ timeout: 4000 });
+		await p11.screenshot({ path: `${SP}/cnsa-tour-what.png` });
 		check('★ CNSA 탭 "CNSA 뱃지 안내" → 다섯 장', (await tour.locator('.dots i').count()) === 5 && (await tour.locator('h2').innerText()) === 'CNSA 뱃지란?'
-			&& (await tour.locator('.pins .medal').count()) === 4);
+			&& (await tour.locator('.pins .medal').count()) === 2 && (await tour.locator('.pins .pin-art').count()) === 2);
 		await tour.getByRole('button', { name: '다음' }).click(); await p11.waitForTimeout(200);
 		const how = await tour.innerText();
 		check('★ 얻는 법 — 기본 뱃지는 Landy 금 뱃지로 · 나머지는 학번 · 이름과 함께 찍어 운영진에게 · 인스타는 준비 중', how.includes('금 뱃지를 처음 따면') && how.includes('학번 · 이름') && how.includes('인스타그램 DM · 준비 중'), how);
 		await tour.getByRole('button', { name: '다음' }).click(); await p11.waitForTimeout(200);
 		const club = await tour.innerText();
-		check('★ 앱에 없는 뱃지는 추가 요청 · 동아리 뱃지는 기장이 부원까지', club.includes('추가 요청') && club.includes('기장만') && club.includes('부원 학번'), club);
+		check('★ 앱에 없는 뱃지는 추가 요청 · 동아리 뱃지 안내는 없다 (Phase 91 — 출시판에서 숨김)', club.includes('추가 요청') && !club.includes('동아리') && !club.includes('부원 학번'), club);
 		await tour.getByRole('button', { name: '다음' }).click(); await p11.waitForTimeout(400);
 		const sw = tour.getByRole('switch', { name: 'CNSA 뱃지 랜덤채팅에 보이기' });
 		check('★ 어디에 보일지 — 뱃지마다 랜덤채팅 스위치 (CNSA 는 꺼져 있음)', !(await sw.isChecked()) && (await tour.getByRole('switch', { name: '이야기꾼 랜덤채팅에 보이기' }).isChecked()));
@@ -642,7 +644,7 @@ try {
 		await p11.getByRole('link', { name: '뱃지 제출하기' }).click(); await p11.waitForURL('**/me/achievements/submit');
 		await p11.locator('.pick').first().waitFor();
 		const picks = await p11.locator('.picks .pick').allInnerTexts();
-		check('★ 내 뱃지 인증 — 고를 수 있는 뱃지는 동아리 · 기본 CNSA 뱃지 · 가진 것 빼고', picks.length === 1 && picks[0].includes('MSMP'), JSON.stringify(picks));
+		check('★ 내 뱃지 인증 — 고를 수 있는 뱃지는 동아리 · 기본 CNSA 뱃지 · 가진 것 빼고 (도서부는 여기, Phase 91)', picks.length === 2 && picks[0].includes('MSMP') && picks[1].includes('도서부'), JSON.stringify(picks));
 		const sendBtn = p11.getByRole('button', { name: '운영진에게 보내기' });
 		await p11.locator('.picks .pick').first().click();
 		check('사진이 없으면 보낼 수 없다', await sendBtn.isDisabled());
@@ -657,11 +659,7 @@ try {
 		check('★ 사진은 내 폴더(badge-proofs/내 id/)에 올리고 그 경로로 요청', up.length === 1 && up[0][2].startsWith(`/storage/v1/object/badge-proofs/${uid}/`) && sub?.p_kind === 'proof' && sub.p_code === 'msmp_gold'
 			&& sub.p_photos.length === 1 && sub.p_photos[0].startsWith(`${uid}/`) && sub.p_photos[0].endsWith('.jpg'), JSON.stringify({ up, sub }));
 		check('★ 보낸 요청 목록에 "확인 중"', (await p11.locator('.mine li').first().innerText()).includes('확인 중') && (await p11.getByRole('button', { name: '거두기' }).count()) === 1);
-		await p11.getByRole('tab', { name: '동아리 기장 제출' }).click(); await p11.waitForTimeout(200);
-		const clubs = await p11.locator('.picks .pick').allInnerTexts();
-		check('★ 동아리 기장 — 동아리 뱃지 + "목록에 없는 동아리"', clubs.length === 3 && clubs.some((t) => t.includes('Beatus')) && clubs.at(-1).includes('목록에 없는 동아리'), JSON.stringify(clubs));
-		await p11.locator('#nos').fill('20701, 20702\n20815 20701');
-		check('부원 학번은 쉼표 · 띄어쓰기 · 줄바꿈 어느 것으로 나눠도 (같은 학번은 한 번)', (await p11.locator('.lbl small').first().innerText()).startsWith('3명'));
+		check('★ 동아리 기장 제출 탭은 숨는다 (Phase 91 — 동아리 뱃지는 출시판에서 숨김)', (await p11.getByRole('tab').allInnerTexts()).join() === '내 뱃지 인증,새 뱃지 요청');
 		await p11.screenshot({ path: `${SP}/badge-submit.png`, fullPage: true });
 
 		console.log('  [설정 · 뱃지]');
