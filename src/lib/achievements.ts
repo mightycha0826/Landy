@@ -1,5 +1,6 @@
 import { rpc } from './rpc';
 import { onAccountChange } from './accountScope';
+import { S } from './state.svelte';
 
 /**
  * 업적 (Phase 31) — 동 · 은 · 금 메달. 업적 정의(이름 · 기준)는 DB 가 유일한 출처라 여기엔 타입과 RPC · 표시용 도움 함수만.
@@ -64,17 +65,19 @@ export const CATEGORIES: { k: Category | 'all'; label: string }[] = [
 ];
 
 /**
- * 동아리 뱃지(club_) — 출시판에서는 학생 화면 어디에도 보이지 않는다 (Phase 91). 서버에서 오는 뱃지 목록은 이걸 거쳐 그린다.
- * 개발 미리보기(/dev/*)는 가짜 데이터를 바로 넘겨 그대로 보인다. 다시 열 때는 이 거르기를 걷어 낸다.
+ * 동아리 뱃지(club_) — 관리자 설정 "동아리 뱃지 출시"(app_settings.club_badges, Phase 91)가 꺼져 있으면 학생 화면 어디에도 보이지 않는다.
+ * 서버에서 오는 뱃지 목록은 noClubs 를 거쳐 그린다. 개발 미리보기(/dev/*)는 가짜 데이터를 바로 넘겨 그대로 보인다.
+ * 도서부의 옛 코드(club_library — Phase 91 SQL 전 실DB)는 동아리 뱃지가 아니다.
  */
-export const isClub = (code: string) => code.startsWith('club_');
-export const noClubs = <T extends { code: string }>(xs: T[]) => xs.filter((x) => !isClub(x.code));
+export const isClub = (code: string) => code.startsWith('club_') && code !== 'club_library';
+export const clubsReleased = () => !!S.settings?.club_badges;
+export const noClubs = <T extends { code: string }>(xs: T[]) => (clubsReleased() ? xs : xs.filter((x) => !isClub(x.code)));
 
 /** 비어 있으면(Phase 31 전 DB 등) 오류로 — 화면이 "불러오지 못했어요"를 띄운다 */
 export async function fetchMyAchievements(): Promise<MyAchievements> {
 	const r = await rpc<MyAchievements | null>('my_achievements');
 	if (!r?.items) throw new Error('no_achievements');
-	const d = { ...r, items: noClubs(r.items), featured: noClubs(r.featured ?? []), chosen: (r.chosen ?? []).filter((c) => !isClub(c)) };
+	const d = { ...r, items: noClubs(r.items), featured: noClubs(r.featured ?? []), chosen: clubsReleased() ? (r.chosen ?? []) : (r.chosen ?? []).filter((c) => !isClub(c)) };
 	FAME.last = d;
 	return d;
 }

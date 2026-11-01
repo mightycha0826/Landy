@@ -21,6 +21,7 @@ export const PIN_BADGES: Record<string, Component<{ shine?: boolean; delay?: num
 	club_beatus: Beatus,
 	club_geukjakso: Geukjakso,
 	library: Library,
+	club_library: Library, // Phase 91 SQL 을 돌리기 전 실DB 의 옛 도서부 코드
 	cert_1500m: Ssc1500,
 	pumgyeok: Pumgyeok,
 	jayul: Jayul,

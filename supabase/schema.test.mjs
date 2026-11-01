@@ -1031,6 +1031,10 @@ console.log('\n[36] 운영자 기능');
 	await svc('admin_update_settings', JSON.stringify({ notice: '', is_open: true }), staff);
 	await expectError('범위를 벗어난 값은 DB 가 거부', () => svc('admin_update_settings', JSON.stringify({ room_minutes: 999 }), staff), 'check');
 	check('알 수 없는 키는 무시된다', !('evil' in (await svc('admin_update_settings', JSON.stringify({ evil: 1 }), staff))));
+	// Phase 91 — 동아리 뱃지 출시: 처음엔 꺼짐, 관리자가 켜고 끈다
+	check('동아리 뱃지 출시는 처음엔 꺼져 있다', (await one('select club_badges from public.app_settings')).club_badges === false);
+	check('동아리 뱃지 출시를 켠다', (await svc('admin_update_settings', JSON.stringify({ club_badges: true }), staff)).club_badges === true);
+	check('동아리 뱃지 출시를 끈다', (await svc('admin_update_settings', JSON.stringify({ club_badges: false }), staff)).club_badges === false);
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -1504,6 +1508,7 @@ console.log('\n[60] ★ 운영자 RPC 역할 점검 — DB 에서도 막는다')
 	await expectError('★ 운영진: 공지 변경 불가', () => svc('admin_update_settings', JSON.stringify({ notice: 'x' }), mod), 'admin_only');
 	check('운영진: 서비스 열고 닫기는 가능', (await svc('admin_update_settings', JSON.stringify({ is_open: false }), mod)).is_open === false);
 	await svc('admin_update_settings', JSON.stringify({ is_open: true }), mod);
+	await expectError('★ 운영진: 동아리 뱃지 출시 변경 불가', () => svc('admin_update_settings', JSON.stringify({ club_badges: true }), mod), 'admin_only');
 	await expectError('★ 명단에 없으면 설정 변경 불가', () => svc('admin_update_settings', JSON.stringify({ is_open: false }), outsider), 'not_staff');
 	check('관리자: 운영 수치 변경 가능', (await svc('admin_update_settings', JSON.stringify({ room_minutes: 10 }), adm)).room_minutes === 10);
 

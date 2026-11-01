@@ -24,6 +24,8 @@ export type AppSettings = {
 	maintenance_msg?: string;
 	maintenance_until?: string | null;
 	maintenance_at?: string | null;
+	/** Phase 91 — 동아리 뱃지 출시 */
+	club_badges?: boolean;
 };
 
 export type AiUsage = {

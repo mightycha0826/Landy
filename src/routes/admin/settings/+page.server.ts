@@ -77,6 +77,13 @@ export const actions: Actions = {
 		return await updateSettings(locals, { letters_gate: gate, letters_gate_min: min }) ?? { done: gate ? `익명편지 잠금 켬 · 가입 ${min}명에 열림` : '익명편지 잠금 끔 · 지금 바로 열림' };
 	},
 
+	/** 동아리 뱃지 출시 (Phase 91, 관리자만) — 꺼져 있으면 학생 화면에서 동아리 뱃지를 숨긴다 */
+	clubs: async ({ request, locals }) => {
+		if (!allowed(locals, 'settings')) return fail(403, { error: '개발자 · 관리자만 바꿀 수 있어요' });
+		const on = (await request.formData()).get('club_badges') === 'on';
+		return await updateSettings(locals, { club_badges: on }) ?? { done: on ? '동아리 뱃지 출시 · 학생 앱을 다시 열면 보여요' : '동아리 뱃지 숨김' };
+	},
+
 	/** 검열봇 · AI 대화 상대 (관리자만) */
 	ai: async ({ request, locals }) => {
 		if (!allowed(locals, 'settings')) return fail(403, { error: '개발자 · 관리자만 바꿀 수 있어요' });

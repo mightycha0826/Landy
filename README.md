@@ -900,8 +900,9 @@ node scripts/dev-user.mjs simbun-test3@cnsa.hs.kr 비밀번호 m      # 성별�
 - [ ] **Phase 91 — CNSA 뱃지 정리: 은뱃지 · 자율 · 창의위원 · 도서부는 직접 인증 · 동아리 뱃지 숨김** —
       MSMP 우수 은뱃지(`msmp_silver`, `MsmpSilver.svelte` — 금뱃지와 같은 핀, 색만 은) · 자율위원(`jayul`, 自律) · 창의위원(`changui`, 創意)
       (`Jayul` · `Changui.svelte` — 품격위원 판에 글자 획만 바꿔 넘긴다). 도서부 코드 `club_library` → `library` — "내 뱃지 인증"으로 보낸다
-      (가진 학생 · 요청 · 대표 · 숨김 설정을 옮기고 옛 정의를 지운다, Phase 88 과 같은 길). 동아리 뱃지(`club_`)는 출시판 학생 화면에서 숨긴다
+      (가진 학생 · 요청 · 대표 · 숨김 설정을 옮기고 옛 정의를 지운다, Phase 88 과 같은 길). SQL 전 실DB 의 `club_library` 도 도서부 핀으로 그린다.
+      동아리 뱃지(`club_`)는 관리자 설정 **"동아리 뱃지 출시"**(`app_settings.club_badges`, 처음엔 꺼짐 · 관리자만)를 켜기 전까지 학생 화면에서 숨긴다
       (`lib/achievements.ts` `noClubs` — 내 업적 · 새 업적 · 상대 프로필 · 편지 찾기, 제출 화면의 "동아리 기장 제출" 탭 · 안내의 동아리 줄도),
-      `/dev/*` 미리보기에서는 보인다. CNSA 뱃지 안내 첫 장 그림은 기본 CNSA 뱃지 · 금뱃지 둘. 업적 정의 35종.
+      켜면 앱을 다시 열 때 모두 보인다. `/dev/*` 미리보기에서는 늘 보인다. CNSA 뱃지 안내 첫 장 그림은 기본 CNSA 뱃지 · 금뱃지 둘. 업적 정의 35종.
       실DB 는 `supabase/migrations/20261101120000_cnsa_badges_phase91.sql` (여러 번 실행해도 같다) — 아직 반영 전. 스키마 테스트 [94] · [101] · 화면 letters.
 - [ ] Phase 7 — (보류) Durable Object 전송 계층. 학술탐구 큐 · 벤치는 별도 저장소(serverless-log-queue)에서 진행하고, 앱 적용 여부는 실험 결과를 본 뒤 따로 정한다.

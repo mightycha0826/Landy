@@ -51,5 +51,7 @@ export type Settings = {
 	maintenance_at?: string | null;
 	/** Phase 84 — 뱃지 사진을 받는 인스타그램 계정 (비어 있으면 "준비 중") */
 	badge_instagram?: string | null;
+	/** Phase 91 — 동아리 뱃지 출시 (꺼져 있으면 학생 화면에서 숨김, lib/achievements.ts noClubs). SQL 전 실DB 면 없음 */
+	club_badges?: boolean;
 };
 

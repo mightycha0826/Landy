@@ -1322,7 +1322,9 @@ begin
     maintenance_msg       = coalesce(left(p_patch->>'maintenance_msg', 300), maintenance_msg),
     maintenance_until     = case when p_patch ? 'maintenance_until' then nullif(p_patch->>'maintenance_until', '')::timestamptz else maintenance_until end,
     -- Phase 53 — 점검 예약 (이 시각이 되면 저절로 점검 중. 빈 값이면 예약 취소)
-    maintenance_at        = case when p_patch ? 'maintenance_at' then nullif(p_patch->>'maintenance_at', '')::timestamptz else maintenance_at end
+    maintenance_at        = case when p_patch ? 'maintenance_at' then nullif(p_patch->>'maintenance_at', '')::timestamptz else maintenance_at end,
+    -- Phase 91 — 동아리 뱃지 출시 (컬럼은 Phase 91 에서 추가. 실행 시점엔 있다)
+    club_badges           = coalesce((p_patch->>'club_badges')::boolean, club_badges)
   where id;
   insert into private.audit_log (staff_id, action, detail) values (p_staff, 'update_settings', p_patch);
   return public.admin_get_settings();
@@ -7196,9 +7198,12 @@ grant execute on function public.dm_folder_rule(bigint, bigint) to authenticated
 --  · 도서부는 학생이 "내 뱃지 인증"으로 직접 보낸다 — 동아리(club_)가 아니게 코드를 library 로 바꾼다
 --    (badge_request_submit 의 proof 는 club_ 을 not_club 으로 돌려보낸다). Phase 88 과 같이 가진 학생 · 뱃지 요청 ·
 --    대표 업적 · 랜덤채팅 숨김 설정을 새 코드로 옮긴 뒤 옛 정의를 지운다. 활동 기록(audit_log)의 옛 코드는 그대로.
---  · 동아리 뱃지(club_)는 출시판 학생 화면에서 숨긴다 — 화면에서 거른다 (lib/achievements.ts noClubs), DB 는 그대로.
+--  · 동아리 뱃지(club_)는 관리자 설정 "동아리 뱃지 출시"(app_settings.club_badges, 처음엔 꺼짐)를 켜기 전까지 학생 화면에서 숨긴다
+--    — 화면에서 거른다 (lib/achievements.ts noClubs), 뱃지 데이터는 그대로. 켜고 끄는 것은 admin_update_settings.
 --  실DB 는 supabase/migrations/20261101120000_cnsa_badges_phase91.sql (이 구역과 같다, 여러 번 실행해도 같다).
 -- ════════════════════════════════════════════════════════════════════
+alter table public.app_settings add column if not exists club_badges boolean not null default false;
+
 insert into private.achievement_defs (code, title, description, icon, category, stat, unit, bronze, silver, gold, lower_better, sort, granted) values
   ('msmp_silver', 'MSMP 우수 은뱃지', 'MSMP 우수자에게 수여하는 은뱃지',           '🥈', 'cnsa', 'msmp_silver', '', 1, 1, 1, false, 57, true),
   ('library',     '도서부',           '도서부 부원',                               '📚', 'cnsa', 'library',     '', 1, 1, 1, false, 61, true),

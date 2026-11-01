@@ -171,6 +171,20 @@
 	</form>
 {/if}
 
+<!-- 동아리 뱃지 출시 (Phase 91) — 꺼져 있으면 학생 화면 어디에도 동아리 뱃지(club_)가 보이지 않는다 (lib/achievements.ts noClubs) -->
+<h2 class="a-h2 sub">동아리 뱃지 출시</h2>
+{#if s.club_badges === undefined}
+	<p class="muted small">DB 에 Phase 91 을 반영하면 여기서 켤 수 있어요 (supabase/migrations/20261101120000_cnsa_badges_phase91.sql).</p>
+{:else}
+	<form method="POST" action="?/clubs" use:enhance={ack({ keep: true })} class="form">
+		<label class="row">
+			<span class="label">출시하기<small>켜면 학생 앱의 업적 · 프로필 · 편지 찾기에 동아리 뱃지가 보이고, 뱃지 제출의 "동아리 기장 제출" 탭과 뱃지 안내의 동아리 줄이 열려요. 학생 앱에는 설정을 다시 읽을 때(앱을 다시 열 때) 반영돼요</small></span>
+			<input type="checkbox" name="club_badges" checked={s.club_badges} disabled={!isAdmin} />
+		</label>
+		{#if isAdmin}<button class="btn save">출시 설정 저장</button>{/if}
+	</form>
+{/if}
+
 <h2 class="a-h2 sub">검열봇 · AI 대화 상대</h2>
 {#if !aiReady}
 	<p class="muted small">DB 에 Phase 19 를 반영하면 여기서 켤 수 있어요 (schema.sql 다시 실행).</p>

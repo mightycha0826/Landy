@@ -212,7 +212,10 @@ async function loadSettings() {
 	const read = (cols: string) => supabase.from('app_settings').select(cols).maybeSingle();
 	const AI = 'ai_moderation, ai_chat, ai_chat_per_user';
 	const MAINT = 'maintenance, maintenance_msg, maintenance_until';
-	const { data, error } = await read(`${SETTINGS_COLS}, ${AI}, letters_gate, letters_gate_min, ${MAINT}, maintenance_at, badge_instagram`);
+	const cols = `${SETTINGS_COLS}, ${AI}, letters_gate, letters_gate_min, ${MAINT}, maintenance_at, badge_instagram`;
+	let { data, error } = await read(`${cols}, club_badges`);
+	// Phase 91 열(club_badges)이 실DB 에 아직 없으면(42703) 빼고 다시 — SQL 보다 앱이 먼저 배포돼도 열리게 (동아리 뱃지는 숨김)
+	if (error?.code === '42703') ({ data, error } = await read(cols));
 	if (error) throw error;
 	if (!data) throw new Error('settings_missing');
 	if (!accountIsCurrent(token)) return;

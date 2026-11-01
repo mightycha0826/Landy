@@ -3,7 +3,7 @@
 	 * 뱃지 제출 (Phase 84) — CNSA 뱃지를 운영진에게 보낸다 (lib/badgeRequests.ts).
 	 *   내 뱃지 인증 — 앱에 있는 CNSA 뱃지(동아리 뱃지 · 기본 CNSA 뱃지 빼고). 뱃지와 학번 · 이름이 함께 보이는 사진.
 	 *   동아리 기장 — 동아리 뱃지는 기장만. 기장 인증 사진 + 부원 학번을 함께 보내면 승인될 때 부원 모두에게 달린다.
-	 *     (Phase 91 — 동아리 뱃지를 출시판에서 숨겨 이 탭도 감춘다. 다시 열 때 KINDS 에 'club' 을 더한다)
+	 *     (Phase 91 — 관리자 설정 "동아리 뱃지 출시"가 꺼져 있으면 이 탭도 감춘다)
 	 *   새 뱃지 요청 — 앱에 없는 뱃지. 뱃지 사진 · 이름 · 설명.
 	 * 사진은 이 기기에서 줄여 올리고, 학번 · 이름이 보이니 관리자만 보고 확인이 끝나면 지운다. 결과는 개인 공지(하트)로 온다.
 	 * 아래에 내가 보낸 요청과 상태 — 기다리는 요청은 거둘 수 있다.
@@ -12,7 +12,7 @@
 	import BackButton from '$lib/ui/BackButton.svelte';
 	import LoadError from '$lib/ui/LoadError.svelte';
 	import Badge from '$lib/ui/Badge.svelte';
-	import { fetchMyAchievements, type Achievement } from '$lib/achievements';
+	import { clubsReleased, fetchMyAchievements, type Achievement } from '$lib/achievements';
 	import {
 		cancelBadgeRequest,
 		KIND_LABEL,
@@ -58,7 +58,7 @@
 		}
 	}
 
-	const KINDS = ['proof', 'new'] as const satisfies readonly RequestKind[];
+	const KINDS = $derived<RequestKind[]>(clubsReleased() ? ['proof', 'club', 'new'] : ['proof', 'new']);
 	let kind = $state<RequestKind>('proof');
 	// 내 뱃지 인증 — 동아리 뱃지 · 기본 CNSA 뱃지(금 뱃지로 열린다) · 이미 가진 것은 빼고
 	const proofable = $derived((defs ?? []).filter((a) => !a.code.startsWith('club_') && a.code !== 'cnsa_student' && a.tier === 0));
@@ -211,7 +211,7 @@
 			{:else}
 				<p class="muted small">인증할 뱃지가 목록에 없어요 · 앱에 없는 뱃지는 "새 뱃지 요청"으로 보내 주세요</p>
 			{/if}
-			<p class="hint">기본 CNSA 뱃지는 Landy 금 뱃지를 처음 따면 저절로 열려요.</p>
+			<p class="hint">{#if clubsReleased()}동아리 뱃지는 기장이 "동아리 기장 제출"로 보내요. {/if}기본 CNSA 뱃지는 Landy 금 뱃지를 처음 따면 저절로 열려요.</p>
 		{:else if kind === 'club'}
 			<h2>어느 동아리인가요?</h2>
 			{#if defsFailed}<LoadError msg="뱃지 목록을 불러오지 못했어요." onretry={loadDefs} />{/if}

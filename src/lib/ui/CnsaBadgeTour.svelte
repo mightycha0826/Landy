@@ -1,14 +1,14 @@
 <script lang="ts">
 	/**
 	 * CNSA 뱃지 안내 (Phase 84 · 89) — 프로필 안내의 끝에 이어서 한 번 (lib/badgeTour.svelte.ts), 업적 화면 CNSA 탭 · 설정 › 뱃지에서 다시.
-	 * 다섯 장: 무엇인가(기본 CNSA 뱃지 · 금뱃지) → Landy 에서 얻는 법(기본 뱃지는 금 뱃지로 · 나머지는 사진으로 운영진에게) → 앱에 없는 뱃지(추가 요청 — 동아리 뱃지는 출시판에서 숨겨 두어 안내하지 않는다, Phase 91) →
+	 * 다섯 장: 무엇인가(기본 CNSA 뱃지 · 금뱃지) → Landy 에서 얻는 법(기본 뱃지는 금 뱃지로 · 나머지는 사진으로 운영진에게) → 앱에 없는 뱃지(추가 요청) · 동아리 뱃지(기장이 부원까지 — 관리자 설정 "동아리 뱃지 출시"가 켜져 있을 때만, Phase 91) →
 	 *   어디에 보일지(랜덤채팅에서 뱃지마다 숨기기 · 편지 찾기의 뱃지 순서 — 여기서 바로 정한다) → 금 뱃지 5개면 대표 칸 5개.
 	 * 마지막 장에서 "뱃지 제출하기"로 바로 간다. 닫거나 끝까지 보면 이 기기에 "봤음".
 	 */
 	import { focustrap } from '$lib/focustrap';
 	import { backClose, navigateFromOverlay } from '$lib/overlay.svelte';
 	import { BADGE_TOUR, closeBadgeTour } from '$lib/badgeTour.svelte';
-	import { fetchMyAchievements, GOLDS_FOR_FIVE, slotsOf, type MyAchievements } from '$lib/achievements';
+	import { clubsReleased, fetchMyAchievements, GOLDS_FOR_FIVE, slotsOf, type MyAchievements } from '$lib/achievements';
 	import { S, errMsg, setProfileField, toast } from '$lib/state.svelte';
 	import Badge from './Badge.svelte';
 	import BadgeChatToggles from './BadgeChatToggles.svelte';
@@ -90,12 +90,18 @@
 							<span class="way" class:soon={!insta}>{insta ? `인스타그램 DM @${insta}` : '인스타그램 DM · 준비 중'}</span>
 						</div>
 					{:else if STEPS[step] === 'club'}
-						<h2>앱에 없는 뱃지</h2>
+						<h2>{clubsReleased() ? '앱에 없는 뱃지 · 동아리 뱃지' : '앱에 없는 뱃지'}</h2>
 						<ul class="rows">
 							<li>
 								<span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" /><path d="M12 8.5v7M8.5 12h7" /></svg></span>
 								<span><b>없는 뱃지는 추가 요청</b>뱃지 사진과 이름을 보내 주시면 앱에 새로 만들어요.</span>
 							</li>
+							{#if clubsReleased()}
+								<li>
+									<span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="9" r="3" /><circle cx="16.5" cy="10" r="2.3" /><path d="M3.5 19c.6-3 2.8-4.8 5.5-4.8s4.9 1.8 5.5 4.8M14.5 15c2.6-.6 5.2.7 6 3.6" /></svg></span>
+									<span><b>동아리 뱃지는 기장만</b>기장 인증 사진과 <b class="em">부원 학번</b>을 함께 보내면 부원 모두에게 한 번에 달려요.</span>
+								</li>
+							{/if}
 						</ul>
 					{:else if STEPS[step] === 'where'}
 						<h2>어디에 보일지 골라요</h2>
