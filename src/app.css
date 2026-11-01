@@ -18,15 +18,6 @@
 	font-style: normal;
 	font-display: swap;
 }
-/* 롯데리아 촵땡겨체 (Phase 83) — Landy 로고 글자에만 (--logo). 눈누 배포 원본 파일 그대로.
-   로고는 다른 글꼴로 잠깐 보였다가 바뀌지 않게 block — 처음 한 번만 받는 동안 잠깐 비어 있다 */
-@font-face {
-	font-family: 'Lotteria Chab';
-	src: url('./lib/fonts/LOTTERIACHAB.woff2') format('woff2');
-	font-weight: 400;
-	font-style: normal;
-	font-display: block;
-}
 
 :root {
 	/* ── 포인트 디자인 시스템 (design/point) — 회색 위에 조합색 두 개만. 기본 조합: 인스타 (분홍 → 자주 옅은 그라데이션 · 보색 청록).
@@ -161,7 +152,7 @@
 	/* 브랜드 글씨 — 한 가지 굵기뿐이라 font-weight 는 400 으로 둔다 (가짜 굵게가 입혀지지 않게) */
 	--display: var(--sans);
 	/* 로고 글자 (Phase 83) — 탭 제목 · 큰 숫자는 그대로 파셜산스, 로고만 롯데리아 촵땡겨체 */
-	--logo: 'Lotteria Chab', var(--display);
+	--logo: 'Partial Sans KR', var(--display); /* 로고 글자 (2026-10-31 롯데리아 촵땡겨체에서 바꿈 — 그 파일은 인스타 게시물 생성 스크립트만 쓴다) */
 }
 
 /* 이 앱은 라이트 · 다크를 스스로 그린다고 브라우저에 알린다 (Phase 43) — 안드로이드 Chrome "사이트에 어두운 테마 적용" ·
