@@ -9,6 +9,17 @@ const load = async (name) => {
 };
 const { errMsg } = await load('errors');
 const { contrast } = await load('contrast');
+const { agoText } = await load('time');
+
+test('상대 시간에만 "전"을 붙이고 날짜("10월 6일")에는 붙이지 않는다', () => {
+	const now = Date.parse('2026-11-02T12:00:00+09:00');
+	const at = (ms) => new Date(now - ms).toISOString();
+	assert.equal(agoText(at(3 * 60_000), now), '3분 전');
+	assert.equal(agoText(at(2 * 3_600_000), now), '2시간 전');
+	assert.equal(agoText(at(86_400_000), now), '어제');
+	assert.equal(agoText(at(3 * 86_400_000), now), '3일 전');
+	assert.ok(!agoText('2026-10-06T12:00:00+09:00', now).endsWith('전'));
+});
 
 test('기본 테마의 넓은 면(주 버튼 · 내 말풍선) 그라데이션 세 점은 흰 작은 글자와 4.7:1 이상', () => {
 	const css = readFileSync(new URL('../src/app.css', import.meta.url), 'utf8');

@@ -19,7 +19,8 @@ export function ago(iso: string, now: number): string {
 /** ago() 에 "전"을 붙인 것 — "3분 전 · 어제 · 9월 3일" */
 export function agoText(iso: string, now: number): string {
 	const a = ago(iso, now);
-	return /[분간일]$/.test(a) ? `${a} 전` : a;
+	// 숫자 + 단위만 (날짜 "10월 6일"도 "일"로 끝나지만 "전"을 붙이지 않는다)
+	return /^\d+(분|시간|일)$/.test(a) ? `${a} 전` : a;
 }
 
 /** 도배 제한 대기 시간 → "3분 뒤" / "2시간 뒤" */
