@@ -905,4 +905,13 @@ node scripts/dev-user.mjs simbun-test3@cnsa.hs.kr 비밀번호 m      # 성별�
       (`lib/achievements.ts` `noClubs` — 내 업적 · 새 업적 · 상대 프로필 · 편지 찾기, 제출 화면의 "동아리 기장 제출" 탭 · 안내의 동아리 줄도),
       켜면 앱을 다시 열 때 모두 보인다. `/dev/*` 미리보기에서는 늘 보인다. CNSA 뱃지 안내 첫 장 그림은 기본 CNSA 뱃지 · 금뱃지 둘. 업적 정의 35종.
       실DB 는 `supabase/migrations/20261101120000_cnsa_badges_phase91.sql` (여러 번 실행해도 같다) — 아직 반영 전. 스키마 테스트 [94] · [101] · 화면 letters.
+- [ ] **Phase 94 — 관리자가 눌러야 반영되는 업데이트 · 밀린 업데이트 공지를 한 번에** —
+      main 에 푸시하면 Cloudflare Workers Builds 는 새 Worker 버전을 **올려만 두고**(배포 명령 `npx wrangler versions upload`) 학생 화면은 그대로다.
+      관리자(역할 admin 만 — 권한 표와 상관없이)가 운영 화면 **업데이트**(`/admin/update`)에서 대기 중인 버전 · 지금 버전을 보고, 공지를 쓰고 "업데이트"를 누르면
+      앱 서버가 Cloudflare API 로 맨 위 버전을 100% 배포한다 (`lib/server/workerVersions.ts` — 비밀값 `CF_API_TOKEN`(Workers Scripts: Edit) · `CF_ACCOUNT_ID`).
+      화면을 연 뒤 또 푸시됐으면 배포하지 않고 다시 보게 한다. 공지는 보통 공지에 `release = true` 로 남고(알림 화면 · 하트 점 그대로), 활동 기록 "업데이트 반영".
+      학생은 앱 탭 화면에 들어올 때 안 본 업데이트 공지를 한 창(`UpdateNotes`)에 모아 오래된 것부터 한 번 본다 — 2번 이상이면 "그동안 n번 업데이트됐어요".
+      어디까지 봤는지는 `notice_reads.last_update_id`(`mark_updates_seen`), 가입 전 업데이트 공지는 안 뜬다. 공지는 하트가 이미 부르는 `my_notices` 로 받는다 (요청 추가 없음).
+      실DB 는 `supabase/migrations/20261102140000_release_notes_phase94.sql` (여러 번 실행해도 같다) — 아직 반영 전. 스키마 테스트 [Phase 94] · 화면 admin-notices · update-notes.
+      ★ cron(`triggers`) 을 바꾸는 푸시는 버전 업로드로는 반영되지 않는다 — `npx wrangler triggers deploy` 를 따로.
 - [ ] Phase 7 — (보류) Durable Object 전송 계층. 학술탐구 큐 · 벤치는 별도 저장소(serverless-log-queue)에서 진행하고, 앱 적용 여부는 실험 결과를 본 뒤 따로 정한다.

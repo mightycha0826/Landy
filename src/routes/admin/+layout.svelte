@@ -66,6 +66,7 @@
 			title: '운영',
 			items: [
 				{ href: '/admin/settings', label: '운영 설정', ic: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19 12l2-1-2-4-2 1-2-1.5V4h-4v2.5L9 8 7 7l-2 4 2 1v0l-2 1 2 4 2-1 2 1.5V20h4v-2.5l2-1.5 2 1 2-4-2-1z' },
+				{ href: '/admin/update', label: '업데이트', ic: 'M12 3v12M7 10l5 5 5-5M5 21h14' },
 				{ href: '/admin/audit', label: '활동 기록', ic: 'M12 7v5l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z' }
 			]
 		}

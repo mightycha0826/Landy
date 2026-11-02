@@ -286,6 +286,7 @@ export const ACTION_LABEL: Record<string, string> = {
 	roster_import: '명렬표 반영',
 	post_notice: '공지 올림',
 	remove_notice: '공지 내림',
+	release: '업데이트 반영',
 	remove_dm: '이름 편지 내림',
 	personal_notice: '개인 공지 보냄',
 	remove_personal_notice: '개인 공지 거둠',
@@ -345,4 +346,4 @@ export type InquiryRow = {
 export type PersonalNoticeRow = { id: number; kind: 'message' | 'warning'; title: string; body: string; created_at: string; read_at: string | null };
 
 /** 공지사항 (admin_notices) */
-export type NoticeRow = { id: number; title: string; body: string; created_at: string };
+export type NoticeRow = { id: number; title: string; body: string; created_at: string; release?: boolean };

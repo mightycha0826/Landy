@@ -4,7 +4,7 @@
  *   npm run test:ui                 전부
  *   npm run test:ui -- react sheet  골라서
  *
- * 스위트마다 자기 포트에 vite dev 를 띄운다. back · login · notices · letters 는 여기서 5199 에 띄워 준다.
+ * 스위트마다 자기 포트에 vite dev 를 띄운다. back · login · notices · letters · update-notes 는 여기서 5199 에 띄워 준다.
  * 스크린샷은 저장소 밖(E2E_OUT, 기본 OS 임시 폴더/landy-e2e)에.
  */
 import { spawn, stopProcess } from './_process.mjs';
@@ -18,7 +18,7 @@ const ALL = readdirSync(DIR)
 	.filter((f) => f.endsWith('.mjs') && !f.startsWith('_') && f !== 'run.mjs')
 	.map((f) => f.replace(/\.mjs$/, ''))
 	.sort();
-const NEEDS_SERVER = new Set(['back', 'login', 'notices', 'letters', 'product']);
+const NEEDS_SERVER = new Set(['back', 'login', 'notices', 'letters', 'product', 'update-notes']);
 const pick = process.argv.slice(2);
 const unknown = pick.filter((p) => !ALL.includes(p));
 if (unknown.length) {

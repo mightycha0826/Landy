@@ -12,10 +12,11 @@
 	import { backClose } from '$lib/overlay.svelte';
 	import { depart, MOTION, motionDuration, settle } from '$lib/motion';
 
-	let { onclose, label, children }: { onclose?: () => void; label?: string; children: Snippet } = $props();
+	// auto = 누르지 않았는데 저절로 뜨는 시트(업데이트 소식) — 누른 적 없는 화면에서는 뒤로가기 기록을 쌓지 않는다 (lib/overlay.svelte.ts)
+	let { onclose, label, auto = false, children }: { onclose?: () => void; label?: string; auto?: boolean; children: Snippet } = $props();
 
 	// svelte-ignore state_referenced_locally — 닫을 수 있는 시트인지는 열릴 때 한 번 정해진다
-	if (onclose) backClose(() => onclose?.());
+	if (onclose) backClose(() => onclose?.(), { auto });
 
 	// ── 끌어서 닫기 — 손잡이 · 시트 윗부분을 아래로. 80px 넘게 또는 빠르게 튕기면 닫고, 아니면 스프링으로 제자리 ──
 	let sheetEl: HTMLDivElement | undefined = $state();

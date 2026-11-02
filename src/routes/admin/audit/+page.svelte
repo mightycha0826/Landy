@@ -70,6 +70,7 @@
 			return `${day(d.from)} ~ ${day(new Date(Date.parse(String(d.to)) - 1))}`;
 		}
 		if (a.action === 'post_notice' || a.action === 'remove_notice') return `"${d.title}"`;
+		if (a.action === 'release') return `버전 ${String(d.version).slice(0, 8)}${d.notice ? ` · 공지 #${d.notice}` : ' · 공지 없음'}`;
 		if (a.action === 'remove_comment' && d.comment_id) parts.push(`댓글 #${d.comment_id}`);
 		if (d.days) parts.push(`${d.days}일`);
 		if (d.note) parts.push(String(d.note));

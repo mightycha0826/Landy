@@ -51,7 +51,9 @@ const PAGES: [RegExp, (Perm | 'any')[]][] = [
 function pagePerms(path: string): (Perm | 'any')[] {
 	return PAGES.find(([re]) => re.test(path))?.[1] ?? ['any'];
 }
-export const canSee = (who: Who, path: string) => pagePerms(path).some((p) => can(who, p));
+export const canSee = (who: Who, path: string) =>
+	// 업데이트 반영 (Phase 94) — 권한 표와 상관없이 관리자 역할만
+	path.startsWith('/admin/update') ? who?.role === 'admin' : pagePerms(path).some((p) => can(who, p));
 /** 처음 여는 화면 — 볼 수 있는 것 중 앞에서부터 */
 export const homeOf = (who: Who) => ['/admin', '/admin/live', '/admin/inquiries', '/admin/settings', '/admin/audit'].find((p) => canSee(who, p)) ?? '/admin/notices';
 
@@ -70,6 +72,7 @@ export function activityOf(path: string | null): string {
 	if (p.startsWith('/admin/notices')) return '공지사항 보는 중';
 	if (p.startsWith('/admin/inquiries')) return '문의 답하는 중';
 	if (p.startsWith('/admin/settings')) return '운영 설정 보는 중';
+	if (p.startsWith('/admin/update')) return '업데이트 보는 중';
 	if (p.startsWith('/admin/audit')) return '활동 기록 보는 중';
 	if (p.startsWith('/admin/staff')) return '운영진 관리 중';
 	return '운영 화면';

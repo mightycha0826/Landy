@@ -3831,5 +3831,35 @@ console.log('\n[99] 프로젝트 검토 개선 회귀');
 	check('다음 프로필 갱신은 누락된 통계 행 복구', (await one('select count(*)::int n from public.signup_stats')).n === 1);
 }
 
+console.log('\n[Phase 94] ★ 업데이트 공지 — 관리자만 반영, 밀린 업데이트 공지는 한 번에, 가입 전 것은 안 보인다');
+{
+	const adm = (await one(`select user_id from private.staff where role = 'admin' order by created_at desc limit 1`)).user_id;
+	const mod = (await one(`select user_id from private.staff where role = 'moderator' order by created_at desc limit 1`)).user_id;
+	const V = '0f1e2d3c-4b5a-4987-8765-43210fedcba9';
+	const before = Number(await svc('admin_release', adm, V, '', '가입 전 업데이트'));
+	const st = await person('m', 'f');
+	await expectError('★ 운영진은 업데이트를 못 한다', () => svc('admin_release', mod, V, '', 'x'), 'admin_only');
+	await expectError('★ 학생은 직접 못 부른다', () => rpcAs(st, 'admin_release', st, V, '', 'x'), 'permission denied');
+	await expectError('이상한 버전 번호는 거절', () => svc('admin_release', adm, "x'; drop", '', 'x'), 'bad_version');
+	check('공지 없이 업데이트만 → null', (await svc('admin_release', adm, V, '', '   ')) === null);
+	const fresh0 = await rpcAs(st, 'my_notices');
+	check('★ 가입 전에 올라온 업데이트 공지는 이미 본 것으로', Number(fresh0.update_seen) >= before, JSON.stringify(fresh0.update_seen));
+	const plain = Number(await svc('admin_post_notice', adm, '보통 공지', ''));
+	const u1 = Number(await svc('admin_release', adm, V, '', '첫 업데이트'));
+	const u2 = Number(await svc('admin_release', adm, V, '사진 기능', '둘째 업데이트'));
+	const m = await rpcAs(st, 'my_notices');
+	const unseen = m.notices.filter((n) => n.release && Number(n.id) > Number(m.update_seen)).map((n) => Number(n.id)).sort((a, b) => a - b);
+	check('★ 밀린 업데이트 공지 두 개 (보통 공지는 빠진다)', unseen.join() === `${u1},${u2}`, JSON.stringify(m));
+	check('제목 없으면 "업데이트 소식"', m.notices.find((n) => Number(n.id) === u1).title === '업데이트 소식' && m.notices.find((n) => Number(n.id) === u2).title === '사진 기능');
+	const seenBefore = Number(m.last_seen);
+	check('사이에 안 본 보통 공지가 있으면 하트 점은 그대로', Number(await rpcAs(st, 'mark_updates_seen', u2)) === seenBefore);
+	check('★ 본 뒤에는 다시 안 뜬다', Number((await rpcAs(st, 'my_notices')).update_seen) === u2);
+	await rpcAs(st, 'mark_notices_seen', plain);
+	const u3 = Number(await svc('admin_release', adm, V, '', '셋째'));
+	check('사이에 보통 공지가 없으면 하트 점도 함께 끈다 (없는 번호로 앞지르지 않는다)', Number(await rpcAs(st, 'mark_updates_seen', u3 + 50)) === u3);
+	check('운영자 목록에 release 표시', (await svc('admin_notices', mod)).find((n) => Number(n.id) === u3).release === true);
+	check('활동 기록에 버전', (await one(`select count(*)::int n from private.audit_log where action = 'release' and detail->>'version' = $1`, [V])).n === 5);
+}
+
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

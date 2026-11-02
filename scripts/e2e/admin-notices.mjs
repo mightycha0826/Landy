@@ -17,6 +17,7 @@ const RPC = {
 	admin_notices: () => notices.filter((n) => !n.removed).sort((a, b) => b.id - a.id),
 	admin_post_notice: (a) => { calls.push(['post', a]); if (ROLE !== 'admin') throw { status: 400, body: { message: 'admin_only' } }; const id = ++seq; notices.push({ id, title: a.p_title, body: a.p_body, created_at: new Date().toISOString() }); audit.push({ id: audit.length + 1, staff_id: STAFF, action: 'post_notice', target_user: null, report_id: null, detail: { notice: id, title: a.p_title }, created_at: new Date().toISOString() }); return id; },
 	admin_remove_notice: (a) => { calls.push(['remove', a]); const n = notices.find((x) => x.id === a.p_id && !x.removed); if (!n) throw { status: 400, body: { message: 'notice_not_found' } }; n.removed = true; return null; },
+	admin_release: (a) => { calls.push(['release', a]); const id = a.p_body.trim() ? ++seq : null; if (id) notices.push({ id, title: a.p_title || '업데이트 소식', body: a.p_body, created_at: new Date().toISOString(), release: true }); return id; },
 	admin_audit: () => audit,
 	// 문의 (Phase 37)
 	admin_inquiries: () => ({ open: inquiries.filter((q) => !q.answered_at).length, items: [...inquiries].sort((a, b) => (!!a.answered_at - !!b.answered_at) || a.id - b.id) }),
@@ -29,8 +30,18 @@ const inquiries = [
 	{ id: 1, user_id: U1, kind: 'bug', body: '편지 봉투가 안 열려요', created_at: new Date().toISOString(), answer: null, answered_at: null },
 	{ id: 2, user_id: U1, kind: 'use', body: '예전 문의', created_at: new Date().toISOString(), answer: '답했어요', answered_at: new Date().toISOString() }
 ];
-const sb = http.createServer((req, res) => { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { const fn = req.url.match(/rpc\/([a-z_]+)/)?.[1]; const send = (s, o) => { res.writeHead(s, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); }; if (!RPC[fn]) return send(404, { message: 'no ' + fn }); try { send(200, RPC[fn](JSON.parse(b || '{}'))); } catch (e) { send(e.status ?? 500, e.body ?? { message: String(e) }); } }); }).listen(54399);
-const env = { ...process.env, SUPABASE_URL: SB, SUPABASE_SERVICE_ROLE_KEY: 'service-key-xxxxxxxxxxxx', PUBLIC_SUPABASE_URL: SB, PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_testtesttesttesttest', ADMIN_SESSION_SECRET: SECRET };
+// 가짜 Cloudflare API (Phase 94) — 배포된 #11, 대기 중 #12 · #13
+const CF = { live: 'v11', versions: [11, 12, 13].map((n) => ({ id: `v${n}`, number: n, metadata: { created_on: new Date().toISOString() }, annotations: n === 13 ? { 'workers/message': '사진 보내기' } : {} })) };
+const sb = http.createServer((req, res) => { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => {
+	if (req.url.startsWith('/cf/')) {
+		const ok = (result) => { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ success: true, result })); };
+		if (req.headers.authorization !== 'Bearer cf-test-token' || !req.url.includes('/accounts/acc1/workers/scripts/cnsatinder/')) { res.writeHead(403); return res.end('{}'); }
+		if (req.url.endsWith('/versions')) return ok({ items: CF.versions });
+		if (req.method === 'POST') { const d = JSON.parse(b); calls.push(['deploy', d]); CF.live = d.versions[0].version_id; return ok({}); }
+		return ok({ deployments: [{ versions: [{ version_id: CF.live, percentage: 100 }] }] });
+	}
+ const fn = req.url.match(/rpc\/([a-z_]+)/)?.[1]; const send = (s, o) => { res.writeHead(s, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); }; if (!RPC[fn]) return send(404, { message: 'no ' + fn }); try { send(200, RPC[fn](JSON.parse(b || '{}'))); } catch (e) { send(e.status ?? 500, e.body ?? { message: String(e) }); } }); }).listen(54399);
+const env = { ...process.env, SUPABASE_URL: SB, SUPABASE_SERVICE_ROLE_KEY: 'service-key-xxxxxxxxxxxx', PUBLIC_SUPABASE_URL: SB, PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_testtesttesttesttest', ADMIN_SESSION_SECRET: SECRET, CF_API_BASE: `${SB}/cf`, CF_API_TOKEN: 'cf-test-token', CF_ACCOUNT_ID: 'acc1' };
 const vite = spawn('npx', ['vite', 'dev', '--port', String(PORT), '--strictPort'], { cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] });
 let out = ''; vite.stdout.on('data', (d) => (out += d));
 for (let i = 0; i < 60 && !out.includes('ready'); i++) await new Promise((r) => setTimeout(r, 500));
@@ -77,6 +88,31 @@ try {
 		check('운영진: 내리기 버튼 없음', (await page.getByRole('button', { name: '내리기' }).count()) === 0);
 		const r = await page.request.post(`http://localhost:${PORT}/admin/notices?/post`, { form: { title: '몰래', body: '' }, headers: { origin: `http://localhost:${PORT}`, 'x-sveltekit-action': 'true' } });
 		check('★ 운영진이 직접 요청해도 서버가 막음', calls.length === 0 && (await r.text()).includes('관리자만'), String(r.status()));
+	}
+	console.log('  [업데이트 (Phase 94)]');
+	if (ROLE === 'admin') {
+		await page.locator('.side nav a', { hasText: '업데이트' }).click(); await page.waitForURL('**/admin/update', { timeout: 10000 }).catch(() => {}); await settle();
+		check('★ 메뉴 "업데이트" → 지금 버전 · 대기 중 2개 (새것 위)', (await page.locator('.now').innerText()).includes('#11') && (await page.locator('.list li').first().innerText()).includes('#13')
+			&& (await page.locator('.list li').first().innerText()).includes('사진 보내기') && (await page.getByText('대기 중인 버전 2개').count()) === 1);
+		await page.getByPlaceholder(/업데이트 공지/).fill('사진을 보낼 수 있어요');
+		answer = false; await page.getByRole('button', { name: '업데이트', exact: true }).click(); await settle();
+		check('★ 확인창 취소 → 배포 안 함', !calls.some((c) => c[0] === 'deploy'));
+		CF.versions.push({ id: 'v14', number: 14, metadata: { created_on: new Date().toISOString() }, annotations: {} });
+		answer = true; await page.getByRole('button', { name: '업데이트', exact: true }).click(); await settle();
+		check('★ 화면을 연 뒤 또 푸시됐으면 → 배포 안 하고 다시 보라고', !calls.some((c) => c[0] === 'deploy') && /바뀌었어요/.test(await acked()), await acked());
+		await page.reload(); await settle();
+		await page.getByPlaceholder(/업데이트 공지/).fill('사진을 보낼 수 있어요');
+		answer = true; await page.getByRole('button', { name: '업데이트', exact: true }).click(); await settle();
+		const dep = calls.find((c) => c[0] === 'deploy')?.[1];
+		check('★ 업데이트 → 맨 위 버전을 100% 배포', dep?.versions?.[0]?.version_id === 'v14' && dep.versions[0].percentage === 100, JSON.stringify(dep));
+		check('★ 그다음 공지를 업데이트 공지로', calls.find((c) => c[0] === 'release')?.[1].p_version === 'v14' && calls.find((c) => c[0] === 'release')[1].p_body === '사진을 보낼 수 있어요');
+		await page.reload(); await settle();
+		check('반영 뒤: 대기 없음 · 최근 업데이트 공지에', (await page.getByText('대기 중인 새 버전이 없어요').count()) === 1 && (await page.locator('main').innerText()).includes('사진을 보낼 수 있어요'));
+		await page.screenshot({ path: `${SP}/admin-update.png`, fullPage: true });
+	} else {
+		check('운영진: "업데이트" 메뉴 없음', (await page.locator('.side nav a', { hasText: '업데이트' }).count()) === 0);
+		const r = await page.request.post(`http://localhost:${PORT}/admin/update?/release`, { form: { version: 'v13', body: '' }, headers: { origin: `http://localhost:${PORT}`, 'x-sveltekit-action': 'true' } });
+		check('★ 운영진이 직접 요청해도 배포 안 됨', !calls.some((c) => c[0] === 'deploy') && (await r.text()).includes('관리자만'), String(r.status()));
 	}
 	console.log('  [문의]');
 	await page.locator('.side nav a', { hasText: '문의' }).click(); await page.waitForURL('**/admin/inquiries', { timeout: 10000 }).catch(() => {}); await settle();

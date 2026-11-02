@@ -15,6 +15,7 @@
 	import { whileVisible } from '$lib/visible';
 	import { DM, refreshUnread } from '$lib/letters/unread.svelte';
 	import AchievementCelebrate from '$lib/ui/AchievementCelebrate.svelte';
+	import UpdateNotes from '$lib/ui/UpdateNotes.svelte';
 	import PullRefresh from '$lib/ui/PullRefresh.svelte';
 	import { INBOX } from '$lib/inbox.svelte';
 	import { notifyInApp } from '$lib/inapp.svelte';
@@ -143,6 +144,9 @@
 
 <!-- 새로 딴 업적 축하 (Phase 31) — 탭 첫 화면에서만 뜬다 -->
 <AchievementCelebrate />
+
+<!-- 업데이트 소식 (Phase 94) — 앱에 들어왔을 때 안 본 업데이트 공지를 한 창에 모아 한 번 -->
+<UpdateNotes />
 
 <!-- 사용법 안내 (Phase 44 · 89) — 홈 · 프로필 · 익명편지에 처음 왔을 때 한 번씩 (건너뛸 수 있다 · 설정에서 다시 보기) -->
 <Tour />
