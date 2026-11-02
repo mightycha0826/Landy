@@ -25,6 +25,7 @@
 	import { rpc } from '$lib/rpc';
 	import { noClubs } from '$lib/achievements';
 	import type { PartnerProfile } from '$lib/chat/types';
+	import Sheet from '$lib/ui/Sheet.svelte';
 
 	/**
 	 * 홈 = 대화 목록 (인스타 DM 받은편지함).
@@ -110,18 +111,47 @@
 
 	// 익명 친구들 보기 (Phase 93) — 대화가 없을 때 무작위 학생들의 익명 프로필. 처음 펼칠 때 한 번만 부른다 (실패하면 다시 펼칠 때)
 	let friendsOpen = $state(false);
-	let friends = $state<PartnerProfile[] | null>(null);
+	type Friend = PartnerProfile & { token: string };
+	let friends = $state<Friend[] | null>(null);
 	let friendsBusy = $state(false);
 	async function toggleFriends() {
 		friendsOpen = !friendsOpen;
 		if (!friendsOpen || friends || friendsBusy) return;
 		friendsBusy = true;
 		try {
-			friends = (await rpc<PartnerProfile[]>('anon_friends')).map((p) => ({ ...p, badges: noClubs(p.badges ?? []) }));
+			friends = (await rpc<Friend[]>('anon_friends')).map((p) => ({ ...p, badges: noClubs(p.badges ?? []) }));
 		} catch {
 			/* 아래 "불러오지 못했어요" */
 		} finally {
 			friendsBusy = false;
+		}
+	}
+
+	// 카드를 누르면 시트로 크게 · 연락해보기 (Phase 95) — 대기 대화를 만들고 그 대화로. 동시 대화 상한에 센다
+	let picked = $state<Friend | null>(null);
+	let contacting = $state(false);
+	const CONTACT_ERR: Record<string, string> = {
+		expired: '오래된 카드예요. 다시 펼쳐 주세요',
+		unavailable: '지금은 연락할 수 없는 친구예요',
+		partner_full: '상대의 대화가 꽉 찼어요. 나중에 다시 해 주세요',
+		cooldown: '잠깐 쉬었다가 다시 해 주세요',
+		service_closed: '지금은 열려 있지 않아요',
+		not_eligible: '지금은 대화를 걸 수 없어요'
+	};
+	async function contact() {
+		if (!picked || contacting) return;
+		contacting = true;
+		try {
+			const r = await rpc<{ status: string; room_id?: string }>('friend_contact', { p_token: picked.token });
+			if (r.status === 'ok' && r.room_id) {
+				picked = null;
+				void inbox.load();
+				await goto(`/chat/${r.room_id}`);
+			} else toast(r.status === 'full' ? `대화는 동시에 ${maxRooms}개까지예요` : (CONTACT_ERR[r.status] ?? '연락하지 못했어요'));
+		} catch {
+			toast('연락하지 못했어요. 다시 시도해 주세요');
+		} finally {
+			contacting = false;
 		}
 	}
 
@@ -201,7 +231,17 @@
 				<div class="friends" in:surface={{ y: 8, scale: 1 }}>
 					{#if friends}
 						{#each friends as f, i (i)}
-							<div class="friend"><PartnerCard alias={f.nickname} profile={f} loading={false} /></div>
+							<!-- 카드 안의 뱃지(버튼)는 뱃지 설명을 연다 — 그 밖을 누르면 크게 보기 -->
+							<div
+								class="friend pick"
+								role="button"
+								tabindex="0"
+								aria-label="{f.nickname} 크게 보기"
+								onclick={(e) => { if (!(e.target as Element).closest('button')) picked = f; }}
+								onkeydown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); picked = f; } }}
+							>
+								<PartnerCard alias={f.nickname} profile={f} loading={false} />
+							</div>
 						{:else}
 							<p class="muted">아직 보여 줄 친구가 없어요</p>
 						{/each}
@@ -281,6 +321,16 @@
 	/>
 {/if}
 
+{#if picked}
+	<Sheet onclose={() => (picked = null)} label="{picked.nickname} 프로필">
+		<div class="big"><PartnerCard alias={picked.nickname} profile={picked} loading={false} /></div>
+		<div class="contact">
+			<button class="btn" onclick={contact} disabled={contacting} aria-busy={contacting}>{contacting ? '연결하는 중' : '연락해보기'}</button>
+			<p class="muted">동시 대화 {maxRooms}개에 함께 세요. 상대가 대화를 열면 시작돼요</p>
+		</div>
+	</Sheet>
+{/if}
+
 <!-- 방금 대화한 사람 평가 — 알림 안내 · 대화 봇 · 업적 축하가 떠 있지 않을 때 (RateQueue) -->
 <RateQueue paused={askPush || !!bot || UI.celebrating || touring()} />
 
@@ -307,6 +357,14 @@
 	.friends-toggle[aria-expanded='true'] :global(.g-chev) { transform: rotate(90deg); }
 	.friends { display: flex; flex-direction: column; gap: 12px; width: 100%; }
 	.friend { border-radius: var(--r-card); background: var(--row); }
+	.pick { cursor: pointer; }
+	/* 목록에서는 소개를 두 줄로 — 다 보려면 눌러서 크게 (Phase 95) */
+	.pick :global(.bio) { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+	.big :global(.profile) { padding-top: 24px; }
+	.big :global(.profile .av) { transform: scale(1.25); margin: 8px 0; }
+	.big :global(h3) { font-size: 22px; }
+	.contact { display: flex; flex-direction: column; gap: 8px; padding: 4px var(--pad) 12px; text-align: center; }
+	.contact p { margin: 0; font-size: 13px; }
 	.rooms-skeleton { display: flex; flex-direction: column; padding-top: 52px; }
 	.sk-row { display: flex; align-items: center; gap: 14px; min-height: 72px; }
 	.sk-row span { display: flex; flex: 1; flex-direction: column; gap: 8px; }

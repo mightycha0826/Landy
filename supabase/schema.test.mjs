@@ -3739,7 +3739,7 @@ console.log('\n[103] 익명 친구들 보기 — 임의 별명 · 신원 없이 
 		check('★ 나 · 정지 · 기간 정지 · 차단 · 가입 전 학생은 빠진다', got.length === 1 && got[0].bio === '안녕', JSON.stringify(got));
 		const raw = JSON.stringify(got);
 		check('★ uuid · 계정 별명 · 실명 키가 없다 — 이름 자리는 임의 별명', all.every((u) => !raw.includes(u)) && !raw.includes('고정이름')
-			&& Object.keys(got[0]).sort().join() === 'badges,bio,interests,manner_temp,mbti,nickname,online' && got[0].nickname.length > 0, raw);
+			&& Object.keys(got[0]).sort().join() === 'badges,bio,interests,manner_temp,mbti,nickname,online,token' && got[0].nickname.length > 0, raw);
 		const more = [];
 		for (let i = 0; i < 11; i++) more.push(await person('f', 'm'));
 		await db.query(`update public.profiles set verified = true, mbti = 'INFP' where id = any($1)`, [more]);
@@ -3750,12 +3750,51 @@ console.log('\n[103] 익명 친구들 보기 — 임의 별명 · 신원 없이 
 	await expectError('로그인 안 하면 거절', () => rowsAs(null, 'select public.anon_friends()'), 'permission denied');
 }
 
+console.log('\n[104] 익명 친구에게 연락해보기 — 표(token)로만 · 대기 대화 · 동시 대화 상한에 센다 (Phase 95)');
+{
+	await db.exec(`begin; update public.profiles set bio = '', mbti = null, interests = '{}';
+		update public.app_settings set is_open = true, maintenance = false, maintenance_at = null, max_open_rooms = 5`);
+	try {
+		const me = await person('m', 'f'), f = await person('f', 'm'), other = await person('f', 'm');
+		await db.query(`update public.profiles set verified = true where id = any($1)`, [[me, f, other]]);
+		await db.query(`update public.profiles set bio = '안녕' where id = $1`, [f]);
+		await db.query(`update public.room_members set open = false where user_id = any($1)`, [[me, f, other]]);
+		const tokenFor = async (viewer, target) => (await one('select token from private.friend_cards where viewer = $1 and target = $2', [viewer, target]))?.token;
+		const [card] = await rpcAs(me, 'anon_friends');
+		check('카드마다 연락용 표가 있다', !!card?.token);
+		check('★ 남이 받은 표로는 연락하지 못한다', (await rpcAs(other, 'friend_contact', card.token)).status === 'expired');
+		const r = await rpcAs(me, 'friend_contact', card.token);
+		const members = (await db.query('select user_id, joined_at from public.room_members where room_id = $1 order by seat', [r.room_id])).rows;
+		check('★ 연락하면 대기 대화 — 건 사람은 들어와 있고 받는 사람은 아직', r.status === 'ok' && (await one('select status from public.rooms where id = $1', [r.room_id])).status === 'pending'
+			&& members[0].user_id === me && !!members[0].joined_at && members[1].user_id === f && !members[1].joined_at, JSON.stringify({ r, members }));
+		check('★ 받는 사람 대화 목록에 "새 대화"로 보인다', (await rpcAs(f, 'my_rooms')).rooms.some((x) => x.room_id === r.room_id && x.status === 'pending' && !x.joined));
+		check('★ 동시 대화 개수에 센다 (건 사람 · 받는 사람)', (await one('select private.open_rooms($1) a, private.open_rooms($2) b', [me, f])).a === 1 && (await one('select private.open_rooms($1) b', [f])).b === 1);
+		check('표는 한 번만', (await rpcAs(me, 'friend_contact', card.token)).status === 'expired');
+		await rpcAs(me, 'anon_friends');
+		check('이미 둘이 열린 대화가 있으면 그 대화로', (await rpcAs(me, 'friend_contact', await tokenFor(me, f))).room_id === r.room_id);
+		check('★ 받는 사람이 열면 시작한다', (await rpcAs(f, 'ack_room', r.room_id)).status === 'active');
+
+		await db.exec('update public.app_settings set max_open_rooms = 1');
+		await db.query(`update public.profiles set bio = '안녕' where id = $1`, [other]);
+		await rpcAs(me, 'anon_friends');
+		check('★ 내 대화가 꽉 차면 full', (await rpcAs(me, 'friend_contact', await tokenFor(me, other))).status === 'full');
+		await rpcAs(other, 'anon_friends');
+		check('★ 상대 대화가 꽉 차면 partner_full', (await rpcAs(other, 'friend_contact', await tokenFor(other, f))).status === 'partner_full');
+		await db.exec('update public.app_settings set max_open_rooms = 5');
+		await db.query('insert into public.blocks (blocker_id, blocked_id) values ($1, $2)', [f, other]);
+		check('카드를 받은 뒤 차단되면 unavailable', (await rpcAs(other, 'friend_contact', await tokenFor(other, f))).status === 'unavailable');
+	} finally {
+		await db.exec('rollback');
+	}
+	await expectError('로그인 안 하면 거절', () => rowsAs(null, `select public.friend_contact(gen_random_uuid())`), 'permission denied');
+}
+
 console.log('\n[100] 마이그레이션과 스키마 snapshot 일치');
 {
 	const defs = async () => (await db.query("select n.nspname || '.' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' name, pg_get_functiondef(p.oid) body from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.prokind='f' order by 1")).rows;
 	const before = JSON.stringify(await defs());
 	// 운영에 적용한 순서대로 다시 실행하면 snapshot과 같아야 한다 (뒤 마이그레이션이 앞의 함수를 고쳐 쓴다)
-	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql', '20261102130000_anon_friends_phase93.sql'])
+	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql', '20261102130000_anon_friends_phase93.sql', '20261102150000_friend_contact_phase95.sql'])
 		await db.exec(readFileSync(here + 'migrations/' + file, 'utf8'));
 	check('업그레이드 마이그레이션의 함수가 snapshot과 같음', JSON.stringify(await defs()) === before);
 }
