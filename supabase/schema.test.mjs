@@ -3691,12 +3691,44 @@ console.log('\n[101] 도서부 코드 club_library → library — 이미 설치
 	check('★ 도서부는 "내 뱃지 인증"으로 보낸다 (동아리 기장 제출이 아니다)', r.status === 'ok', JSON.stringify(r));
 }
 
+console.log('\n[102] 접속자가 많을 때 알림 — 가입 학생 30% 이상 접속이면 하루 한 번, 30대씩 (Phase 92)');
+{
+	await db.exec(`delete from private.crowd_push; delete from public.push_subscriptions;
+		update public.user_presence set online_until = now() - interval '1 second'`);
+	const on = [await person('m', 'f'), await person('f', 'm'), await person('m', 'f')];
+	const away = await person('f', 'm'), muted = await person('m', 'f');
+	await db.query(`update public.profiles set verified = true where id = any($1)`, [[...on, away, muted]]);
+	await db.exec(`update public.signup_stats set students = 10`);
+	const sub = (ep, u, mute = '{}') => db.query(`insert into public.push_subscriptions (endpoint, user_id, p256dh, auth, mute) values ($1, $2, 'p', 'a', $3)`, [ep, u, mute]);
+	for (let i = 0; i < 31; i++) await sub(`https://fcm.googleapis.com/fcm/send/crowd-${String(i).padStart(2, '0')}`, away);
+	await sub('https://fcm.googleapis.com/fcm/send/crowd-on', on[0]);
+	await sub('https://fcm.googleapis.com/fcm/send/crowd-muted', muted, '{crowd}');
+	const goOnline = (u) => db.query(`update public.user_presence set online_until = now() + interval '2 minutes' where user_id = $1`, [u]);
+	const crowd = async () => ((await svc('push_retry_jobs')) ?? []).filter((p) => p.kind === 'crowd');
+
+	await goOnline(on[0]); await goOnline(on[1]);
+	check('29% 아래(2/10)면 보내지 않는다', (await crowd()).length === 0 && (await cnt('select count(*)::int n from private.crowd_push')) === 0);
+	await goOnline(on[2]);
+	const [first] = await crowd();
+	check('★ 30%(3/10)가 되면 문구와 함께 보낸다', first?.body === '많은 사람들이 Landy를 이용중이에요!' && first.url === '/', JSON.stringify(first));
+	check('★ 한 번에 30대 · 접속 중인 학생과 알림을 끈 기기는 빼고', first.subs.length === 30 && first.subs.every((s) => s.endpoint.match(/crowd-\d\d$/)));
+	const [second] = await crowd();
+	check('★ 나머지는 다음 분에 이어서', second?.subs.length === 1 && second.subs[0].endpoint.endsWith('crowd-30'), JSON.stringify(second));
+	check('★ 다 보내면 그날은 다시 보내지 않는다 (아직 30% 이상이어도)', (await crowd()).length === 0 && (await crowd()).length === 0);
+	await db.exec(`update private.crowd_push set done = false, sent_to = '', started_at = now() - interval '2 hours'`);
+	check('시작하고 1시간이 지나면 남은 기기에도 보내지 않는다', (await crowd()).length === 0);
+	await rpcAs(muted, 'set_push_mute', 'https://fcm.googleapis.com/fcm/send/crowd-muted', ['crowd', 'hack']);
+	check('설정 › 알림에서 끌 수 있다 (mute crowd)', (await one(`select mute from public.push_subscriptions where endpoint like '%crowd-muted'`)).mute.join() === 'crowd');
+	await db.exec(`delete from private.crowd_push; delete from public.push_subscriptions;
+		update public.user_presence set online_until = now() - interval '1 second'`);
+}
+
 console.log('\n[100] 마이그레이션과 스키마 snapshot 일치');
 {
 	const defs = async () => (await db.query("select n.nspname || '.' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' name, pg_get_functiondef(p.oid) body from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.prokind='f' order by 1")).rows;
 	const before = JSON.stringify(await defs());
 	// 운영에 적용한 순서대로 다시 실행하면 snapshot과 같아야 한다 (뒤 마이그레이션이 앞의 함수를 고쳐 쓴다)
-	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql'])
+	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql'])
 		await db.exec(readFileSync(here + 'migrations/' + file, 'utf8'));
 	check('업그레이드 마이그레이션의 함수가 snapshot과 같음', JSON.stringify(await defs()) === before);
 }

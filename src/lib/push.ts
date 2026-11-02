@@ -67,11 +67,12 @@ export async function syncPush(): Promise<boolean> {
 
 // ── 알림 종류별로 끄기 (Phase 43, 설정 › 알림) ──
 // 이 기기에 적어 두고(화면이 바로 그린다) 서버 구독에도 보낸다 — 거르는 것은 서버(lib/server/pushSend.ts). 운영진 공지는 끌 수 없다.
-export type PushKind = 'chat' | 'reaction' | 'letter';
+export type PushKind = 'chat' | 'reaction' | 'letter' | 'crowd';
 export const PUSH_KINDS: { id: PushKind; label: string }[] = [
 	{ id: 'chat', label: '대화 메시지' },
 	{ id: 'reaction', label: '공감' },
-	{ id: 'letter', label: '편지' }
+	{ id: 'letter', label: '편지' },
+	{ id: 'crowd', label: '많은 사람이 접속했을 때' } // Phase 92
 ];
 const MUTE_KEY = 'push-mute-v1';
 
@@ -180,7 +181,7 @@ export async function clearNotifications(tag: string, prefix = false) {
 	}
 }
 
-type SwNote = { kind: 'chat' | 'reaction' | 'letter' | 'notice' | 'other'; title: string; body: string; url: string; tag: string };
+type SwNote = { kind: 'chat' | 'reaction' | 'letter' | 'notice' | 'crowd' | 'other'; title: string; body: string; url: string; tag: string };
 
 /**
  * 서비스워커가 보내는 말 (Phase 35)

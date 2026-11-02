@@ -109,7 +109,7 @@
 			push: (n) => {
 				if (!S.session) return;
 				notifyInApp(
-					{ key: n.tag, title: n.title, body: n.body, url: viaMailbox(n.url), kind: n.kind === 'other' ? 'notice' : n.kind },
+					{ key: n.tag, title: n.title, body: n.body, url: viaMailbox(n.url), kind: n.kind === 'other' || n.kind === 'crowd' ? 'notice' : n.kind },
 					`${n.tag}|${n.body.slice(0, 60)}`
 				);
 			},
