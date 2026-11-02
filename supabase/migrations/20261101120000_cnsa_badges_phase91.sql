@@ -12,7 +12,7 @@
 -- ════════════════════════════════════════════════════════════════════
 alter table public.app_settings add column if not exists club_badges boolean not null default false;
 
-insert into private.achㅑievement_defs (code, title, description, icon, category, stat, unit, bronze, silver, gold, lower_better, sort, granted) values
+insert into private.achievement_defs (code, title, description, icon, category, stat, unit, bronze, silver, gold, lower_better, sort, granted) values
   ('msmp_silver', 'MSMP 우수 은뱃지', 'MSMP 우수자에게 수여하는 은뱃지',           '🥈', 'cnsa', 'msmp_silver', '', 1, 1, 1, false, 57, true),
   ('library',     '도서부',           '도서부 부원',                               '📚', 'cnsa', 'library',     '', 1, 1, 1, false, 61, true),
   ('jayul',       '자율위원',         '자율위원으로 활동하는 학생에게 주는 뱃지',  '🎖️', 'cnsa', 'jayul',       '', 1, 1, 1, false, 64, true),
