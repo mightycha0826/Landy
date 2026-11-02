@@ -3723,12 +3723,39 @@ console.log('\n[102] 접속자가 많을 때 알림 — 가입 학생 30% 이상
 		update public.user_presence set online_until = now() - interval '1 second'`);
 }
 
+console.log('\n[103] 익명 친구들 보기 — 임의 별명 · 신원 없이 · 10명까지 · 정지 · 차단 · 소개 없는 학생 제외 (Phase 93)');
+{
+	// 다른 시나리오의 학생들은 소개를 비워 이 시나리오에서 빼고, 끝나면 되돌린다
+	await db.exec(`begin; update public.profiles set bio = '', mbti = null, interests = '{}'`);
+	try {
+		const me = await person('m', 'f'), ok = await person('f', 'm');
+		const susp = await person('m', 'f'), timed = await person('f', 'm'), blk = await person('m', 'f'), notOnb = await person('f', 'm', { onboarded: false });
+		const all = [me, ok, susp, timed, blk, notOnb];
+		await db.query(`update public.profiles set verified = true, bio = '안녕', nickname = '고정이름' || left(id::text, 4) where id = any($1)`, [all]);
+		await db.query(`update public.profiles set status = 'suspended' where id = $1`, [susp]);
+		await db.query(`update public.profiles set suspended_until = now() + interval '1 day' where id = $1`, [timed]);
+		await db.query('insert into public.blocks (blocker_id, blocked_id) values ($1, $2)', [blk, me]);
+		const got = await rpcAs(me, 'anon_friends');
+		check('★ 나 · 정지 · 기간 정지 · 차단 · 가입 전 학생은 빠진다', got.length === 1 && got[0].bio === '안녕', JSON.stringify(got));
+		const raw = JSON.stringify(got);
+		check('★ uuid · 계정 별명 · 실명 키가 없다 — 이름 자리는 임의 별명', all.every((u) => !raw.includes(u)) && !raw.includes('고정이름')
+			&& Object.keys(got[0]).sort().join() === 'badges,bio,interests,manner_temp,mbti,nickname,online' && got[0].nickname.length > 0, raw);
+		const more = [];
+		for (let i = 0; i < 11; i++) more.push(await person('f', 'm'));
+		await db.query(`update public.profiles set verified = true, mbti = 'INFP' where id = any($1)`, [more]);
+		check('★ 한 번에 10명까지', (await rpcAs(me, 'anon_friends')).length === 10);
+	} finally {
+		await db.exec('rollback');
+	}
+	await expectError('로그인 안 하면 거절', () => rowsAs(null, 'select public.anon_friends()'), 'permission denied');
+}
+
 console.log('\n[100] 마이그레이션과 스키마 snapshot 일치');
 {
 	const defs = async () => (await db.query("select n.nspname || '.' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' name, pg_get_functiondef(p.oid) body from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.prokind='f' order by 1")).rows;
 	const before = JSON.stringify(await defs());
 	// 운영에 적용한 순서대로 다시 실행하면 snapshot과 같아야 한다 (뒤 마이그레이션이 앞의 함수를 고쳐 쓴다)
-	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql'])
+	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql', '20261102130000_anon_friends_phase93.sql'])
 		await db.exec(readFileSync(here + 'migrations/' + file, 'utf8'));
 	check('업그레이드 마이그레이션의 함수가 snapshot과 같음', JSON.stringify(await defs()) === before);
 }

@@ -87,6 +87,7 @@ create policy "profiles: self update" on public.profiles
   for update using (id = (select auth.uid())) with check (id = (select auth.uid()));
 -- ★ insert 정책 없음 → 가입 트리거(security definer)만 행을 만든다.
 -- ★ 남의 프로필은 어떤 쿼리로도 읽히지 않는다. 매칭은 security definer RPC 안에서만.
+--   (예외: 실명 · uuid 없이 익명 프로필 몇 개를 주는 anon_friends() — Phase 93)
 
 -- 컬럼 레벨 권한: 정지당한 사용자가 스스로 status / verified 를 되돌리지 못하게
 revoke update on public.profiles from authenticated;
@@ -1353,6 +1354,7 @@ $do$;
 --  익명성 경계는 그대로다:
 --    · 클라이언트는 여전히 상대의 uuid 를 어떤 경로로도 받지 않는다
 --    · 상대 프로필은 "같은 방에 있을 때" room_id 로만 조회된다 (partner_profile)
+--      — 예외는 Phase 93 의 anon_friends() 하나: 임의 별명으로 무작위 학생 몇 명의 익명 프로필
 --  달라진 점(운영 결정): 이름이 방마다 새로 뽑히지 않고 계정에 고정된다.
 --    → 같은 사람을 다른 방에서 다시 만나면 알아볼 수 있다.
 --      그래서 소개글·관심사에 연락처·학번처럼 보이는 내용은 서버가 거절한다.
@@ -7286,4 +7288,44 @@ end
 $fn$;
 revoke all on function private.crowd_push_batch() from public, anon, authenticated;
 
+notify pgrst, 'reload schema';
+-- ════════════════════════════════════════════════════════════════════
+--  Phase 93 — 익명 친구들 보기: 대화가 없는 홈에서 "익명 친구들 보기"를 펼치면 무작위 학생 몇 명의 익명 프로필
+--
+--  · ★ "상대 프로필은 같은 방 멤버에게만"(partner_profile)의 예외는 이 함수 하나다 (운영 결정).
+--  · 내보내는 것은 대화 상대 프로필 시트(PartnerCard)와 같은 소개 · 관심사 · MBTI · 매너 온도 · 랜덤채팅용 대표 뱃지 · 접속 여부뿐.
+--    실명 · 학번 · 이메일 · uuid · 계정 별명은 없다 — 이름 자리는 부를 때마다 새로 뽑는 임의 별명(random_alias).
+--    대표 뱃지로 누구인지 짐작될 수 있다는 점은 알고 정했다 (랜덤채팅에서 숨긴 뱃지는 여기서도 빠진다).
+--  · 로그인한 학생만 · 한 번에 10명까지. 나 · 정지 · 가입을 마치지 않은 학생 · 서로 차단한 학생 · 소개가 비어 있는 학생은 뺀다.
+--    (탈퇴하면 프로필이 지워진다. 따로 비공개 설정은 없다)
+--  · 앱은 화살표를 펼칠 때 한 번만 부른다.
+--  실DB 는 supabase/migrations/20261102130000_anon_friends_phase93.sql (이 구역과 같다, 여러 번 실행해도 같다).
+-- ════════════════════════════════════════════════════════════════════
+create or replace function public.anon_friends()
+returns jsonb language plpgsql volatile security definer set search_path = '' as $fn$
+declare me uuid := auth.uid();
+begin
+  if me is null then raise exception 'unauthenticated'; end if;
+  return coalesce((
+    select jsonb_agg(jsonb_build_object(
+             'nickname',    public.random_alias(),
+             'bio',         x.bio,
+             'interests',   to_jsonb(x.interests),
+             'mbti',        x.mbti,
+             'manner_temp', x.manner_temp,
+             'badges',      private.featured_for(x.id, 'chat'),
+             'online',      coalesce((select up.online_until > now() from public.user_presence up where up.user_id = x.id), false)))
+      from (select p.id, p.bio, p.interests, p.mbti, p.manner_temp
+              from public.profiles p
+             where p.id <> me and p.verified and p.onboarded
+               and p.status = 'active' and (p.suspended_until is null or p.suspended_until <= now())
+               and (p.bio <> '' or p.mbti is not null or cardinality(p.interests) > 0)
+               and not private.blocked_between(me, p.id)
+             order by random()
+             limit 10) x
+  ), '[]'::jsonb);
+end
+$fn$;
+revoke all on function public.anon_friends() from public, anon;
+grant execute on function public.anon_friends() to authenticated;
 notify pgrst, 'reload schema';

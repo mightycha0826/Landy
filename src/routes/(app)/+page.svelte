@@ -20,6 +20,11 @@
 	import RoomList from '$lib/chat/RoomList.svelte';
 	import RoomMenu from '$lib/chat/RoomMenu.svelte';
 	import RateQueue from '$lib/chat/RateQueue.svelte';
+	import PartnerCard from '$lib/chat/PartnerCard.svelte';
+	import Chevron from '$lib/ui/Chevron.svelte';
+	import { rpc } from '$lib/rpc';
+	import { noClubs } from '$lib/achievements';
+	import type { PartnerProfile } from '$lib/chat/types';
 
 	/**
 	 * 홈 = 대화 목록 (인스타 DM 받은편지함).
@@ -103,6 +108,23 @@
 
 	const elapsed = $derived(seeker.seeking ? mmss(Math.floor((S.now - seeker.since) / 1000)) : '');
 
+	// 익명 친구들 보기 (Phase 93) — 대화가 없을 때 무작위 학생들의 익명 프로필. 처음 펼칠 때 한 번만 부른다 (실패하면 다시 펼칠 때)
+	let friendsOpen = $state(false);
+	let friends = $state<PartnerProfile[] | null>(null);
+	let friendsBusy = $state(false);
+	async function toggleFriends() {
+		friendsOpen = !friendsOpen;
+		if (!friendsOpen || friends || friendsBusy) return;
+		friendsBusy = true;
+		try {
+			friends = (await rpc<PartnerProfile[]>('anon_friends')).map((p) => ({ ...p, badges: noClubs(p.badges ?? []) }));
+		} catch {
+			/* 아래 "불러오지 못했어요" */
+		} finally {
+			friendsBusy = false;
+		}
+	}
+
 	let retrying = $state(false);
 	async function retryRooms() {
 		if (retrying) return;
@@ -174,6 +196,22 @@
 		<div class="pt-empty" in:surface={{ y: 14, scale: 1 }}>
 			<span class="pt-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4.4c-4.4 0-7.9 3.2-7.9 7.2 0 2.2 1 4.1 2.7 5.4l-.5 2.5 2.7-1.3c.9.4 1.9.6 3 .6 4.4 0 7.9-3.2 7.9-7.2S16.4 4.4 12 4.4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /></svg></span>
 			<h2>아직 대화가 없어요</h2>
+			<button class="friends-toggle" aria-expanded={friendsOpen} onclick={toggleFriends}>익명 친구들 보기 <Chevron /></button>
+			{#if friendsOpen}
+				<div class="friends" in:surface={{ y: 8, scale: 1 }}>
+					{#if friends}
+						{#each friends as f, i (i)}
+							<div class="friend"><PartnerCard alias={f.nickname} profile={f} loading={false} /></div>
+						{:else}
+							<p class="muted">아직 보여 줄 친구가 없어요</p>
+						{/each}
+					{:else if friendsBusy}
+						<div class="friend"><PartnerCard alias={null} profile={null} loading /></div>
+					{:else}
+						<p class="muted">불러오지 못했어요</p>
+					{/if}
+				</div>
+			{/if}
 		</div>
 	{/if}
 
@@ -254,6 +292,21 @@
 		gap: 12px;
 		padding-bottom: 0; /* 아래 안전영역은 탭바가 맡는다 · 버튼 여백은 .dock-action 이 */
 	}
+	/* 익명 친구들 보기 (Phase 93) — 펼치면 › 가 아래로 */
+	.friends-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		min-height: 44px;
+		padding: 0 12px;
+		color: var(--text-2);
+		font-size: 15px;
+		font-weight: 600;
+	}
+	.friends-toggle :global(.g-chev) { margin: 0; }
+	.friends-toggle[aria-expanded='true'] :global(.g-chev) { transform: rotate(90deg); }
+	.friends { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+	.friend { border-radius: var(--r-card); background: var(--row); }
 	.rooms-skeleton { display: flex; flex-direction: column; padding-top: 52px; }
 	.sk-row { display: flex; align-items: center; gap: 14px; min-height: 72px; }
 	.sk-row span { display: flex; flex: 1; flex-direction: column; gap: 8px; }
