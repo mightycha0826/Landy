@@ -73,7 +73,8 @@ try {
 		check('로그인 없이 샘플 쌍방 대화 체험', await page.getByText('저는 카레요! 그쪽은요?', { exact: true }).isVisible());
 		await page.getByRole('tab', { name: '익명편지', exact: true }).click();
 		await page.getByRole('button', { name: '샘플 편지 열어 보기' }).click();
-		check('샘플 편지를 열어 본문 확인', await page.locator('.sample-paper').isVisible());
+		// 앱과 같은 봉투 열기 연출(뒤집기 → 봉인 금 → 덮개 → 편지지)이 끝나야 편지지가 펼쳐진다
+		check('샘플 편지를 열어 본문 확인', await page.locator('.sample-paper').waitFor({ timeout: 6000 }).then(() => true, () => false));
 		check('샘플은 인증·DB·AI 요청을 보내지 않는다', st.calls.length === 0);
 		for (const width of [320, 390, 560]) {
 			await page.setViewportSize({ width, height: 844 });
