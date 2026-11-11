@@ -26,6 +26,7 @@
 	import { noClubs } from '$lib/achievements';
 	import type { PartnerProfile } from '$lib/chat/types';
 	import Sheet from '$lib/ui/Sheet.svelte';
+	import { navigateFromOverlay } from '$lib/overlay.svelte';
 
 	/**
 	 * 홈 = 대화 목록 (인스타 DM 받은편지함).
@@ -146,7 +147,8 @@
 			if (r.status === 'ok' && r.room_id) {
 				picked = null;
 				void inbox.load();
-				await goto(`/chat/${r.room_id}`);
+				// 시트가 열린 채 가는 이동 — 시트의 뒤로가기 칸을 먼저 걷는다 (goto 로 가면 그 칸이 남아 홈에서 뒤로가기가 한 번 헛돈다)
+				await navigateFromOverlay(`/chat/${r.room_id}`);
 			} else toast(r.status === 'full' ? `대화는 동시에 ${maxRooms}개까지예요` : (CONTACT_ERR[r.status] ?? '연락하지 못했어요'));
 		} catch {
 			toast('연락하지 못했어요. 다시 시도해 주세요');

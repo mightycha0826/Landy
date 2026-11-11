@@ -155,6 +155,8 @@
 
 	// ── 라우팅 가드 ───────────────────────────────────────────────
 	// !S.booted 동안에는 판단을 보류하고 스플래시를 띄운다 (리다이렉트 플리커 방지)
+	/** 시작하기(온보딩)를 거쳐야 하는 계정 — 성별 · 선호를 아직 안 정했거나, 명단에 없어 이름을 적어야 한다 */
+	const mustOnboard = $derived(!!S.profile && (!S.profile.onboarded || S.me === null));
 	$effect(() => {
 		if (!S.booted) return;
 
@@ -188,7 +190,7 @@
 
 		// 3) 온보딩 (성별·선호를 정해야 매칭이 가능하다) · 이름 (명단에 없으면 적어야 편지를 쓸 수 있다, Phase 23)
 		const onOnboarding = path === '/onboarding';
-		if (S.profile && (!S.profile.onboarded || S.me === null)) {
+		if (mustOnboard) {
 			if (!onOnboarding) void goto('/onboarding', { replaceState: true });
 		} else if (onOnboarding && S.profile?.onboarded) {
 			void goto('/', { replaceState: true });
@@ -217,8 +219,9 @@
 {:else if S.maint && S.session}
 	<!-- 서버 점검 (Phase 52) — 앱 전체를 가린다. 끝나면 다음 박동(1분)이나 앱으로 돌아올 때 저절로 풀린다 -->
 	<Maintenance msg={S.maint.msg} until={S.maint.until} />
-{:else if !S.booted || (S.session && S.profileLoading)}
-	<!-- 부팅 중 · 로그인 직후 계정을 불러오는 중 (홈이 잠깐 보였다가 온보딩으로 튀지 않게) -->
+{:else if !S.booted || (S.session && (S.profileLoading || (UI.standalone && mustOnboard && page.url.pathname !== '/onboarding')))}
+	<!-- 부팅 중 · 로그인 직후 계정을 불러오는 중 · 시작하기(온보딩)로 옮겨 가는 중 (홈이 잠깐 보였다가 온보딩으로 튀지 않게).
+	     ★ 온보딩 전 계정에 홈을 그리면 그 잠깐 사이에 알림 받기 · 새 업적 축하가 먼저 떠 버린다 (처음 가입한 날 창이 겹치던 원인) -->
 	<div class="splash">
 		<img class="appicon" src="/icon-192.png" alt="" width="72" height="72" />
 		<span class="wordmark">Landy</span>

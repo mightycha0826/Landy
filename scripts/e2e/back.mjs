@@ -331,7 +331,7 @@ try {
 
 	console.log('[처음 사용법 안내 · 빈 홈 (Phase 44)]');
 	await page.goto(`${BASE}/`); await page.locator('.topbar.root .title').waitFor(); await page.waitForTimeout(600);
-	check('★ 빈 홈 — 아이콘 원 + 제목 한 줄 (설명 문장 없음)', (await page.locator('.pt-empty .pt-empty-icon').count()) === 1 && (await page.locator('.pt-empty').innerText()).trim() === '아직 대화가 없어요', await page.locator('.pt-empty').innerText());
+	check('★ 빈 홈 — 아이콘 원 + 제목 한 줄 (설명 문장 없음)', (await page.locator('.pt-empty .pt-empty-icon').count()) === 1 && (await page.locator('.pt-empty h2').innerText()).trim() === '아직 대화가 없어요' && (await page.locator('.pt-empty > p').count()) === 0, await page.locator('.pt-empty').innerText());
 	check('자동 테스트에서는 사용법 안내가 저절로 뜨지 않는다', (await page.getByRole('dialog', { name: '사용법 안내' }).count()) === 0);
 	await page.goto(`${BASE}/?tour`);
 	const tour = page.getByRole('dialog', { name: '사용법 안내' });

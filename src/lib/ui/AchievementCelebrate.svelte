@@ -7,7 +7,8 @@
 	 * 동작 줄이기면 app.css 가 애니메이션을 끄고 그대로 멈춰 보인다.
 	 */
 	import { page } from '$app/state';
-	import { untrack } from 'svelte';
+	import { onDestroy, untrack } from 'svelte';
+	import { mounted } from '$lib/mounted';
 	import { focustrap } from '$lib/focustrap';
 	import { backClose, navigateFromOverlay } from '$lib/overlay.svelte';
 	import Badge from './Badge.svelte';
@@ -18,6 +19,7 @@
 	import { touring } from '$lib/tour.svelte';
 	import { accountIsCurrent, accountToken } from '$lib/accountScope';
 	const account = accountToken();
+	const alive = mounted();
 
 	let { preview = null }: { preview?: BadgeLite[] | null } = $props();
 
@@ -38,10 +40,19 @@
 			if (fresh.length) return; // 이미 떠 있으면 그대로
 			void fetchNewAchievements().then((got) => {
 				if (!accountIsCurrent(account) || !got.length) return;
+				// 받아 오는 사이 앱 틀이 사라졌으면(온보딩 · 점검 화면으로) 다음 틀이 다시 받게 돌려놓는다
+				if (!alive()) return void (UI.achNew = true);
 				fresh = got;
 				UI.celebrating = true; // 안내 뒤에서 기다리는 동안에도 — 다른 저절로 뜨는 창(매너 평가 · 알림 권한)은 그 뒤에
 			}).catch(() => {});
 		});
+	});
+	// 축하를 못 닫은 채 앱 틀이 사라지면 "축하 중"을 남기지 않는다 — 남으면 알림 받기 · 매너 평가 · 업데이트 소식이 끝없이 기다린다.
+	// 아직 "봤음"이 아니니 다음 틀이 다시 받아 띄운다 (계정이 바뀐 것이면 selectSession 이 이미 비웠다)
+	onDestroy(() => {
+		if (preview || !fresh.length || !accountIsCurrent(account)) return;
+		UI.celebrating = false;
+		UI.achNew = true;
 	});
 
 	async function close(view = false) {

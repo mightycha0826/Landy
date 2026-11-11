@@ -101,7 +101,10 @@
 				: Math.max(0, Date.parse(room.snap.expires_at) - room.serverNow(S.now))
 	);
 	const timeUp = $derived(!!room?.snap && room.snap.status !== 'closed' && !paused && !pinned && remainMs <= 0);
-	const mmss = $derived(fmtClock(Math.ceil(remainMs / 1000), true));
+	// 상대가 들어오기 전(pending)의 expires_at 은 대화 시간이 아니라 "들어올 때까지"의 기한이다. 매칭은 1분쯤(join_grace_sec)이라 그대로 세지만,
+	// 연락해보기(Phase 95)는 하루를 기다려 줘서 머리글에 "1440:00"이 떴다 — 그렇게 오래 기다리는 방은 시작하면 받을 대화 시간을 보인다
+	const longWait = $derived(room?.snap?.status === 'pending' && remainMs > (S.settings?.join_grace_sec ?? 60) * 1000);
+	const mmss = $derived(fmtClock(longWait ? (S.settings?.room_minutes ?? 10) * 60 : Math.ceil(remainMs / 1000), true));
 	const urgent = $derived(!pinned && remainMs > 0 && remainMs <= 60_000);
 	const closed = $derived(room?.closed ?? false);
 	// "연결 중…" 막대는 1.5초 넘게 끊겨 있을 때만 — 방을 열 때마다(구독이 붙기 전 잠깐) 번쩍이던 것 (Phase 39)

@@ -375,7 +375,12 @@ export class ChatRoom {
 		}
 		s.close_reason = r.close_reason;
 		s.their_read_id = s.my_seat === 1 ? r.read2 : r.read1;
-		if (r.status === 'closed') this.#stopLiveUpdates();
+		if (r.status === 'closed') {
+			this.#stopLiveUpdates();
+			// 방송된 행에는 "평가할 수 있는지"(can_rate)가 없다 — 닫힌 뒤의 스냅샷을 한 번 받는다.
+			// 안 받으면 상대가 끝낸 대화(나감 · 넘김 · 연장 거절)에서 방 안의 매너 평가 칸이 뜨지 않는다. 못 받아도 홈의 평가 창이 다시 묻는다
+			void this.#t.snapshot(this.roomId).then((snap) => this.#absorb(snap), () => {});
+		}
 	}
 
 	#applyVote(v: VoteRow) {

@@ -287,6 +287,18 @@ try {
 		r.dispose();
 	}
 	{
+		// 상대가 끝낸 대화 — 방송된 방 행에는 can_rate 가 없다. 닫힌 뒤 스냅샷을 한 번 받아야 방 안에 평가 칸이 뜬다
+		const t = fake();
+		const r = new ChatRoom(ROOM, t);
+		await r.open();
+		const asked = t.calls.snapshot;
+		t.snap = snap({ status: 'closed', close_reason: 'left', can_rate: true, rated: false });
+		t.handlers.onRoom({ ...t.snap, id: ROOM, read1: null, read2: null });
+		await sleep(0);
+		check('★ 상대가 끝내 방송으로 닫힌 방도 평가할 수 있는지 다시 받는다 (한 번만)', r.closed && r.snap.can_rate === true && t.calls.snapshot === asked + 1, `can_rate=${r.snap.can_rate} 요청=${t.calls.snapshot - asked}`);
+		r.dispose();
+	}
+	{
 		const t = fake();
 		const r = await mk(t);
 		t.sendImpl = async (_r, seat, body, cid) => {
