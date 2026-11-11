@@ -6,7 +6,6 @@
 	 * 보내면 보낸 편지함으로.
 	 */
 	import { page } from '$app/state';
-	import { onDestroy } from 'svelte';
 	import BackButton from '$lib/ui/BackButton.svelte';
 	import LoadError from '$lib/ui/LoadError.svelte';
 	import EnvelopeCompose from '$lib/letters/EnvelopeCompose.svelte';
@@ -14,10 +13,8 @@
 	import { anonName, fromLabel, openLetter, replyToLetter, type Letter } from '$lib/letters/api';
 	import { afterSent, deliver } from '$lib/letters/send';
 	import { S, errMsg } from '$lib/state.svelte';
-	// 계정이 바뀌면 루트 레이아웃이 화면을 통째로 다시 만든다 ({#key S.accountVersion}) — 떠 있는지만 보면 된다
-	let alive = true;
-	onDestroy(() => (alive = false));
-	const current = () => alive;
+	import { mounted } from '$lib/mounted';
+	const current = mounted();
 
 	const id = $derived(Number(page.params.id));
 	const back = $derived(`/letters/m/${id}`);

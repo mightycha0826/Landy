@@ -5,12 +5,10 @@
 	 * 그 사람의 편지를 폴더에서 빼거나 다른 폴더로 옮기면 꺼진다.
 	 */
 	import Sheet from '$lib/ui/Sheet.svelte';
-	import { onDestroy } from 'svelte';
 	import { folderError, setFolderRule, type FolderAsk } from './api';
 	import { errMsg, toast } from '$lib/state.svelte';
-	// 계정이 바뀌면 루트 레이아웃이 화면을 통째로 다시 만든다 — 떠 있는지만 보면 된다
-	let alive = true;
-	onDestroy(() => (alive = false));
+	import { mounted } from '$lib/mounted';
+	const alive = mounted();
 
 	let { ask, onclose }: { ask: FolderAsk; onclose: () => void } = $props();
 	let busy = $state(false);
@@ -20,11 +18,11 @@
 		busy = true;
 		try {
 			const err = folderError(await setFolderRule(ask.thread, ask.folder));
-			if (!alive) return;
+			if (!alive()) return;
 			toast(err ?? `앞으로 '${ask.who}'님의 편지는 열어 보면 이 폴더로 들어가요`);
 			onclose();
 		} catch (e) {
-			if (alive) toast(errMsg(e));
+			if (alive()) toast(errMsg(e));
 		} finally {
 			busy = false;
 		}

@@ -9,17 +9,14 @@
 	 * recipient = 내가 이름으로 받은 쪽(모르는 사람이 나를 찾아 보냄) — 버리면 그 사람은 다시 못 보낸다.
 	 */
 	import Sheet from '$lib/ui/Sheet.svelte';
-	import { onDestroy } from 'svelte';
 	import ReportPicker from '$lib/ui/ReportPicker.svelte';
 	import type { ReportReason } from '$lib/chat/types';
 	import { navigateFromOverlay } from '$lib/overlay.svelte';
 	import { errMsg, toast } from '$lib/state.svelte';
 	import { blockThread, closeThread, josa, reportThread, stampDate, type Box, type MailItem } from './api';
 	import { BOX } from './mailbox.svelte';
-	// 계정이 바뀌면 루트 레이아웃이 화면을 통째로 다시 만든다 ({#key S.accountVersion}) — 떠 있는지만 보면 된다
-	let alive = true;
-	onDestroy(() => (alive = false));
-	const current = () => alive;
+	import { mounted } from '$lib/mounted';
+	const current = mounted();
 
 	let {
 		thread,

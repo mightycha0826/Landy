@@ -14,7 +14,7 @@ export const INQUIRY_KINDS = [
 	{ id: 'etc', label: '기타' }
 ] as const;
 export type InquiryKind = (typeof INQUIRY_KINDS)[number]['id'];
-export const kindLabel = (k: string) => INQUIRY_KINDS.find((x) => x.id === k)?.label ?? '기타';
+const kindLabel = (k: string) => INQUIRY_KINDS.find((x) => x.id === k)?.label ?? '기타';
 
 export const INQUIRY_MIN = 5;
 export const INQUIRY_MAX = 1000;

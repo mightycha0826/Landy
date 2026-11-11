@@ -69,7 +69,7 @@ export const CATEGORIES: { k: Category | 'all'; label: string }[] = [
  * 서버에서 오는 뱃지 목록은 noClubs 를 거쳐 그린다. 개발 미리보기(/dev/*)는 가짜 데이터를 바로 넘겨 그대로 보인다.
  * 도서부의 옛 코드(club_library — Phase 91 SQL 전 실DB)는 동아리 뱃지가 아니다.
  */
-export const isClub = (code: string) => code.startsWith('club_') && code !== 'club_library';
+const isClub = (code: string) => code.startsWith('club_') && code !== 'club_library';
 export const clubsReleased = () => !!S.settings?.club_badges;
 export const noClubs = <T extends { code: string }>(xs: T[]) => (clubsReleased() ? xs : xs.filter((x) => !isClub(x.code)));
 

@@ -27,14 +27,11 @@ const models = () => {
 let working: string | null = null;
 const AI_MODEL = () => working ?? models()[0].id;
 
-export type { AiMessage } from './aiFold';
-import type { AiMessage } from './aiFold';
+import type { AiBinding, AiMessage } from './aiFold';
+/** AiBinding = wrangler.jsonc 의 "ai" 바인딩 (platform.env.AI) */
+export type { AiBinding, AiMessage };
 
 export class AiUnavailable extends Error {}
-
-/** wrangler.jsonc 의 "ai" 바인딩 (platform.env.AI) */
-export type { AiBinding } from './aiFold';
-import type { AiBinding } from './aiFold';
 
 export async function runAi(
 	ai: AiBinding | undefined,

@@ -23,7 +23,7 @@ onAccountChange(() => {
 	TOUR.active = null;
 });
 
-export function tourSeen(id: TourId): boolean {
+function tourSeen(id: TourId): boolean {
 	void TOUR.v;
 	try {
 		return localStorage.getItem(KEYS[id]) === '1';

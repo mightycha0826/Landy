@@ -53,6 +53,17 @@
 
 <FormMsg {form} />
 
+<!-- 숫자 설정 한 줄 — 운영 수치 · AI 설정이 같이 쓴다 -->
+{#snippet numberRow(f: (typeof FIELDS)[number] | (typeof AI_FIELDS)[number])}
+	<label class="row">
+		<span class="label">{f.label}<small>{f.hint}</small></span>
+		<span class="val">
+			<input class="field num" type="number" name={f.k} value={s[f.k]} disabled={!isAdmin} />
+			<span class="unit">{f.unit}</span>
+		</span>
+	</label>
+{/snippet}
+
 <!-- 서버 점검 (Phase 52) · 예약 (Phase 53) — 켜면(또는 예약 시각이 되면) 학생 앱 전체가 점검 화면 -->
 {#if s.maintenance !== undefined}
 	{@const at = s.maintenance_at ? new Date(s.maintenance_at) : null}
@@ -130,15 +141,7 @@
 		<span class="label">홈 배너<small>채팅 홈 맨 위 한 줄 · 서비스를 닫았을 때 안내로도 보임. 여러 줄 공지는 <a href="/admin/notices">공지사항</a>에서</small></span>
 		<input class="field" name="notice" value={s.notice} maxlength="300" placeholder="(없음)" disabled={!isAdmin} />
 	</label>
-	{#each FIELDS as f (f.k)}
-		<label class="row">
-			<span class="label">{f.label}<small>{f.hint}</small></span>
-			<span class="val">
-				<input class="field num" type="number" name={f.k} value={s[f.k]} disabled={!isAdmin} />
-				<span class="unit">{f.unit}</span>
-			</span>
-		</label>
-	{/each}
+	{#each FIELDS as f (f.k)}{@render numberRow(f)}{/each}
 	{#if isAdmin}
 		<button class="btn save">저장</button>
 	{:else}
@@ -210,15 +213,7 @@
 			<span class="label">대화 봇<small>찾기 20초가 지나도 상대가 없으면 "봇" 표시를 단 대화 봇이 저절로 온다</small></span>
 			<input type="checkbox" name="ai_chat" checked={s.ai_chat} disabled={!isAdmin} />
 		</label>
-		{#each AI_FIELDS as f (f.k)}
-			<label class="row">
-				<span class="label">{f.label}<small>{f.hint}</small></span>
-				<span class="val">
-					<input class="field num" type="number" name={f.k} value={s[f.k]} disabled={!isAdmin} />
-					<span class="unit">{f.unit}</span>
-				</span>
-			</label>
-		{/each}
+		{#each AI_FIELDS as f (f.k)}{@render numberRow(f)}{/each}
 		{#if isAdmin}<button class="btn save">AI 설정 저장</button>{/if}
 	</form>
 

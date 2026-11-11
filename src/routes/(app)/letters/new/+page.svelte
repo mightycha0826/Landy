@@ -6,7 +6,7 @@
 	 * 찾기 결과에는 학년 · 학번 — 같은 학년 동명이인을 구분한다. 대표 뱃지도 (Phase 84 — 순서는 그 사람이 정한 대로).
 	 * 아직 찾지 않았으면 아래에 추천 3명 (Phase 84 — 들어올 때 한 번, "다른 추천"을 누르면 다시 — 하루 3번까지. 추천에 안 나오기는 설정 › 편지).
 	 */
-	import { onDestroy, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import BackButton from '$lib/ui/BackButton.svelte';
 	import LoadError from '$lib/ui/LoadError.svelte';
 	import PrivacySummary from '$lib/ui/PrivacySummary.svelte';
@@ -17,10 +17,8 @@
 	import { anonName, recommendPeople, searchPeople, sendLetter, type DmPerson } from '$lib/letters/api';
 	import { afterSent, deliver } from '$lib/letters/send';
 	import { S, errMsg } from '$lib/state.svelte';
-	// 계정이 바뀌면 루트 레이아웃이 화면을 통째로 다시 만든다 ({#key S.accountVersion}) — 떠 있는지만 보면 된다
-	let alive = true;
-	onDestroy(() => (alive = false));
-	const current = () => alive;
+	import { mounted } from '$lib/mounted';
+	const current = mounted();
 
 	let q = $state('');
 	let results = $state<DmPerson[] | null>(null);

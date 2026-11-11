@@ -181,12 +181,14 @@ export async function loadProfile() {
 	if (!uid) return;
 	const token = accountToken();
 	// ★ select('*') 를 쓰지 않는다. 항상 명시 컬럼.
-	const cols = 'id, nickname, bio, interests, mbti, gender, want, status, suspended_until, verified, onboarded';
-	const read = (c: string) => supabase.from('profiles').select(c).eq('id', uid).maybeSingle();
-	const { data, error } = await read(`${cols}, allow_rematch, letters_open, manner_temp, letters_recommend, letter_badge_order`);
+	const { data, error } = await supabase
+		.from('profiles')
+		.select('id, nickname, bio, interests, mbti, gender, want, status, suspended_until, verified, onboarded, allow_rematch, letters_open, manner_temp, letters_recommend, letter_badge_order')
+		.eq('id', uid)
+		.maybeSingle();
 	if (error) throw error;
 	if (!data) throw new Error('profile_missing');
-	if (accountIsCurrent(token)) S.profile = (data as unknown as Profile) ?? null;
+	if (accountIsCurrent(token)) S.profile = data as Profile;
 }
 
 type ProfilePreferences = Partial<Pick<Profile, 'want' | 'allow_rematch' | 'letters_open' | 'letters_recommend' | 'letter_badge_order'>>;
@@ -203,7 +205,6 @@ async function updateProfile(patch: ProfilePreferences | Pick<Profile, 'gender' 
 
 /** 설정 스위치와 매칭 선호 — 상태·인증 여부 같은 서버 전용 열은 받지 않는다. */
 export const setProfileField = (patch: ProfilePreferences) => updateProfile(patch);
-
 
 const SETTINGS_COLS =
 	'is_open, notice, room_minutes, extend_minutes, vote_window_sec, join_grace_sec, max_rounds, heartbeat_sec, presence_ttl_sec, msg_max_len, max_open_rooms';

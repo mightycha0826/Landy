@@ -13,17 +13,17 @@ export async function moderateBatch(items: ModItem[], work: ModerationWork) {
 	let flagged = 0;
 	for (const [index, item] of items.entries()) {
 		try {
-		const raw = await work.review(item);
-		if (raw === null) {
-			// AI 중단 시 현재 글과 나머지만 돌려놓는다 (이미 처리한 글은 건드리지 않는다).
-			await work.release(items.slice(index).map((next) => next.id));
-			break;
-		}
-		const verdict = parseVerdict(raw);
-		if (!verdict) continue;
-		await work.save(item.id, verdict);
-		checked++;
-		if (verdict.flag) flagged++;
+			const raw = await work.review(item);
+			if (raw === null) {
+				// AI 중단 시 현재 글과 나머지만 돌려놓는다 (이미 처리한 글은 건드리지 않는다).
+				await work.release(items.slice(index).map((next) => next.id));
+				break;
+			}
+			const verdict = parseVerdict(raw);
+			if (!verdict) continue;
+			await work.save(item.id, verdict);
+			checked++;
+			if (verdict.flag) flagged++;
 		} catch (error) {
 			// 원문은 로그에 남기지 않는다. 처리되지 않은 작업은 DB 재시도 상태로 돌린다.
 			console.error('[moderation] task failed', { id: item.id, type: error instanceof Error ? error.name : 'unknown' });

@@ -6,13 +6,10 @@
 	 *   물어볼 사람들 = 이번에 넣어서 받은 편지가 모두 이 폴더에 들어간 사람 (FolderRule 이 "앞으로도 넣을까요?"를 묻는다)
 	 */
 	import Sheet from '$lib/ui/Sheet.svelte';
-	import { onDestroy } from 'svelte';
 	import { FOLDER_MAX, folderError, fromLabel, putInFolder, type Folder, type FolderAsk } from './api';
 	import { errMsg, toast } from '$lib/state.svelte';
-	// 계정이 바뀌면 루트 레이아웃이 화면을 통째로 다시 만든다 ({#key S.accountVersion}) — 떠 있는지만 보면 된다
-	let alive = true;
-	onDestroy(() => (alive = false));
-	const current = () => alive;
+	import { mounted } from '$lib/mounted';
+	const current = mounted();
 
 	let {
 		ids,
