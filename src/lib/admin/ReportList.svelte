@@ -3,11 +3,22 @@
 
 	let { kind, reports, status }: ({ kind: 'chat'; reports: ReportRow[] } | { kind: 'letter'; reports: LetterReportRow[] }) & { status: string } = $props();
 	const letter = $derived(kind === 'letter');
+	/** 채팅 · 편지 신고는 테이블만 다르고 처리 절차가 같다 — 한 화면에서 종류를 바꿔 본다 (Phase 96) */
+	const KINDS = [
+		{ v: 'chat', label: '채팅' },
+		{ v: 'letter', label: '편지' }
+	] as const;
 </script>
+
+<div class="kinds" role="group" aria-label="신고 종류">
+	{#each KINDS as k (k.v)}
+		<a href="/admin/reports?kind={k.v}&status={status}" class:on={kind === k.v} aria-current={kind === k.v ? 'true' : undefined}>{k.label}</a>
+	{/each}
+</div>
 
 <nav class="a-tabs" aria-label="신고 상태">
 	{#each REPORT_TABS as tab (tab.v)}
-		<a href="?status={tab.v}" class:on={status === tab.v}>{tab.label}</a>
+		<a href="/admin/reports?kind={kind}&status={tab.v}" class:on={status === tab.v}>{tab.label}</a>
 	{/each}
 </nav>
 
@@ -53,6 +64,28 @@
 {/if}
 
 <style>
+	/* 종류 고르기 — 눌린 쪽이 채워진 두 칸 단추 */
+	.kinds {
+		display: inline-flex;
+		gap: 2px;
+		padding: 3px;
+		margin-bottom: 6px;
+		border-radius: 10px;
+		background: var(--field);
+	}
+	.kinds a {
+		padding: 6px 16px;
+		border-radius: 8px;
+		color: var(--text-2);
+		font-size: 14px;
+		font-weight: 600;
+		text-decoration: none;
+	}
+	.kinds a.on {
+		background: var(--bg);
+		color: var(--text);
+		box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+	}
 	@media (max-width: 720px) {
 		th:nth-child(6), td:nth-child(6),
 		table:not(.letter) th:nth-child(4), table:not(.letter) td:nth-child(4),

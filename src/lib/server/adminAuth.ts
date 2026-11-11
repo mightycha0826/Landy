@@ -1,7 +1,7 @@
-import { error, fail, redirect } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 import { adminRpc, emailOf, rosterNameOf } from './supabaseAdmin';
 import type { Identity } from '$lib/adminTypes';
-import { ADMIN_MAX_SUSPEND_DAYS, MOD_MAX_SUSPEND_DAYS, can, canSee, homeOf, type Perm } from '$lib/adminRoles';
+import { ADMIN_MAX_SUSPEND_DAYS, MOD_MAX_SUSPEND_DAYS, can, canSee, type Perm } from '$lib/adminRoles';
 
 /**
  * 운영진(moderator) / 관리자(admin) 권한 — Phase 11
@@ -18,17 +18,15 @@ export const allowed = (locals: App.Locals, perm: Perm) => can(locals.staff, per
 
 /**
  * 역할마다 볼 수 있는 화면 (Phase 49) — 화면 load 맨 앞에서. 주소를 직접 쳐도 403.
- * 첫 화면(/admin = 채팅 신고)을 못 보는 역할(개발자)은 제 첫 화면으로 보낸다.
+ * 첫 화면(/admin = 개요, Phase 96)은 운영진이면 누구나 본다.
  */
 export function guard(locals: App.Locals, url: URL) {
-	const role = locals.staff?.role;
 	// 운영진 관리 (Phase 50) — 최고 관리자 한 사람만
 	if (url.pathname.startsWith('/admin/staff')) {
 		if (locals.staff?.owner) return;
 		error(403, '최고 관리자만 볼 수 있는 화면');
 	}
 	if (canSee(locals.staff, url.pathname)) return;
-	if (role && (url.pathname === '/admin' || url.pathname === '/admin/')) redirect(303, homeOf(locals.staff));
 	error(403, '이 역할로는 볼 수 없는 화면');
 }
 

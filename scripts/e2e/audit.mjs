@@ -55,12 +55,23 @@ const RPC = {
 		else STAFF_LIST = STAFF_LIST.map((s) => (s.no === a.p_no ? { ...s, role: a.p_role, display_name: a.p_name } : s));
 		return STAFF_LIST;
 	},
-	admin_staff_touch: () => ({ role: ROLE, owner: OWNER, maintenance: MAINT_ON, maintenance_at: MAINT_AT, perms: ({ moderator: ['live', 'moderate', 'service', 'inquiry', 'audit'], developer: ['live', 'settings', 'service', 'inquiry', 'audit'], beta: ['live'] })[ROLE] ?? [], team: [
+	admin_staff_touch: () => ({ todo: ROLE === 'admin' ? { reports: 2, inquiries: 1, badge_requests: 0 } : ROLE === 'developer' ? { reports: null, inquiries: 1, badge_requests: null } : null, role: ROLE, owner: OWNER, maintenance: MAINT_ON, maintenance_at: MAINT_AT, perms: ({ moderator: ['live', 'moderate', 'service', 'inquiry', 'audit'], developer: ['live', 'settings', 'service', 'inquiry', 'audit'], beta: ['live'] })[ROLE] ?? [], team: [
 		{ id: STAFF, name: '나운영', role: ROLE, owner: OWNER, last_seen: t, path: '/admin', me: true },
 		{ id: 'm1', name: '김운영', role: 'moderator', last_seen: new Date().toISOString(), path: '/admin/reports/x', me: false },
 		{ id: 'd1', name: '박개발', role: 'developer', last_seen: new Date(Date.now() - 3 * 3600_000).toISOString(), path: '/admin/settings', me: false }
 	] }),
-	admin_stats: () => ({ open_reports: 1, reviewing: 0, open_letter_reports: 1, active_rooms: 1, seeking_now: 0, restricted_users: 0, rooms_24h: 3, letters_24h: 2, is_open: true }),
+	// 개요 (Phase 96) — 칸마다 역할의 권한만큼만 (없는 권한은 null)
+	admin_overview: () => {
+		const mod = ROLE === 'admin' || ROLE === 'moderator', inq = ROLE !== 'beta', set = ROLE === 'admin' || ROLE === 'developer';
+		return {
+			now: new Date().toISOString(),
+			todo: { chat_reports: mod ? 1 : null, letter_reports: mod ? 1 : null, reviewing: mod ? 0 : null, inquiries: inq ? 1 : null, badge_requests: ROLE === 'admin' ? 0 : null },
+			live: { online: 12, seeking: 2, active_rooms: 3, is_open: true, maintenance: false },
+			totals: { students: 340, active_today: 57, restricted: 1 },
+			days: Array.from({ length: 14 }, (_, i) => ({ d: new Date(Date.now() + 9 * 3600_000 - (13 - i) * 86_400_000).toISOString().slice(0, 10), signups: i, rooms: 20 + i, letters: i % 4, reports: mod ? i % 2 : null })),
+			system: set ? { mod_pending: 4, mod_errors_24h: 0, mod_checked_today: 31, ai_chats_today: 5, push_sent_24h: 120, push_failed_24h: 3, push_devices: 88 } : null
+		};
+	},
 	admin_list_reports: () => EMPTY_REPORTS ? [] : [{ id: REP, created_at: t, reason: 'harassment', note: '욕했어요', status: 'open', reported_id: A, reporter_id: B, reported_30d: 1, evidence_count: 2, reported_status: 'active' }],
 	admin_report: () => ({ report: { id: REP, created_at: t, reason: 'harassment', note: '욕했어요', status: 'open', reported_id: A, reporter_id: B, room_id: ROOM, handled_by: null, handled_at: null, action_note: null }, evidence: [{ ord: 1, sender: 2, body: '나쁜 말', sent_at: t }, { ord: 2, sender: 1, body: '그만해', sent_at: t }], reported: { status: 'active', strikes: 0, suspended_until: null, gender: 'm', created_at: t }, history: [], reporter_filed: 1, reporter_dismissed: 0 }),
 	admin_set_report: () => null,
@@ -200,16 +211,51 @@ const dialogs = (page, answer) => answerDialogs(page, answer);
 try {
 	console.log('\n[1] 모든 화면이 열린다 (관리자)');
 	const { page } = await session();
-	for (const p of ['/admin', '/admin/live', '/admin/letters', '/admin/users', `/admin/users/${A}`, `/admin/reports/${REP}`, `/admin/letters/${LREP}`, '/admin/rooms', `/admin/rooms/${ROOM}`, '/admin/settings', '/admin/audit']) {
+	for (const p of ['/admin', '/admin/reports', '/admin/live', '/admin/letters', '/admin/users', `/admin/users/${A}`, `/admin/reports/${REP}`, `/admin/letters/${LREP}`, '/admin/rooms', `/admin/rooms/${ROOM}`, '/admin/settings', '/admin/audit']) {
 		const r = await page.go(p);
 		check(`${p} → 200`, r.status() === 200, String(r.status()));
 	}
 	check('페이지 오류 없음', page.errs.length === 0, page.errs.join(' / '));
 
+	console.log('\n[개요 · 메뉴 · 빠른 찾기 (Phase 96)]');
+	await page.go('/admin');
+	const tiles = (await page.locator('section[aria-labelledby="todo-h"] .tile').allInnerTexts()).map((x) => x.replace(/\s+/g, ' '));
+	check('★ 첫 화면은 개요 — 할 일에 종류별 수', (await page.locator('main h1').innerText()) === '개요' && tiles.some((x) => /^1 채팅 신고 미처리/.test(x)) && tiles.some((x) => /^1 학생 문의 답을 기다림/.test(x)) && tiles.some((x) => /^0 뱃지 요청 없음/.test(x)), tiles.join(' | '));
+	check('★ 할 일 칸을 누르면 그 목록으로', (await page.locator('section[aria-labelledby="todo-h"] a.tile', { hasText: '편지 신고' }).getAttribute('href')) === '/admin/reports?kind=letter');
+	check('★ 14일 추이 네 가지 · 막대 14개씩 · 표로도 볼 수 있다', (await page.locator('.trend').count()) === 4 && (await page.locator('.trend').first().locator('path.bar').count()) === 14 && (await page.locator('.trend').first().locator('details tbody tr').count()) === 14);
+	await page.locator('.trend').first().locator('svg rect').nth(13).hover();
+	check('★ 막대에 올리면 그날 수 (오늘은 진행 중)', /13명/.test(await page.locator('.trend').first().locator('.read').innerText()) && /진행 중/.test(await page.locator('.trend').first().locator('.read').innerText()), await page.locator('.trend').first().locator('.read').innerText());
+	const sys = (await page.locator('section[aria-labelledby="sys-h"]').innerText()).replace(/\s+/g, ' ');
+	check('★ 시스템: AI 검토 대기 · 푸시 실패는 글로도 알린다', /4 AI 검토 대기/.test(sys) && /⚠ 실패 3건/.test(sys), sys);
+	check('서비스 상태', (await page.locator('.service').innerText()).trim() === '서비스 운영 중');
+	await page.screenshot({ path: `${SP}/audit-overview.png`, fullPage: true });
+	const menu = (await page.locator('.side nav a').allInnerTexts()).map((x) => x.replace(/\s+/g, ' ').trim());
+	check('★ 메뉴: 개요가 맨 위 · 신고는 하나 · 밀린 일 수가 붙는다', menu[0] === '개요' && menu.includes('신고 2') && menu.includes('문의 1') && menu.includes('뱃지 요청') && !menu.some((x) => /채팅 신고|편지 신고/.test(x)), menu.join(','));
+	await page.keyboard.press('Control+k');
+	await page.getByRole('dialog', { name: '화면 · 사용자 찾기' }).waitFor();
+	await page.keyboard.type('활동');
+	check('빠른 찾기: 적은 말로 화면이 걸러진다', (await page.locator('#qf-list a').first().innerText()).includes('활동 기록'));
+	await page.keyboard.press('Enter');
+	await page.waitForURL(base + '/admin/audit');
+	check('★ 빠른 찾기(Ctrl+K) → Enter 로 그 화면', new URL(page.url()).pathname === '/admin/audit' && (await page.locator('dialog').count()) === 0);
+	await page.locator('.side .find').click();
+	await page.keyboard.type('푸른고래');
+	await page.keyboard.press('Enter');
+	await page.waitForURL((u) => u.pathname === '/admin/users');
+	check('★ 빠른 찾기: 화면 이름이 아니면 사용자 찾기로', new URL(page.url()).searchParams.get('q') === '푸른고래', page.url());
+	await page.keyboard.press('Control+k');
+	await page.getByRole('dialog', { name: '화면 · 사용자 찾기' }).waitFor(); // 창이 뜬 뒤에 누른다 — 뜨기 전에 누른 Esc 는 닫을 창이 없다
+	await page.keyboard.press('Escape');
+	await page.locator('dialog').waitFor({ state: 'detached', timeout: 3000 }).catch(() => {});
+	check('Esc 로 닫힌다', (await page.locator('dialog').count()) === 0);
+	await page.go('/admin/letters?status=all');
+	check('★ 예전 편지 신고 주소는 신고 큐의 편지 칸으로', page.url() === base + '/admin/reports?kind=letter&status=all' && (await page.locator('.kinds a.on').innerText()) === '편지', page.url());
+	check('페이지 오류 없음 (개요)', page.errs.length === 0, page.errs.join(' / '));
+
 	console.log('\n[신고 목록] 종류별 열 · 상세 이동 · 모바일 · 필터와 빈 상태');
 	for (const list of [
-		{ path: '/admin', detail: `/admin/reports/${REP}`, text: '욕했어요', headers: ['접수', '사유', '신고 내용', '대화', '대상', '누적', '상태'], mobile: ['접수', '사유', '신고 내용', '대상', '상태'], empty: '처리할 신고가 없어요.' },
-		{ path: '/admin/letters', detail: `/admin/letters/${LREP}`, text: '광고', headers: ['접수', '대상', '사유', '신고한 글', '작성자', '누적', '상태'], mobile: ['접수', '대상', '사유', '신고한 글', '상태'], empty: '처리할 편지 신고가 없어요.' }
+		{ path: '/admin/reports?kind=chat', detail: `/admin/reports/${REP}`, text: '욕했어요', headers: ['접수', '사유', '신고 내용', '대화', '대상', '누적', '상태'], mobile: ['접수', '사유', '신고 내용', '대상', '상태'], empty: '처리할 신고가 없어요.' },
+		{ path: '/admin/reports?kind=letter', detail: `/admin/letters/${LREP}`, text: '광고', headers: ['접수', '대상', '사유', '신고한 글', '작성자', '누적', '상태'], mobile: ['접수', '대상', '사유', '신고한 글', '상태'], empty: '처리할 편지 신고가 없어요.' }
 	]) {
 		await page.go(list.path);
 		check(`${list.path} — 데스크톱 열 순서`, JSON.stringify(await page.locator('thead th:visible').allTextContents()) === JSON.stringify(list.headers));
@@ -224,7 +270,7 @@ try {
 		await page.go(list.path);
 		check(`${list.path} — 미처리 빈 상태`, await page.getByText(list.empty, { exact: true }).isVisible());
 		await page.getByRole('navigation', { name: '신고 상태' }).getByRole('link', { name: '검토 중', exact: true }).click();
-		await page.waitForURL(base + list.path + '?status=reviewing');
+		await page.waitForURL(base + list.path + '&status=reviewing');
 		check(`${list.path} — 필터 이동과 빈 상태`, await page.getByText('해당하는 신고가 없어요.', { exact: true }).isVisible() && await page.locator('.a-tabs a.on').innerText() === '검토 중');
 		EMPTY_REPORTS = false;
 	}
@@ -398,7 +444,9 @@ try {
 	ROLE = 'developer';
 	const dv = await session(1440); // 오른쪽 현황 판은 넓은 화면(1181~)에서
 	await dv.page.go('/admin');
-	check('★ 개발자: 첫 화면(채팅 신고) 대신 실시간으로', new URL(dv.page.url()).pathname === '/admin/live', dv.page.url());
+	const dTodo = (await dv.page.locator('section[aria-labelledby="todo-h"]').innerText()).replace(/\s+/g, ' ');
+	check('★ 개발자: 첫 화면은 개요 — 할 일에 문의만 (신고 · 뱃지 요청 칸은 없다) · 시스템은 보인다',
+		new URL(dv.page.url()).pathname === '/admin' && /학생 문의/.test(dTodo) && !/신고|뱃지 요청/.test(dTodo) && (await dv.page.locator('.trend').count()) === 3 && (await dv.page.locator('section[aria-labelledby="sys-h"]').count()) === 1, dTodo);
 	const dnav = await dv.page.locator('.side nav a').allInnerTexts();
 	check('★ 개발자 메뉴: 신고 · 사용자 · 전체 대화 없음, 운영 설정 · 문의 · 활동 기록 있음',
 		!dnav.some((x) => /신고|사용자|전체 대화/.test(x)) && ['운영 설정', '문의', '활동 기록'].every((l) => dnav.some((x) => x.includes(l))), dnav.join(','));
@@ -412,7 +460,7 @@ try {
 	const team = dv.page.locator('aside.team');
 	const tt = (await team.innerText()).replace(/\s+/g, ' ');
 	check('★ 오른쪽 운영진 현황: 역할별 묶음 · 접속 수 · 하는 일 · 오프라인은 마지막 접속', tt.includes('운영진 2') && tt.includes('운영자 — 1') && tt.includes('개발자 — 2')
-		&& tt.includes('채팅 신고 보는 중') && tt.includes('3시간 전 접속') && (await team.locator('li.off').count()) === 1, tt);
+		&& tt.includes('신고 보는 중') && tt.includes('3시간 전 접속') && (await team.locator('li.off').count()) === 1, tt);
 	await dv.page.screenshot({ path: `${SP}/audit-team-panel.png` });
 	check('페이지 오류 없음 (개발자)', dv.page.errs.length === 0, dv.page.errs.join(' / '));
 	await dv.ctx.close();
@@ -473,8 +521,10 @@ try {
 	OWNER = false;
 	const bt = await session();
 	await bt.page.go('/admin');
-	check('★ 베타테스터: 첫 화면은 실시간', new URL(bt.page.url()).pathname === '/admin/live', bt.page.url());
-	check('★ 베타테스터 메뉴: 실시간 · 공지사항만', (await bt.page.locator('.side nav a').allInnerTexts()).map((x) => x.trim()).join() === '실시간,공지사항', (await bt.page.locator('.side nav a').allInnerTexts()).join());
+	check('★ 베타테스터: 첫 화면은 개요 — 할 일 · 시스템 없이 지금 · 추이만',
+		new URL(bt.page.url()).pathname === '/admin' && (await bt.page.locator('section[aria-labelledby="todo-h"], section[aria-labelledby="sys-h"]').count()) === 0
+			&& (await bt.page.locator('section[aria-labelledby="live-h"] .tile').count()) === 5 && (await bt.page.locator('.trend').count()) === 3, bt.page.url());
+	check('★ 베타테스터 메뉴: 실시간 · 공지사항만', (await bt.page.locator('.side nav a').allInnerTexts()).map((x) => x.trim()).join() === '개요,실시간,공지사항', (await bt.page.locator('.side nav a').allInnerTexts()).join());
 	for (const p of ['/admin/users', '/admin/settings', '/admin/inquiries', '/admin/audit']) {
 		const r = await bt.page.goto(`${base}${p}`);
 		check(`★ 베타테스터: ${p} → 403`, r.status() === 403, String(r.status()));

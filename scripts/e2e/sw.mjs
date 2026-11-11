@@ -28,7 +28,15 @@ const RPC = {
 	admin_session_valid: () => true,
 	admin_staff_role: () => 'admin',
 	admin_staff_touch: () => ({ role: 'admin', team: [] }),
-	admin_stats: () => ({ open_reports: reports.filter((r) => r.status === 'open').length, reviewing: 0, open_letter_reports: 0, active_rooms: 1, seeking_now: 0, restricted_users: 0, rooms_24h: 2, letters_24h: 0, is_open: isOpen }),
+	// 개요 (Phase 96) — 첫 화면. 서비스 상태가 여기 보인다
+	admin_overview: () => ({
+		now: new Date().toISOString(),
+		todo: { chat_reports: reports.filter((r) => r.status === 'open').length, letter_reports: 0, reviewing: 0, inquiries: 0, badge_requests: 0 },
+		live: { online: 1, seeking: 0, active_rooms: 1, is_open: isOpen, maintenance: false },
+		totals: { students: 3, active_today: 1, restricted: 0 },
+		days: Array.from({ length: 14 }, (_, i) => ({ d: new Date(Date.now() + 9 * 3600_000 - (13 - i) * 86_400_000).toISOString().slice(0, 10), signups: 0, rooms: i % 3, letters: 0, reports: 0 })),
+		system: { mod_pending: 0, mod_errors_24h: 0, mod_checked_today: 0, ai_chats_today: 0, push_sent_24h: 0, push_failed_24h: 0, push_devices: 0 }
+	}),
 	admin_list_reports: (a) => reports.filter((r) => a.p_status === 'all' || r.status === a.p_status),
 	admin_list_letter_reports: () => [],
 	admin_get_settings: settings,
@@ -89,7 +97,7 @@ try {
 	check('서비스워커가 페이지를 맡음', await page.evaluate(() => !!navigator.serviceWorker.controller));
 
 	// 한 바퀴 돌아서 데이터 응답이 (예전 워커라면) 캐시에 들어가게 한다
-	for (const l of ['운영 설정', '실시간', '전체 대화', '채팅 신고']) {
+	for (const l of ['운영 설정', '실시간', '전체 대화', '신고']) {
 		await nav(l);
 		if (l === '실시간') await page.waitForTimeout(11_000); // 자동 갱신 응답까지 한 번 받아 둔다
 	}
@@ -98,7 +106,7 @@ try {
 	// ── ② DB 에서 신고 2건 삭제 → 메뉴로 다시 오면 사라져야 한다
 	reports = [];
 	await nav('운영 설정');
-	await nav('채팅 신고');
+	await nav('신고');
 	let tx = await text();
 	check('★② DB 에서 지운 신고가 화면에서도 사라짐', !/신고메모/.test(tx) && /처리할 신고가 없어요/.test(tx), tx.slice(0, 200));
 
@@ -110,9 +118,9 @@ try {
 	check('서버에서 실제로 닫힘', isOpen === false);
 	check('★⑤ 닫은 뒤 "서비스 열기" 버튼', (await page.getByRole('button', { name: '서비스 열기' }).count()) === 1, await text());
 
-	// ── ⑥ 채팅 신고 화면의 서비스 상태도 닫힘
-	await nav('채팅 신고');
-	check('★⑥ 채팅 신고 화면에 "닫힘"', /닫힘 서비스 상태/.test(await text()), (await text()).slice(0, 200));
+	// ── ⑥ 개요(첫 화면)의 서비스 상태도 닫힘
+	await nav('개요');
+	check('★⑥ 개요에 "서비스 닫힘"', /서비스 닫힘/.test(await text()), (await text()).slice(0, 200));
 
 	// 다시 열기
 	await nav('운영 설정');
@@ -120,8 +128,8 @@ try {
 	await page.waitForLoadState('networkidle');
 	await page.waitForTimeout(300);
 	check('★⑤ 다시 열림 → "서비스 닫기" 버튼으로', isOpen === true &&  (await page.getByRole('button', { name: '서비스 닫기' }).count()) === 1);
-	await nav('채팅 신고');
-	check('★⑥ 채팅 신고 화면에 "운영 중"', /운영 중 서비스 상태/.test(await text()));
+	await nav('개요');
+	check('★⑥ 개요에 "서비스 운영 중"', /서비스 운영 중/.test(await text()));
 
 	// ── ④ 전체 대화 탭
 	await nav('전체 대화');
@@ -138,9 +146,12 @@ try {
 	// ── ③ 메뉴마다 다른 화면
 	await nav('사용자');
 	const usersH = await page.locator('main h1').first().innerText().catch(() => '');
-	await nav('편지 신고');
+	await nav('신고');
+	await page.getByRole('group', { name: '신고 종류' }).getByRole('link', { name: '편지', exact: true }).click();
+	await page.waitForLoadState('networkidle');
+	await page.waitForTimeout(300);
 	const lettersTx = await text();
-	check('★③ 편지 신고 메뉴는 편지 신고 화면', /미처리 편지 신고/.test(lettersTx) && usersH === '사용자', `${usersH} / ${lettersTx.slice(0, 120)}`);
+	check('★③ 신고 메뉴의 편지 칸은 편지 신고 목록', /처리할 편지 신고가 없어요/.test(lettersTx) && page.url().includes('kind=letter') && usersH === '사용자', `${usersH} / ${lettersTx.slice(0, 120)}`);
 
 	// ── ① 실시간: 새 사용자가 생기면 자동 갱신 뒤에도 사라지지 않는다
 	await nav('사용자');

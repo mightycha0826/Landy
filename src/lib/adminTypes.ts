@@ -1,11 +1,19 @@
 import type { ReactionKey } from './chat/types';
 
 export type ReportStatus = 'open' | 'reviewing' | 'actioned' | 'dismissed';
+/** 계정 상태 (profiles.status) */
+export type AccountStatus = 'active' | 'suspended' | 'banned';
+type RoomStatus = 'pending' | 'active' | 'closed';
+/** 같은 사람이 받은 다른 신고 한 줄 */
+type ReportHistory = { id: string; created_at: string; reason: string; status: ReportStatus };
+/** 처리 기록 — 신고 상세에만 */
+type Handled = { handled_by: string | null; handled_at: string | null; action_note: string | null };
 
 /** 신원 열람 결과 한 사람 — 탈퇴한 계정은 email 이 null, 명렬표에 없으면 name 이 null */
 export type Identity = { email: string | null; name: string | null };
 
-export type ReportRow = {
+/** 채팅 · 편지 신고 목록의 공통 열 */
+type ReportBase = {
 	id: string;
 	created_at: string;
 	reason: string;
@@ -16,29 +24,39 @@ export type ReportRow = {
 	reporter_id: string | null;
 	source?: 'user' | 'auto';
 	reported_30d: number;
-	evidence_count: number;
-	reported_status: 'active' | 'suspended' | 'banned' | null;
+	reported_status: AccountStatus | null;
 };
 
+export type ReportRow = ReportBase & { evidence_count: number };
+
 export type ReportDetail = {
-	report: ReportRow & { room_id: string; handled_by: string | null; handled_at: string | null; action_note: string | null };
+	report: ReportRow & Handled & { room_id: string };
 	evidence: { ord: number; sender: 0 | 1 | 2; body: string; sent_at: string }[];
 	reported: { status: string; strikes: number; suspended_until: string | null; gender: string; created_at: string } | null;
-	history: { id: string; created_at: string; reason: string; status: ReportStatus }[];
+	history: ReportHistory[];
 	reporter_filed: number;
 	reporter_dismissed: number;
 };
 
-export type Stats = {
-	open_reports: number;
-	reviewing: number;
-	open_letter_reports: number;
-	active_rooms: number;
-	seeking_now: number;
-	restricted_users: number;
-	rooms_24h: number;
-	letters_24h: number;
-	is_open: boolean;
+/**
+ * 운영 콘솔 개요 (admin_overview, Phase 96) — 첫 화면 한 번의 요청. 칸마다 내 권한만큼만 채워진다 (없는 권한은 null).
+ * days = 한국 날짜로 오늘까지 14일, 오래된 날부터.
+ */
+export type Overview = {
+	now: string;
+	todo: { chat_reports: number | null; letter_reports: number | null; reviewing: number | null; inquiries: number | null; badge_requests: number | null };
+	live: { online: number; seeking: number; active_rooms: number; is_open: boolean; maintenance: boolean };
+	totals: { students: number; active_today: number; restricted: number };
+	days: { d: string; signups: number; rooms: number; letters: number; reports: number | null }[];
+	system: {
+		mod_pending: number;
+		mod_errors_24h: number;
+		mod_checked_today: number;
+		ai_chats_today: number;
+		push_sent_24h: number;
+		push_failed_24h: number;
+		push_devices: number;
+	} | null;
 };
 
 export const REASON_LABEL: Record<string, string> = {
@@ -70,27 +88,16 @@ export const REPORT_TABS = [
 /** 신고 대상 — 이름 편지(Phase 23, letter_id = 편지 줄기 id). letter · comment 는 걷어낸 옛 공개 편지 (Phase 85) */
 export const TARGET_LABEL: Record<string, string> = { letter: '편지', comment: '댓글', dm: '이름 편지' };
 
-export type LetterReportRow = {
-	id: string;
-	created_at: string;
+export type LetterReportRow = ReportBase & {
 	target_type: 'letter' | 'comment' | 'dm';
 	letter_id: number;
 	comment_id: number | null;
-	reason: string;
-	note: string;
-	status: ReportStatus;
-	reported_id: string;
-	/** AI 자동 감지(source = auto)면 null */
-	reporter_id: string | null;
-	source?: 'user' | 'auto';
-	reported_30d: number;
 	/** 신고한 글 앞부분 (증거 사본에서) */
 	preview: string | null;
-	reported_status: 'active' | 'suspended' | 'banned' | null;
 };
 
 export type LetterReportDetail = {
-	report: LetterReportRow & { handled_by: string | null; handled_at: string | null; action_note: string | null };
+	report: LetterReportRow & Handled;
 	evidence: {
 		ord: number;
 		kind: 'letter' | 'parent' | 'comment' | 'dm_sender' | 'dm_recipient';
@@ -101,7 +108,7 @@ export type LetterReportDetail = {
 	/** 지금 그 편지 줄기가 아직 떠 있는지 */
 	target: { thread_status?: 'open' | 'closed' | 'removed' | null };
 	reported: { status: string; strikes: number; suspended_until: string | null; created_at: string } | null;
-	history: { id: string; created_at: string; reason: string; status: ReportStatus }[];
+	history: ReportHistory[];
 	/** 같은 사람이 채팅에서 받은 신고 수 (교차 확인용) */
 	chat_reports: number;
 	reporter_filed: number;
@@ -115,7 +122,7 @@ import type { StaffRole } from './adminRoles';
 export type UserRow = {
 	id: string;
 	nickname: string | null;
-	status: 'active' | 'suspended' | 'banned';
+	status: AccountStatus;
 	suspended_until: string | null;
 	strikes: number;
 	verified: boolean;
@@ -131,7 +138,7 @@ export type UserRow = {
 export type LiveUser = {
 	id: string;
 	nickname: string | null;
-	status: 'active' | 'suspended' | 'banned';
+	status: AccountStatus;
 	suspended_until: string | null;
 	onboarded: boolean;
 	staff_role: StaffRole | null;
@@ -153,7 +160,7 @@ export type UserDetail = {
 		mbti: string | null;
 		gender: 'm' | 'f' | 'x';
 		want: 'm' | 'f' | 'any';
-		status: 'active' | 'suspended' | 'banned';
+		status: AccountStatus;
 		suspended_until: string | null;
 		strikes: number;
 		verified: boolean;
@@ -164,14 +171,14 @@ export type UserDetail = {
 	last_seen: string | null;
 	staff_role: StaffRole | null;
 	counts: { rooms: number; open_rooms: number; letters: number; reports_filed: number; reports_dismissed: number };
-	chat_reports: { id: string; created_at: string; reason: string; status: ReportStatus }[];
-	letter_reports: { id: string; created_at: string; reason: string; status: ReportStatus; target_type: 'letter' | 'comment' | 'dm' }[];
+	chat_reports: ReportHistory[];
+	letter_reports: (ReportHistory & { target_type: LetterReportRow['target_type'] })[];
 	history: { action: string; staff_id: string | null; detail: Record<string, unknown>; created_at: string }[];
 };
 
 export type UserRoomRow = {
 	id: string;
-	status: 'pending' | 'active' | 'closed';
+	status: RoomStatus;
 	created_at: string;
 	closed_at: string | null;
 	close_reason: string | null;
@@ -184,7 +191,7 @@ export type UserRoomRow = {
 
 export type RoomRow = {
 	id: string;
-	status: 'pending' | 'active' | 'closed';
+	status: RoomStatus;
 	created_at: string;
 	closed_at: string | null;
 	close_reason: string | null;
@@ -305,7 +312,7 @@ export type UserBadgeRow = { code: string; title: string; description: string; h
 /** 운영자 뱃지 화면 (Phase 71) — 줄 수 있는 뱃지 · 가진 사람 수 (admin_badges) */
 export type BadgeAdminRow = { code: string; title: string; description: string; icon: string; category: string; holders: number };
 /** 한 뱃지를 가진 학생 (admin_badge_holders) */
-export type BadgeHolderRow = { id: string; nickname: string | null; status: 'active' | 'suspended' | 'banned'; earned_at: string };
+export type BadgeHolderRow = { id: string; nickname: string | null; status: AccountStatus; earned_at: string };
 /** 학생이 보낸 뱃지 요청 (admin_badge_requests, Phase 84) — 학번 · 이름 · 사진이 있어 관리자만 */
 export type BadgeRequestRow = {
 	id: number;

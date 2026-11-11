@@ -1,7 +1,7 @@
 import { redirect, type Handle, type HandleServerError, type RequestEvent } from '@sveltejs/kit';
 import { readSessionDetails, clearSession } from '$lib/server/adminSession';
 import { adminRpc } from '$lib/server/supabaseAdmin';
-import { isStaffRole, type Perm, type TeamMember } from '$lib/adminRoles';
+import { isStaffRole, type Perm, type TeamMember, type Todo } from '$lib/adminRoles';
 
 /**
  * /admin 가드 (dabang-kiosk hooks.server.ts 구조 + 강화된 인증).
@@ -19,6 +19,8 @@ type StaffTouch = {
 	maintenance?: boolean;
 	maintenance_at?: string | null;
 	team: TeamMember[];
+	/** 메뉴의 밀린 일 수 (Phase 96) — 화면을 여는 요청에만. 옛 DB 면 없다 */
+	todo?: Todo | null;
 };
 
 /** 페이지를 여는 요청만 활동 주소를 갱신한다. 현황 폴링·다운로드는 마지막 화면을 유지한다. */
@@ -44,6 +46,7 @@ async function authenticateStaff(event: RequestEvent) {
 			if (touch && isStaffRole(touch.role)) {
 				event.locals.staff = { id: uid, role: touch.role, owner: !!touch.owner, perms: touch.perms ?? [] };
 				event.locals.team = touch.team;
+				event.locals.todo = touch.todo ?? null;
 			}
 		}
 	} catch (e) {
@@ -76,6 +79,7 @@ function securityHeaders(res: Response, isAdmin: boolean) {
 export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.staff = null;
 	event.locals.team = null;
+	event.locals.todo = null;
 	event.locals.maintenance = false;
 	event.locals.maintenanceAt = null;
 	const path = event.url.pathname;

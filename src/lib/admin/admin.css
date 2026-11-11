@@ -276,35 +276,6 @@ body.admin .st-dismissed {
 	color: var(--text-2);
 }
 
-/* 신고 목록 위 수치 띠 (채팅 신고 · 편지 신고) */
-body.admin .a-stats {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-	border: 1px solid var(--line);
-	border-radius: var(--r-sm);
-	overflow: hidden;
-	margin-bottom: 20px;
-}
-body.admin .a-stat {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	padding: 12px 14px;
-	border-right: 1px solid var(--line);
-	color: var(--text);
-}
-body.admin .a-stat b {
-	font-size: 22px;
-	font-weight: 650;
-	letter-spacing: -0.03em;
-}
-body.admin .a-stat span {
-	font-size: 12px;
-	color: var(--text-2);
-}
-body.admin .a-stat.hot b {
-	color: var(--danger);
-}
 body.admin .a-reason {
 	font-weight: 600;
 	white-space: nowrap;
@@ -383,18 +354,11 @@ body.admin form[data-dirty] > button:last-of-type:not([type='button']) {
 	box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
-/* ── 카드 · 표 · 수치 띠를 조금 더 또렷하게 (Phase 48) ── */
+/* ── 카드 · 표를 조금 더 또렷하게 (Phase 48) ── */
 body.admin .a-card {
 	background: var(--surface);
 	border-radius: 14px;
 	box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
-}
-body.admin .a-stats {
-	border-radius: 14px;
-	background: var(--surface);
-}
-body.admin .a-stat b {
-	font-size: 24px;
 }
 body.admin .a-h1 {
 	font-size: 24px;

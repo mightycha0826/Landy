@@ -17,7 +17,7 @@
 	const auto = $derived(r.source === 'auto');
 </script>
 
-<ReportHeader back={{ href: '/admin', label: '신고 목록' }} title={REASON_LABEL[r.reason] ?? r.reason} report={r} />
+<ReportHeader back={{ href: '/admin/reports', label: '신고 목록' }} title={REASON_LABEL[r.reason] ?? r.reason} report={r} />
 <FormMsg {form} />
 
 <div class="a-grid">

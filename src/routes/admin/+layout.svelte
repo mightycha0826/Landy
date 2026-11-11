@@ -4,7 +4,8 @@
 	import '$lib/admin/admin.css';
 	import ConfirmDialog from '$lib/admin/ConfirmDialog.svelte';
 	import TeamPanel from '$lib/admin/TeamPanel.svelte';
-	import { ROLE_COLOR, ROLE_LABEL, canSee } from '$lib/adminRoles';
+	import QuickFind from '$lib/admin/QuickFind.svelte';
+	import { ROLE_COLOR, ROLE_LABEL, canSee, type Todo } from '$lib/adminRoles';
 
 	let { data, children } = $props();
 
@@ -37,13 +38,23 @@
 
 	// 메뉴 (Phase 48 — 하는 일별로 묶은 왼쪽 사이드바. 좁은 화면은 위쪽 한 줄로 밀기)
 	// 역할(Phase 49)마다 볼 수 있는 메뉴만 — 권한표는 lib/adminRoles.ts
-	const GROUPS: { title: string; items: { href: string; label: string; ic: string }[] }[] = [
-		{ title: '지켜보기', items: [{ href: '/admin/live', label: '실시간', ic: 'M3 12h4l3-8 4 16 3-8h4' }] },
+	// Phase 96 — 맨 위에 개요, 처리할 일(신고 · 문의 · 뱃지 요청)을 한 묶음으로 모으고 밀린 수를 옆에 붙인다.
+	//   채팅 신고 · 편지 신고 두 메뉴는 "신고" 하나로 (화면에서 종류를 고른다)
+	type Item = { href: string; label: string; ic: string; todo?: keyof Todo };
+	const GROUPS: { title: string; items: Item[] }[] = [
 		{
-			title: '신고 처리',
+			title: '한눈에',
 			items: [
-				{ href: '/admin', label: '채팅 신고', ic: 'M4 5h16v11H9l-5 4V5z' },
-				{ href: '/admin/letters', label: '편지 신고', ic: 'M3 6h18v12H3zM3 7l9 6 9-6' }
+				{ href: '/admin', label: '개요', ic: 'M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 8h6V4h-6z' },
+				{ href: '/admin/live', label: '실시간', ic: 'M3 12h4l3-8 4 16 3-8h4' }
+			]
+		},
+		{
+			title: '처리할 일',
+			items: [
+				{ href: '/admin/reports', label: '신고', ic: 'M4 5h16v11H9l-5 4V5z', todo: 'reports' },
+				{ href: '/admin/inquiries', label: '문의', ic: 'M12 21a9 9 0 10-8-5l-1 5 5-1a9 9 0 004 1zM9.5 9.5a2.5 2.5 0 114 2c-1 .6-1.5 1-1.5 2M12 16.5v.01', todo: 'inquiries' },
+				{ href: '/admin/badge-requests', label: '뱃지 요청', ic: 'M4 8.5A1.5 1.5 0 015.5 7h2.2l1.3-2h6l1.3 2h2.2A1.5 1.5 0 0120 8.5v9a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 17.5zM12 15.9a3.4 3.4 0 100-6.8 3.4 3.4 0 000 6.8z', todo: 'badge_requests' }
 			]
 		},
 		{
@@ -51,28 +62,26 @@
 			items: [
 				{ href: '/admin/users', label: '사용자', ic: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 21c1-4 4.5-6 8-6s7 2 8 6' },
 				{ href: '/admin/badges', label: '뱃지', ic: 'M12 15a6 6 0 100-12 6 6 0 000 12zM8.5 13.9L7 21l5-2.6 5 2.6-1.5-7.1' },
-				{ href: '/admin/badge-requests', label: '뱃지 요청', ic: 'M4 8.5A1.5 1.5 0 015.5 7h2.2l1.3-2h6l1.3 2h2.2A1.5 1.5 0 0120 8.5v9a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 17.5zM12 15.9a3.4 3.4 0 100-6.8 3.4 3.4 0 000 6.8z' },
 				{ href: '/admin/rooms', label: '전체 대화', ic: 'M3 5h12v9H7l-4 3V5zM9 17h8l4 3V9h-3' }
 			]
 		},
 		{
-			title: '소통',
+			title: '알리기',
 			items: [
 				{ href: '/admin/notices', label: '공지사항', ic: 'M4 10v4h4l6 5V5L8 10H4zM18 9a4 4 0 010 6' },
-				{ href: '/admin/inquiries', label: '문의', ic: 'M12 21a9 9 0 10-8-5l-1 5 5-1a9 9 0 004 1zM9.5 9.5a2.5 2.5 0 114 2c-1 .6-1.5 1-1.5 2M12 16.5v.01' }
+				{ href: '/admin/update', label: '업데이트', ic: 'M12 3v12M7 10l5 5 5-5M5 21h14' }
 			]
 		},
 		{
 			title: '운영',
 			items: [
 				{ href: '/admin/settings', label: '운영 설정', ic: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19 12l2-1-2-4-2 1-2-1.5V4h-4v2.5L9 8 7 7l-2 4 2 1v0l-2 1 2 4 2-1 2 1.5V20h4v-2.5l2-1.5 2 1 2-4-2-1z' },
-				{ href: '/admin/update', label: '업데이트', ic: 'M12 3v12M7 10l5 5 5-5M5 21h14' },
 				{ href: '/admin/audit', label: '활동 기록', ic: 'M12 7v5l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z' }
 			]
 		}
 	];
 	// 운영진 관리 (Phase 50) — 최고 관리자에게만
-	const STAFF_ITEM = { href: '/admin/staff', label: '운영진 관리', ic: 'M16 11a3 3 0 100-6 3 3 0 000 6zM8 12a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM2 20c.6-3.4 3-5.5 6-5.5s5.4 2.1 6 5.5M15 14.6c2.8-.4 5.4 1.3 6 4.9' };
+	const STAFF_ITEM: Item = { href: '/admin/staff', label: '운영진 관리', ic: 'M16 11a3 3 0 100-6 3 3 0 000 6zM8 12a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM2 20c.6-3.4 3-5.5 6-5.5s5.4 2.1 6 5.5M15 14.6c2.8-.4 5.4 1.3 6 4.9' };
 	const NAV = $derived(
 		GROUPS.map((g) => ({
 			...g,
@@ -81,8 +90,21 @@
 	);
 	const active = (href: string) =>
 		href === '/admin'
-			? page.url.pathname === '/admin' || page.url.pathname.startsWith('/admin/reports')
-			: page.url.pathname.startsWith(href);
+			? page.url.pathname === '/admin'
+			: href === '/admin/reports'
+				? /^\/admin\/(reports|letters)/.test(page.url.pathname) // 편지 신고 상세(/admin/letters/[id])도 "신고"
+				: page.url.pathname.startsWith(href);
+	/** 메뉴 옆 밀린 일 수 — 0 이거나 권한이 없으면(null) · 옛 DB 면 붙이지 않는다 */
+	const pending = (n: Item) => (n.todo ? (data.todo?.[n.todo] ?? 0) : 0);
+
+	// 빠른 찾기 (Phase 96) — Ctrl/⌘ + K. 메뉴의 화면과 사용자 찾기를 한 칸에서
+	let finding = $state(false);
+	function onkey(e: KeyboardEvent) {
+		if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && data.staff) {
+			e.preventDefault();
+			finding = true;
+		}
+	}
 
 	// 고친 칸 표시 (Phase 48) — 폼 안의 값을 바꾸면 그 줄(label · .row)에 표시, 폼에는 data-dirty(저장 단추가 눈에 띄게).
 	// 저장이 성공하면 lib/admin/confirm.ts(ack)가 지운다
@@ -118,13 +140,19 @@
 	{#if data.staff}
 		<aside class="side">
 			<a class="brand" href="/admin"><b class="wordmark">Landy</b> <span>운영</span></a>
+			<button class="find" onclick={() => (finding = true)} aria-haspopup="dialog">
+				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
+				<span>화면 · 사용자 찾기</span><kbd>Ctrl K</kbd>
+			</button>
 			<nav aria-label="운영 메뉴">
 				{#each NAV as g (g.title)}
 					<p class="group">{g.title}</p>
 					{#each g.items as n (n.href)}
+						{@const wait = pending(n)}
 						<a href={n.href} class:on={active(n.href)} aria-current={active(n.href) ? 'page' : undefined}>
 							<svg viewBox="0 0 24 24" aria-hidden="true"><path d={n.ic} fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
 							{n.label}
+							{#if wait > 0}<span class="count num" aria-label="밀린 일 {wait}건">{wait > 99 ? '99+' : wait}</span>{/if}
 						</a>
 					{/each}
 				{/each}
@@ -155,6 +183,11 @@
 </div>
 
 <ConfirmDialog />
+
+<svelte:window onkeydown={onkey} />
+{#if finding && data.staff}
+	<QuickFind pages={NAV.flatMap((g) => g.items.map((n) => ({ href: n.href, label: n.label, group: g.title })))} users={canSee(data.staff, '/admin/users')} onclose={() => (finding = false)} />
+{/if}
 
 <style>
 	/* Phase 48 — 넓은 화면: 왼쪽 사이드바(하는 일별 묶음) + 오른쪽 본문. 좁은 화면(≤900): 위쪽 머리글 + 옆으로 미는 메뉴 한 줄 */
@@ -259,6 +292,56 @@
 	nav a.on svg {
 		color: var(--accent);
 	}
+	/* 밀린 일 수 (Phase 96) — 메뉴 오른쪽 끝 */
+	.count {
+		margin-left: auto;
+		min-width: 20px;
+		padding: 1px 6px;
+		border-radius: 999px;
+		background: var(--accent-fill-deep);
+		color: #fff;
+		font-size: 11px;
+		font-weight: 700;
+		line-height: 18px;
+		text-align: center;
+	}
+	/* 빠른 찾기 단추 (Phase 96) */
+	.find {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 0 0 12px;
+		padding: 8px 10px;
+		border: 1px solid var(--line);
+		border-radius: 10px;
+		background: var(--bg);
+		color: var(--text-2);
+		font-size: 13px;
+		font-weight: 500;
+		text-align: left;
+	}
+	.find:hover {
+		color: var(--text);
+		border-color: var(--text-2);
+	}
+	.find svg {
+		flex: none;
+		width: 16px;
+		height: 16px;
+	}
+	.find span {
+		flex: 1;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.find kbd {
+		padding: 1px 5px;
+		border: 1px solid var(--line);
+		border-radius: 5px;
+		font: inherit;
+		font-size: 11px;
+	}
 	.me {
 		display: flex;
 		align-items: center;
@@ -346,6 +429,12 @@
 		}
 		.group {
 			display: none;
+		}
+		/* 빠른 찾기는 메뉴 줄 아래 한 줄로 */
+		.find {
+			grid-column: 1 / -1;
+			grid-row: 3;
+			margin: 8px 0 4px;
 		}
 		nav a {
 			flex: none;

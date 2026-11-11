@@ -46,7 +46,7 @@ const PAGES: [RegExp, (Perm | 'any')[]][] = [
 	[/^\/admin\/audit/, ['audit']],
 	[/^\/admin\/team/, ['any']],
 	[/^\/admin\/staff/, ['identity']], // 실제로는 최고 관리자만 (guard 가 따로 본다)
-	[/^\/admin\/?$/, ['moderate']]
+	[/^\/admin\/?$/, ['any']] // 개요 (Phase 96) — 운영진이면 누구나, 칸마다 내 권한만큼만 채워진다
 ];
 function pagePerms(path: string): (Perm | 'any')[] {
 	return PAGES.find(([re]) => re.test(path))?.[1] ?? ['any'];
@@ -54,14 +54,19 @@ function pagePerms(path: string): (Perm | 'any')[] {
 export const canSee = (who: Who, path: string) =>
 	// 업데이트 반영 (Phase 94) — 권한 표와 상관없이 관리자 역할만
 	path.startsWith('/admin/update') ? who?.role === 'admin' : pagePerms(path).some((p) => can(who, p));
-/** 처음 여는 화면 — 볼 수 있는 것 중 앞에서부터 */
-export const homeOf = (who: Who) => ['/admin', '/admin/live', '/admin/inquiries', '/admin/settings', '/admin/audit'].find((p) => canSee(who, p)) ?? '/admin/notices';
+
+/**
+ * 메뉴에 붙이는 밀린 일 수 (Phase 96) — 역할 확인(admin_staff_touch)과 같은 요청으로 온다.
+ * 내 권한으로 처리할 수 없는 것은 null. DB 가 Phase 96 전이면 통째로 없다(메뉴에 수가 안 붙을 뿐).
+ */
+export type Todo = { reports: number | null; inquiries: number | null; badge_requests: number | null };
 
 /** 현황 판 — 마지막으로 본 화면 주소를 "무엇을 하는 중"으로 */
 export function activityOf(path: string | null): string {
 	if (!path) return '';
 	const p = path.replace(/\/__data\.json$/, '');
-	if (p.startsWith('/admin/reports') || p === '/admin') return '채팅 신고 보는 중';
+	if (p === '/admin') return '개요 보는 중';
+	if (p.startsWith('/admin/reports')) return '신고 보는 중';
 	if (p.startsWith('/admin/letters')) return '편지 신고 보는 중';
 	if (p.startsWith('/admin/users/')) return '사용자 살펴보는 중';
 	if (p.startsWith('/admin/users')) return '사용자 찾는 중';

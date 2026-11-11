@@ -6,6 +6,8 @@ declare global {
 			staff: { id: string; role: import('$lib/adminRoles').StaffRole; owner?: boolean; perms: import('$lib/adminRoles').Perm[] } | null;
 			/** Phase 49: 운영진 현황(오른쪽 판) — 역할 확인과 같은 요청(admin_staff_touch)으로 받는다 */
 			team: import('$lib/adminRoles').TeamMember[] | null;
+			/** Phase 96: 메뉴에 붙일 밀린 일 수 — 화면을 여는 요청에만 온다 (DB 가 Phase 96 전이면 null) */
+			todo: import('$lib/adminRoles').Todo | null;
 			/** Phase 52: 서버 점검 중 — 운영 화면 위 띠 */
 			maintenance: boolean;
 			/** Phase 53: 예약된 점검 시각 (아직 안 켜짐) */

@@ -3794,7 +3794,7 @@ console.log('\n[100] 마이그레이션과 스키마 snapshot 일치');
 	const defs = async () => (await db.query("select n.nspname || '.' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' name, pg_get_functiondef(p.oid) body from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.prokind='f' order by 1")).rows;
 	const before = JSON.stringify(await defs());
 	// 운영에 적용한 순서대로 다시 실행하면 snapshot과 같아야 한다 (뒤 마이그레이션이 앞의 함수를 고쳐 쓴다)
-	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql', '20261102130000_anon_friends_phase93.sql', '20261102150000_friend_contact_phase95.sql'])
+	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql', '20261102130000_anon_friends_phase93.sql', '20261102150000_friend_contact_phase95.sql', '20261110120000_admin_overview_phase96.sql'])
 		await db.exec(readFileSync(here + 'migrations/' + file, 'utf8'));
 	check('업그레이드 마이그레이션의 함수가 snapshot과 같음', JSON.stringify(await defs()) === before);
 }
@@ -3898,6 +3898,37 @@ console.log('\n[Phase 94] ★ 업데이트 공지 — 관리자만 반영, 밀�
 	check('사이에 보통 공지가 없으면 하트 점도 함께 끈다 (없는 번호로 앞지르지 않는다)', Number(await rpcAs(st, 'mark_updates_seen', u3 + 50)) === u3);
 	check('운영자 목록에 release 표시', (await svc('admin_notices', mod)).find((n) => Number(n.id) === u3).release === true);
 	check('활동 기록에 버전', (await one(`select count(*)::int n from private.audit_log where action = 'release' and detail->>'version' = $1`, [V])).n === 5);
+}
+
+console.log('\n[Phase 96] ★ 운영 콘솔 개요 — 할 일 · 지금 · 14일 추이 · 시스템, 칸마다 내 권한만큼만');
+{
+	const adm = await person('m', 'f');
+	const dev = await person('f', 'm');
+	const beta = await person('m', 'm');
+	const kid = await person('f', 'f');
+	await db.query(`insert into private.staff (user_id, role) values ($1, 'admin'), ($2, 'developer'), ($3, 'beta')`, [adm, dev, beta]);
+	const o = await svc('admin_overview', adm);
+	const kst = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
+	check('★ 관리자: 할 일 · 지금 · 누적 · 시스템이 모두 수로 온다',
+		['chat_reports', 'letter_reports', 'reviewing', 'inquiries', 'badge_requests'].every((k) => typeof o.todo[k] === 'number')
+			&& typeof o.live.online === 'number' && typeof o.live.is_open === 'boolean' && typeof o.totals.students === 'number' && typeof o.system.push_devices === 'number', JSON.stringify(o).slice(0, 300));
+	check('★ 추이는 한국 날짜로 오늘까지 14일 (오래된 날부터)', o.days.length === 14 && o.days.at(-1).d === kst && o.days[0].d < o.days[1].d, JSON.stringify(o.days.map((d) => d.d)));
+	check('오늘 가입에 방금 만든 학생이 들어 있다', o.days.at(-1).signups >= 4 && o.totals.students >= 4, JSON.stringify(o.days.at(-1)));
+	const before = o.todo.inquiries;
+	await db.query(`insert into private.inquiries (user_id, kind, body) values ($1, 'bug', '버튼이 안 눌려요')`, [kid]);
+	check('★ 답을 기다리는 문의가 할 일에 바로 센다', (await svc('admin_overview', adm)).todo.inquiries === before + 1);
+	const d = await svc('admin_overview', dev);
+	check('★ 개발자: 신고 · 뱃지 요청은 비우고(null) 문의 · 시스템은 준다',
+		d.todo.chat_reports === null && d.todo.letter_reports === null && d.todo.badge_requests === null && d.todo.inquiries === before + 1 && d.system !== null && d.days.every((x) => x.reports === null), JSON.stringify(d.todo));
+	const b = await svc('admin_overview', beta);
+	check('★ 베타테스터: 할 일 · 시스템은 없고 지금 · 추이만', Object.values(b.todo).every((v) => v === null) && b.system === null && b.days.length === 14 && typeof b.live.online === 'number', JSON.stringify(b.todo));
+	await expectError('★ 운영진이 아니면 못 부른다', () => svc('admin_overview', kid), 'not_staff');
+	await expectError('★ 학생은 직접 못 부른다', () => rowsAs(kid, `select public.admin_overview('${adm}')`), 'permission denied');
+	const t = await svc('admin_staff_touch', adm, '/admin');
+	check('★ 화면을 여는 요청에는 메뉴의 밀린 일 수가 같이 온다', typeof t.todo.reports === 'number' && t.todo.inquiries === before + 1 && typeof t.todo.badge_requests === 'number', JSON.stringify(t.todo));
+	check('★ 현황 새로고침(경로 없음)에는 세지 않는다', (await svc('admin_staff_touch', adm, null)).todo === null);
+	const td = (await svc('admin_staff_touch', dev, '/admin')).todo;
+	check('개발자 메뉴: 신고 수는 없고 문의 수만', td.reports === null && td.badge_requests === null && td.inquiries === before + 1, JSON.stringify(td));
 }
 
 console.log(`\n${pass} passed, ${fail} failed\n`);

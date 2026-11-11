@@ -1,16 +1,8 @@
-import { adminRpc } from '$lib/server/supabaseAdmin';
-import { listReports, reportFilter } from '$lib/server/reports';
-import { guard } from '$lib/server/adminAuth';
-import type { LetterReportRow, Stats } from '$lib/adminTypes';
+import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
-/** 익명편지 신고 큐 — 채팅 신고 큐(/admin)와 같은 모양, 별도 테이블 */
-export const load: PageServerLoad = async ({ url, locals }) => {
-	guard(locals, url); // 운영자 · 관리자 (Phase 49)
-	const status = reportFilter(url);
-	const [stats, reports] = await Promise.all([
-		adminRpc<Stats>('admin_stats'),
-		listReports<LetterReportRow>('letter', status)
-	]);
-	return { stats, reports, status };
+/** 예전 편지 신고 목록 주소 — 신고 큐(/admin/reports)의 편지 칸으로 보낸다 (Phase 96). 상세(/admin/letters/[id])는 그대로 */
+export const load: PageServerLoad = ({ url }) => {
+	const status = url.searchParams.get('status');
+	redirect(307, `/admin/reports?kind=letter${status ? `&status=${encodeURIComponent(status)}` : ''}`);
 };

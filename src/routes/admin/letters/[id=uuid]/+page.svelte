@@ -26,7 +26,7 @@
 </script>
 
 <ReportHeader
-	back={{ href: '/admin/letters', label: '편지 신고 목록' }}
+	back={{ href: '/admin/reports?kind=letter', label: '편지 신고 목록' }}
 	title="{TARGET_LABEL[r.target_type] ?? r.target_type} · {REASON_LABEL[r.reason] ?? r.reason}"
 	report={r}
 />

@@ -100,7 +100,7 @@ try {
 	const U = (p) => `http://localhost:${PORT}${p}`;
 
 	console.log('[자동 감지 신고]');
-	await page.goto(U('/admin'));
+	await page.goto(U('/admin/reports'));
 	const rows = page.locator('tbody tr');
 	await rows.first().waitFor();
 	check('목록: 자동 감지에 "자동" 표시 · 위기 신호 사유', (await rows.nth(0).innerText()).includes('자동') && (await rows.nth(0).innerText()).includes('위기 신호'), await rows.nth(0).innerText());

@@ -914,4 +914,16 @@ node scripts/dev-user.mjs simbun-test3@cnsa.hs.kr 비밀번호 m      # 성별�
       어디까지 봤는지는 `notice_reads.last_update_id`(`mark_updates_seen`), 가입 전 업데이트 공지는 안 뜬다. 공지는 하트가 이미 부르는 `my_notices` 로 받는다 (요청 추가 없음).
       실DB 는 `supabase/migrations/20261102140000_release_notes_phase94.sql` (여러 번 실행해도 같다) — 아직 반영 전. 스키마 테스트 [Phase 94] · 화면 admin-notices · update-notes.
       ★ cron(`triggers`) 을 바꾸는 푸시는 버전 업로드로는 반영되지 않는다 — `npx wrangler triggers deploy` 를 따로.
+- [ ] **Phase 96 — 운영 콘솔 전면 보수: 개요 첫 화면 · 신고 큐 하나로 · 메뉴의 밀린 일 수 · 빠른 찾기** —
+      첫 화면(`/admin`)이 채팅 신고 목록에서 **개요**로: 할 일(미처리 신고 · 답 기다리는 문의 · 뱃지 요청) → 지금(접속 · 찾는 중 · 진행 중 대화 · 가입 · 이용 제한)
+      → 14일 추이(가입 · 새 대화 · 편지 · 신고, 한국 날짜 · 막대에 올리면 그날 수 · 표로 보기) → 시스템(AI 검토 대기 · 오류 · 푸시 실패).
+      `admin_overview(staff)` 한 번의 요청이고, 칸마다 내 권한만큼만 채운다(없는 권한은 null → 화면이 그 칸을 그리지 않는다). 운영진이면 누구나 연다 —
+      개발자 · 베타테스터도 첫 화면이 개요다(예전엔 실시간으로 보냈다 · `homeOf` 삭제). 메시지 수 추이는 없다(끝난 대화의 메시지는 24시간 뒤 지워진다).
+      채팅 신고(`/admin`) · 편지 신고(`/admin/letters`) 두 목록은 **신고 큐**(`/admin/reports?kind=chat|letter`) 하나로 — 두 화면 위에 겹쳐 있던 숫자 줄(`admin_stats`)은 개요로 모으고 지웠다.
+      옛 주소 `/admin/letters` 는 편지 칸으로 넘어간다. 상세 주소(`/admin/reports/[id]` · `/admin/letters/[id]`)는 그대로.
+      메뉴는 한눈에(개요 · 실시간) · 처리할 일(신고 · 문의 · 뱃지 요청, 밀린 수가 옆에) · 사람 · 대화 · 알리기(공지사항 · 업데이트) · 운영 순. 밀린 수는 역할 확인과 같은 요청
+      (`admin_staff_touch` 의 `todo`, 화면을 여는 요청에만)으로 와서 요청이 늘지 않는다. **빠른 찾기**(Ctrl/⌘+K · 메뉴 위 단추, `lib/admin/QuickFind.svelte`)는
+      화면 이름으로 옮겨 가고, 화면 이름이 아니면 사용자 찾기로 넘긴다 (서버에 따로 묻지 않는다).
+      실DB 는 `supabase/migrations/20261110120000_admin_overview_phase96.sql` (여러 번 실행해도 같다) — 아직 반영 전. 반영 전에는 개요가 "DB 업데이트 뒤에 보여요", 메뉴의 수는 비어 있다.
+      DB 의 `admin_stats()` 는 이제 앱이 부르지 않는다(함수는 남겨 둠). 스키마 테스트 [Phase 96] · 화면 audit · sw · admin-ai.
 - [ ] Phase 7 — (보류) Durable Object 전송 계층. 학술탐구 큐 · 벤치는 별도 저장소(serverless-log-queue)에서 진행하고, 앱 적용 여부는 실험 결과를 본 뒤 따로 정한다.
