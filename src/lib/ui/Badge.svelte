@@ -315,6 +315,23 @@
 		filter: grayscale(1);
 		opacity: 0.35;
 	}
+	/* 핀 그림(pins/) 공통 — 칸을 채우고, 받은 뱃지는 빛 띠가 한 번 스친다. 그림마다 복사해 두던 것을 여기 한 곳에 */
+	.art :global(.pin-art) {
+		display: block;
+		width: 100%;
+		height: 100%;
+		overflow: visible;
+	}
+	.art :global(.pin-art .sweep) {
+		transform-box: view-box;
+		translate: -60px 0;
+		animation: pin-sweep 1.9s calc(var(--d) + 0.45s) cubic-bezier(0.45, 0, 0.25, 1) forwards;
+	}
+	@keyframes pin-sweep {
+		to {
+			translate: 170px 0;
+		}
+	}
 	/* 빛이 한 번 부드럽게 스친다 (비스듬한 넓은 빛 띠) */
 	.shine .rim::after {
 		content: '';

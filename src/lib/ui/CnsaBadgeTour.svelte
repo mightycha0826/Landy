@@ -9,7 +9,7 @@
 	import { backClose, navigateFromOverlay } from '$lib/overlay.svelte';
 	import { BADGE_TOUR, closeBadgeTour } from '$lib/badgeTour.svelte';
 	import { clubsReleased, fetchMyAchievements, GOLDS_FOR_FIVE, slotsOf, type MyAchievements } from '$lib/achievements';
-	import { S, errMsg, setProfileField, toast } from '$lib/state.svelte';
+	import { LETTER_ORDER, S, setLetterBadgeOrder } from '$lib/state.svelte';
 	import Badge from './Badge.svelte';
 	import BadgeChatToggles from './BadgeChatToggles.svelte';
 
@@ -32,20 +32,6 @@
 	const last = $derived(step === STEPS.length - 1);
 	const insta = $derived(S.settings?.badge_instagram ?? null);
 	const golds = $derived(mine?.golds ?? 0);
-
-	// 편지 찾기에서 내 뱃지 순서 — 내 순서 / 무작위
-	let orderBusy = $state(false);
-	async function setOrder(v: 'mine' | 'random') {
-		if (orderBusy || (S.profile?.letter_badge_order ?? 'mine') === v) return;
-		orderBusy = true;
-		try {
-			await setProfileField({ letter_badge_order: v });
-		} catch (e) {
-			toast(errMsg(e));
-		} finally {
-			orderBusy = false;
-		}
-	}
 
 	// 창을 닫으며 이동 — 이 창의 뒤로가기 칸을 제출 화면으로 바꿔 끼운다 (닫기의 뒤로가기와 이동이 서로 취소하지 않게, lib/overlay.svelte.ts)
 	function submit() {
@@ -118,8 +104,8 @@
 										class:on={(S.profile?.letter_badge_order ?? 'mine') === v}
 										role="radio"
 										aria-checked={(S.profile?.letter_badge_order ?? 'mine') === v}
-										disabled={orderBusy}
-										onclick={() => setOrder(v)}>{label}</button
+										disabled={LETTER_ORDER.busy}
+										onclick={() => setLetterBadgeOrder(v)}>{label}</button
 									>
 								{/each}
 							</div>

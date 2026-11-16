@@ -87,22 +87,3 @@
 		</g>
 	{/if}
 </svg>
-
-<style>
-	.pin-art {
-		display: block;
-		width: 100%;
-		height: 100%;
-		overflow: visible;
-	}
-	.sweep {
-		transform-box: view-box;
-		translate: -60px 0;
-		animation: pin-sweep 1.9s calc(var(--d) + 0.45s) cubic-bezier(0.45, 0, 0.25, 1) forwards;
-	}
-	@keyframes pin-sweep {
-		to {
-			translate: 170px 0;
-		}
-	}
-</style>

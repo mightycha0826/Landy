@@ -8,6 +8,7 @@
 	 */
 	import { ROLE_COLOR, ROLE_LABEL, activityOf, type StaffRole, type TeamMember } from '$lib/adminRoles';
 	import { agoText } from '$lib/time';
+	import { whileVisible } from '$lib/visible';
 
 	let { team }: { team: TeamMember[] } = $props();
 
@@ -21,11 +22,10 @@
 	});
 	const list = $derived(fresh ?? team);
 
-	$effect(() => {
-		let timer: ReturnType<typeof setInterval> | undefined;
-		const pull = async () => {
+	// 탭이 보이는 동안만 1분마다 · 돌아오면 곧바로 (lib/visible.ts)
+	$effect(() =>
+		whileVisible(async () => {
 			now = Date.now();
-			if (document.visibilityState !== 'visible') return;
 			// 좁은 화면(판이 숨겨짐)에선 부르지 않는다 (Phase 54 — 안 보이는 판 때문에 1분마다 DB 요청이 나가던 것)
 			if (!panel || panel.offsetParent === null) return;
 			try {
@@ -34,15 +34,8 @@
 			} catch {
 				/* 오프라인 — 다음에 */
 			}
-		};
-		const onVis = () => document.visibilityState === 'visible' && void pull();
-		timer = setInterval(pull, 60_000);
-		document.addEventListener('visibilitychange', onVis);
-		return () => {
-			clearInterval(timer);
-			document.removeEventListener('visibilitychange', onVis);
-		};
-	});
+		}, 60_000)
+	);
 
 	type State = 'on' | 'idle' | 'off';
 	const stateOf = (m: TeamMember): State => {

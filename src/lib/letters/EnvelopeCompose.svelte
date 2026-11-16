@@ -18,7 +18,7 @@
 	import LetterEditor from './LetterEditor.svelte';
 	import Postbox from './Postbox.svelte';
 	import type { LetterFmt } from './rich';
-	import { envWidth, play } from './stage';
+	import { envWidth, play, slotTarget } from './stage';
 	import { KB } from '../keyboard.svelte';
 	import * as haptic from '../haptics';
 	import { NICK_MAX, paperDate, stampDate } from './api';
@@ -182,16 +182,7 @@
 	let bump = $state(0);
 	let target = $state({ x: 0, y: 0, s: 0.3 });
 	function aim() {
-		if (envEl && slotEl) {
-			const e = envEl.getBoundingClientRect();
-			const s = slotEl.getBoundingClientRect();
-			const scale = Math.min(0.55, (s.width * 0.8) / e.width);
-			target = {
-				x: s.left + s.width / 2 - (e.left + e.width / 2),
-				y: s.top + s.height / 2 - (e.height * scale) / 2 - (e.top + e.height / 2),
-				s: scale
-			};
-		}
+		if (envEl && slotEl) target = slotTarget(envEl.getBoundingClientRect(), slotEl.getBoundingClientRect());
 		phase = 'aim';
 	}
 

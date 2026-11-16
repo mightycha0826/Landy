@@ -3,7 +3,8 @@ import { hasSupabase, supabase } from './supabase';
 import { rpc } from './rpc';
 import { disablePush, syncPush } from './push';
 import { accountIsCurrent, accountToken, changeAccount } from './accountScope';
-import { toasts } from './toast.svelte';
+import { toast, toasts } from './toast.svelte';
+import { errMsg } from './errors';
 import type { Profile, Settings } from './accountTypes';
 
 export type { Profile, Settings } from './accountTypes';
@@ -205,6 +206,20 @@ async function updateProfile(patch: ProfilePreferences | Pick<Profile, 'gender' 
 
 /** 설정 스위치와 매칭 선호 — 상태·인증 여부 같은 서버 전용 열은 받지 않는다. */
 export const setProfileField = (patch: ProfilePreferences) => updateProfile(patch);
+
+/** 편지 찾기에서 내 뱃지 순서 (내 순서 / 무작위) — 설정 · CNSA 뱃지 안내가 같이 쓴다. 저장하는 동안 LETTER_ORDER.busy */
+export const LETTER_ORDER = $state({ busy: false });
+export async function setLetterBadgeOrder(v: 'mine' | 'random') {
+	if (LETTER_ORDER.busy || (S.profile?.letter_badge_order ?? 'mine') === v) return;
+	LETTER_ORDER.busy = true;
+	try {
+		await setProfileField({ letter_badge_order: v });
+	} catch (e) {
+		toast(errMsg(e));
+	} finally {
+		LETTER_ORDER.busy = false;
+	}
+}
 
 const SETTINGS_COLS =
 	'is_open, notice, room_minutes, extend_minutes, vote_window_sec, join_grace_sec, max_rounds, heartbeat_sec, presence_ttl_sec, msg_max_len, max_open_rooms';

@@ -25,7 +25,7 @@
 	import { DM, LIST, refreshUnread } from '$lib/letters/unread.svelte';
 	import { markOpened, takeKnock } from '$lib/letters/mailbox.svelte';
 	import { clearNotifications } from '$lib/push';
-	import { envWidth, play } from '$lib/letters/stage';
+	import { envWidth, play, slotTarget } from '$lib/letters/stage';
 	import * as haptic from '$lib/haptics';
 	import { S, errMsg, toast } from '$lib/state.svelte';
 	import { accountIsCurrent, accountToken } from '$lib/accountScope';
@@ -122,16 +122,7 @@
 	let postEl = $state<HTMLElement>();
 	let target = $state({ x: 0, y: 0, s: 0.3 });
 	function fromSlot() {
-		if (envEl && postEl) {
-			const e = envEl.getBoundingClientRect();
-			const s = slotRect(postEl.getBoundingClientRect());
-			const scale = Math.min(0.55, (s.width * 0.8) / e.width);
-			target = {
-				x: s.left + s.width / 2 - (e.left + e.width / 2),
-				y: s.top + s.height / 2 - (e.height * scale) / 2 - (e.top + e.height / 2),
-				s: scale
-			};
-		}
+		if (envEl && postEl) target = slotTarget(envEl.getBoundingClientRect(), slotRect(postEl.getBoundingClientRect()));
 		phase = 'slot';
 	}
 	const arriving = $derived(['init', 'slot', 'emerge', 'land', 'front'].includes(phase));

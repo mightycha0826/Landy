@@ -29,13 +29,7 @@
 		type PushKind,
 		type PushState
 	} from '$lib/push';
-	import {
-		S,
-		errMsg,
-		setProfileField,
-		signOut,
-		toast
-	} from '$lib/state.svelte';
+	import { LETTER_ORDER, S, errMsg, setLetterBadgeOrder, signOut, toast } from '$lib/state.svelte';
 	import BackButton from '$lib/ui/BackButton.svelte';
 	import Chevron from '$lib/ui/Chevron.svelte';
 	import { LEGAL, LEGAL_IDS } from '$lib/legal';
@@ -112,19 +106,6 @@
 		toast('이 기기 설정을 처음으로 되돌렸어요');
 	}
 
-	// 편지 추천에 보이는 뱃지 순서
-	let orderBusy = $state(false);
-	async function setOrder(v: 'mine' | 'random') {
-		if (orderBusy || (S.profile?.letter_badge_order ?? 'mine') === v) return;
-		orderBusy = true;
-		try {
-			await setProfileField({ letter_badge_order: v });
-		} catch (err) {
-			toast(errMsg(err));
-		} finally {
-			orderBusy = false;
-		}
-	}
 	// 랜덤채팅에서 보일 뱃지 — 열 때 내 뱃지를 받아 온다
 	let chatSheet = $state(false);
 	let mineBadges = $state<MyAchievements | null>(null);
@@ -323,8 +304,8 @@
 						class:on={(S.profile?.letter_badge_order ?? 'mine') === v}
 						role="radio"
 						aria-checked={(S.profile?.letter_badge_order ?? 'mine') === v}
-						disabled={orderBusy || !S.profile || S.profile.letter_badge_order === undefined}
-						onclick={() => setOrder(v)}>{label}</button
+						disabled={LETTER_ORDER.busy || !S.profile || S.profile.letter_badge_order === undefined}
+						onclick={() => setLetterBadgeOrder(v)}>{label}</button
 					>
 				{/each}
 			</div>
