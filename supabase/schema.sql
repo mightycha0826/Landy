@@ -4619,24 +4619,19 @@ drop trigger if exists profiles_stats on public.profiles;
 create trigger profiles_stats after update of manner_temp, strikes, status on public.profiles
   for each row execute function private.stats_on_profile();
 
--- 연속 접속 (KST 날짜) — 처음 세는 날엔 가입 순서(개척자)도 매긴다
+-- 연속 접속 (KST 날짜) — 가입 순서(개척자)는 여기서 주지 않는다: 뱃지 안내가 끝난 뒤 claim_welcome_badges (Phase 97)
 create or replace function private.touch_streak(p_user uuid)
 returns void language plpgsql security definer set search_path = public, private as $fn$
-declare today date := (now() at time zone 'Asia/Seoul')::date; s private.user_stats%rowtype; n int; v_first boolean;
+declare today date := (now() at time zone 'Asia/Seoul')::date; s private.user_stats%rowtype; n int;
 begin
   if p_user is null then return; end if;
   select * into s from private.user_stats where user_id = p_user;
   if found and s.streak_day = today then return; end if;
-  v_first := not found or s.streak_day is null;
   n := case when s.streak_day = today - 1 then coalesce((s.counts->>'streak')::int, 0) + 1 else 1 end;
   insert into private.user_stats (user_id, counts, streak_day) values (p_user, jsonb_build_object('streak', n), today)
   on conflict (user_id) do update
      set counts = private.user_stats.counts || jsonb_build_object('streak', n), streak_day = today, updated_at = now();
   perform private.award_stat(p_user, 'streak', n);
-  if v_first then
-    perform private.award_stat(p_user, 'pioneer',
-      (select count(*) from public.profiles o join public.profiles me on me.id = p_user where o.created_at <= me.created_at));
-  end if;
 end
 $fn$;
 
@@ -4769,9 +4764,8 @@ begin
              select coalesce(jsonb_object_agg(k, greatest(coalesce((private.user_stats.counts->>k)::int, 0), (c->>k)::int)), '{}'::jsonb)
                from jsonb_object_keys(c) k);
     select counts into c from private.user_stats where user_id = u.id;
-    for d in select * from private.achievement_defs loop
+    for d in select * from private.achievement_defs where stat <> 'pioneer' loop -- 개척자는 뱃지 안내 뒤에 (Phase 97)
       v := case d.stat when 'temp' then u.manner_temp
-                       when 'pioneer' then (select count(*) from public.profiles o join public.profiles me on me.id = u.id where o.created_at <= me.created_at)
                        else (c->>d.stat)::numeric end;
       if v is not null then perform private.award_stat(u.id, d.stat, v); end if;
     end loop;
@@ -7567,4 +7561,27 @@ end
 $fn$;
 revoke all on function public.admin_overview(uuid) from public, anon, authenticated;
 grant execute on function public.admin_overview(uuid) to service_role;
+notify pgrst, 'reload schema';
+
+-- ════════════════════════════════════════════════════════════════════
+--  Phase 97 — 첫 뱃지는 가입할 때가 아니라 뱃지 안내가 끝난 뒤에
+--  첫 접속(touch_streak)은 개척자를 주지 않는다. 프로필 · 뱃지 안내가 끝나면 앱이 claim_welcome_badges() 를 불러 계정당 한 번 받는다.
+--  welcome_badges_at 은 서버만 쓴다 (profiles 는 열 단위 update 권한).
+-- ════════════════════════════════════════════════════════════════════
+alter table public.profiles add column if not exists welcome_badges_at timestamptz;
+
+create or replace function public.claim_welcome_badges()
+returns jsonb language plpgsql security definer set search_path = public, private as $fn$
+declare me uuid := auth.uid();
+begin
+  if me is null then raise exception 'unauthenticated'; end if;
+  update public.profiles set welcome_badges_at = now() where id = me and welcome_badges_at is null;
+  if not found then return jsonb_build_object('status', 'already'); end if;
+  perform private.award_stat(me, 'pioneer',
+    (select count(*) from public.profiles o join public.profiles p on p.id = me where o.created_at <= p.created_at));
+  return jsonb_build_object('status', 'ok');
+end
+$fn$;
+revoke all on function public.claim_welcome_badges() from public, anon;
+grant execute on function public.claim_welcome_badges() to authenticated;
 notify pgrst, 'reload schema';

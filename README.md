@@ -926,4 +926,7 @@ node scripts/dev-user.mjs simbun-test3@cnsa.hs.kr 비밀번호 m      # 성별�
       화면 이름으로 옮겨 가고, 화면 이름이 아니면 사용자 찾기로 넘긴다 (서버에 따로 묻지 않는다).
       실DB 는 `supabase/migrations/20261110120000_admin_overview_phase96.sql` (여러 번 실행해도 같다) — 아직 반영 전. 반영 전에는 개요가 "DB 업데이트 뒤에 보여요", 메뉴의 수는 비어 있다.
       DB 의 `admin_stats()` 는 이제 앱이 부르지 않는다(함수는 남겨 둠). 스키마 테스트 [Phase 96] · 화면 audit · sw · admin-ai.
+- [x] **Phase 97 — 첫 뱃지는 뱃지 안내가 끝난 뒤에 · 사용법 안내는 계정마다** —
+      첫 접속(`touch_streak`)은 개척자 뱃지를 주지 않고, 프로필 · 뱃지 안내가 끝나면(건너뛰어도) 앱이 `claim_welcome_badges()` 로 계정당 한 번 받는다.
+      안내 "봤음"은 기기가 아니라 기기의 계정마다 저장한다. 실DB 반영 완료 (`supabase/migrations/20261122120000_welcome_badges_phase97.sql`).
 - [ ] Phase 7 — (보류) Durable Object 전송 계층. 학술탐구 큐 · 벤치는 별도 저장소(serverless-log-queue)에서 진행하고, 앱 적용 여부는 실험 결과를 본 뒤 따로 정한다.

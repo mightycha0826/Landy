@@ -41,7 +41,7 @@ try {
 		return json([]);
 	});
 	// 알림 권한 안내 · 사용법 안내는 본 것으로 — 이 테스트는 업데이트 창만 본다
-	await page.addInitScript(() => { try { localStorage.setItem('push-asked-v1', '1'); for (const k of ['tour-v1', 'tour-me-v1', 'tour-letters-v1']) localStorage.setItem(k, '1'); } catch {} });
+	await page.addInitScript((u) => { try { localStorage.setItem('push-asked-v1', '1'); for (const k of ['tour-v1', 'tour-me-v1', 'tour-letters-v1']) localStorage.setItem(`${k}:${u}`, '1'); } catch {} }, uid);
 
 	await page.goto(`${BASE}/login`);
 	await page.getByPlaceholder('학교 이메일 앞부분').fill('29998');

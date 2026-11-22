@@ -6,7 +6,7 @@ import { S } from './state.svelte';
 
 /**
  * 사용법 안내 (튜토리얼, Phase 44 · 89) — 탭마다 그 화면에 처음 왔을 때 한 단계씩 (lib/ui/Tour.svelte):
- * 홈(채팅) · 프로필(끝에 CNSA 뱃지 안내가 이어진다) · 익명편지. 건너뛰거나 끝까지 보면 이 기기에 "봤음".
+ * 홈(채팅) · 프로필(끝에 CNSA 뱃지 안내가 이어진다) · 익명편지. 건너뛰거나 끝까지 보면 이 기기의 이 계정에 "봤음".
  * 설정 › 앱 › "사용법 다시 보기"로 언제든 다시 (replayTour → 세 안내를 모두 처음부터, 홈으로 가면 홈 안내부터).
  * 자동 화면 테스트(navigator.webdriver)에서는 저절로 띄우지 않는다 — 모든 테스트가 안내를 먼저 닫아야 하므로. 주소에 ?tour 를 붙이면 띄운다.
  */
@@ -23,10 +23,14 @@ onAccountChange(() => {
 	TOUR.active = null;
 });
 
-function tourSeen(id: TourId): boolean {
+/** "봤음"은 계정마다 — 기기에만 적으면 같은 폰으로 새로 가입한 계정이 안내를 못 본다 */
+const seenKey = (id: TourId) => `${KEYS[id]}:${S.session?.user.id}`;
+
+export function tourSeen(id: TourId): boolean {
 	void TOUR.v;
+	if (!S.session) return true;
 	try {
-		return localStorage.getItem(KEYS[id]) === '1';
+		return localStorage.getItem(seenKey(id)) === '1';
 	} catch {
 		return true; // 저장소를 못 쓰면 매번 띄우지 않게
 	}
@@ -35,7 +39,7 @@ function tourSeen(id: TourId): boolean {
 export function markTourSeen(id: TourId) {
 	TOUR.replay = false;
 	try {
-		localStorage.setItem(KEYS[id], '1');
+		localStorage.setItem(seenKey(id), '1');
 	} catch {
 		/* 무시 */
 	}
@@ -45,7 +49,7 @@ export function markTourSeen(id: TourId) {
 /** 설정에서 — 세 안내를 모두 "안 봤음"으로. 다음에 그 탭에 가면 처음부터 */
 export function replayTour() {
 	try {
-		for (const k of Object.values(KEYS)) localStorage.removeItem(k);
+		for (const id of Object.keys(KEYS) as TourId[]) localStorage.removeItem(seenKey(id));
 	} catch {
 		/* 무시 */
 	}

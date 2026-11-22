@@ -351,7 +351,7 @@ try {
 	check('★ 익명편지 탭을 비춘다', (await tour.innerText()).includes('익명편지') && near(await page.locator('.tour .hole').boundingBox(), await page.locator('a.tab[href="/letters"]').boundingBox(), 6));
 	await page.screenshot({ path: `${SP}/tour-3.png` });
 	await tour.getByRole('button', { name: '건너뛰기' }).click(); await page.waitForTimeout(400);
-	check('★ 건너뛰기 → 닫히고 이 기기에 "봤음"', (await page.getByRole('dialog', { name: '사용법 안내' }).count()) === 0 && (await page.evaluate(() => localStorage.getItem('tour-v1'))) === '1');
+	check('★ 건너뛰기 → 닫히고 이 기기에 "봤음"', (await page.getByRole('dialog', { name: '사용법 안내' }).count()) === 0 && (await page.evaluate((k) => localStorage.getItem(k), `tour-v1:${uid}`)) === '1');
 	await page.goto(`${BASE}/?tour`); await page.locator('.topbar.root .title').waitFor(); await page.waitForTimeout(700);
 	check('한 번 보면 다시 뜨지 않는다', (await page.getByRole('dialog', { name: '사용법 안내' }).count()) === 0);
 	await page.goto(`${BASE}/settings`); await page.getByRole('button', { name: '사용법 다시 보기' }).click();
@@ -366,7 +366,7 @@ try {
 	console.log('[저절로 뜨는 창은 한 번에 하나 · 프로필 안내 · 익명편지 안내 (Phase 89)]');
 	// 처음 가입한 기기 흉내: 안내를 본 적 없고 · 새로 딴 업적이 있고 · 알림을 아직 묻지 않았다
 	FRESH = true;
-	await page.evaluate(() => { for (const k of ['tour-v1', 'tour-me-v1', 'tour-letters-v1', 'cnsa-tour-v1']) localStorage.removeItem(k); localStorage.setItem('e2e-ask', '1'); });
+	await page.evaluate((u) => { for (const k of ['tour-v1', 'tour-me-v1', 'tour-letters-v1', 'cnsa-tour-v1']) localStorage.removeItem(`${k}:${u}`); localStorage.setItem('e2e-ask', '1'); }, uid);
 	await page.goto(`${BASE}/?tour`);
 	// 홈이 그려질 때부터 3초 동안 떠 있던 창을 30ms 마다 적는다 — 안내가 뜨기 전 0.6초 사이에 다른 창이 먼저 뜨면 잡힌다
 	const during = await page.evaluate(() => new Promise((res) => {
@@ -412,16 +412,16 @@ try {
 	const cnsa = page.getByRole('dialog', { name: 'CNSA 뱃지 안내' });
 	await cnsa.waitFor({ timeout: 4000 }).catch(() => {}); await page.waitForTimeout(1200);
 	check('★ 끝까지 보면 CNSA 뱃지 안내가 이어진다 (떴다가 닫히지 않는다) · 프로필 안내는 "봤음"', (await dialogs()) === 'CNSA 뱃지 안내' && (await cnsa.locator('h2').innerText()) === 'CNSA 뱃지란?'
-		&& (await page.evaluate(() => localStorage.getItem('tour-me-v1'))) === '1' && (await page.evaluate(() => scrollY)) === 0, await dialogs());
+		&& (await page.evaluate((k) => localStorage.getItem(k), `tour-me-v1:${uid}`)) === '1' && (await page.evaluate(() => scrollY)) === 0, await dialogs());
 	await cnsa.getByRole('button', { name: '안내 닫기' }).click(); await page.waitForTimeout(400);
-	check('닫으면 CNSA 뱃지 안내도 "봤음"', (await dialogs()) === '' && (await page.evaluate(() => localStorage.getItem('cnsa-tour-v1'))) === '1');
+	check('닫으면 CNSA 뱃지 안내도 "봤음"', (await dialogs()) === '' && (await page.evaluate((k) => localStorage.getItem(k), `cnsa-tour-v1:${uid}`)) === '1');
 	await page.goto(`${BASE}/me?tour`); await page.locator('.who').waitFor(); await page.waitForTimeout(900);
 	check('한 번 보면 다시 뜨지 않는다', (await dialogs()) === '');
-	await page.evaluate(() => localStorage.removeItem('tour-me-v1'));
+	await page.evaluate((k) => localStorage.removeItem(k), `tour-me-v1:${uid}`);
 	await page.goto(`${BASE}/me?tour`); await tour.waitFor({ timeout: 8000 });
 	check('CNSA 뱃지 안내를 이미 본 기기 — 프로필 안내는 5단계 (뱃지 안내를 다시 잇지 않는다)', (await tour.locator('.dots i').count()) === 5);
 	await tour.getByRole('button', { name: '건너뛰기' }).click(); await page.waitForTimeout(600);
-	check('건너뛰면 닫히고 "봤음"', (await dialogs()) === '' && (await page.evaluate(() => localStorage.getItem('tour-me-v1'))) === '1');
+	check('건너뛰면 닫히고 "봤음"', (await dialogs()) === '' && (await page.evaluate((k) => localStorage.getItem(k), `tour-me-v1:${uid}`)) === '1');
 
 	// 익명편지 안내 — 처음 익명편지에 오면 (편지가 열려 있을 때)
 	await page.goto(`${BASE}/letters?tour`);
@@ -437,12 +437,12 @@ try {
 	await tour.getByRole('button', { name: '다음' }).click(); await page.waitForTimeout(300);
 	check('마지막 장 — 버리기 · 차단 · 신고 · 편지 받기 끄기', (await tour.innerText()).includes('차단') && (await tour.innerText()).includes('편지 받기'));
 	await tour.getByRole('button', { name: '확인' }).click(); await page.waitForTimeout(500);
-	check('확인 → 닫히고 "봤음"', (await dialogs()) === '' && (await page.evaluate(() => localStorage.getItem('tour-letters-v1'))) === '1');
+	check('확인 → 닫히고 "봤음"', (await dialogs()) === '' && (await page.evaluate((k) => localStorage.getItem(k), `tour-letters-v1:${uid}`)) === '1');
 	// 설정 › 사용법 다시 보기 — 세 안내가 모두 "안 봤음"으로
 	await page.goto(`${BASE}/settings`); await page.getByRole('button', { name: '사용법 다시 보기' }).click();
 	await tour.waitFor({ timeout: 8000 });
 	check('★ 사용법 다시 보기 → 세 안내 모두 다시 (홈 안내부터)', (await tour.innerText()).includes('환영')
-		&& (await page.evaluate(() => ['tour-v1', 'tour-me-v1', 'tour-letters-v1'].map((k) => localStorage.getItem(k)).join())) === ',,');
+		&& (await page.evaluate((u) => ['tour-v1', 'tour-me-v1', 'tour-letters-v1'].map((k) => localStorage.getItem(`${k}:${u}`)).join(), uid)) === ',,');
 	await tour.getByRole('button', { name: '건너뛰기' }).click(); await page.waitForTimeout(500);
 
 	console.log('[익명편지 잠금 (Phase 44)]');

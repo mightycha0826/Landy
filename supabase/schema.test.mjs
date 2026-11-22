@@ -2521,7 +2521,10 @@ console.log('\n[78] 업적 — 카운터 · 동/은/금 · 대표 업적 (Phase 
 	await rpcAs(A.id, 'heartbeat', true);
 	const rank = Number((await one('select count(*) n from public.profiles o where o.created_at <= (select created_at from public.profiles where id = $1)', [A.id])).n);
 	const want = rank <= 100 ? 3 : rank <= 300 ? 2 : rank <= 1000 ? 1 : 0;
-	check('처음 접속 = 1일 · 개척자는 가입 순서대로', (await stat(A, 'streak')) === 1 && (await tier(A, 'pioneer')) === want, `rank ${rank}`);
+	check('★ 처음 접속 = 1일 · 개척자 뱃지는 아직 주지 않는다 (Phase 97)', (await stat(A, 'streak')) === 1 && (await tier(A, 'pioneer')) === 0, `tier ${await tier(A, 'pioneer')}`);
+	check('★ 뱃지 안내가 끝나면 가입 순서대로 받는다', (await rpcAs(A.id, 'claim_welcome_badges')).status === 'ok' && (await tier(A, 'pioneer')) === want, `rank ${rank}`);
+	check('★ 첫 뱃지는 계정당 한 번', (await rpcAs(A.id, 'claim_welcome_badges')).status === 'already');
+	await expectError('★ 학생이 받은 시각을 직접 고칠 수 없다', () => as(A.id, () => db.query(`update public.profiles set welcome_badges_at = null where id = $1`, [A.id])), 'permission denied');
 	await rpcAs(A.id, 'heartbeat', true);
 	check('같은 날 다시 접속해도 1일', (await stat(A, 'streak')) === 1);
 	await db.query(`update private.user_stats set streak_day = streak_day - 1 where user_id = $1`, [A.id]);
@@ -3160,7 +3163,9 @@ console.log('\n[91] 실시간 전달 = DB 방송 · 비공개 채널 (Phase 55)'
 	check('★ 표 변경 발행이 없다 (WAL 을 훑지 않는다)', (await db.query(`select 1 from pg_publication_tables where pubname = 'supabase_realtime'`)).rows.length === 0);
 
 	// 새 업적은 박동 대답에 실린다 (앱이 10분마다 따로 묻지 않는다)
-	check('첫 박동 — 개척자 업적을 막 땄다', (await rpcAs(outsider, 'heartbeat', true)).ach_new === true);
+	check('★ 첫 박동에는 새 업적이 없다 — 뱃지는 안내가 끝난 뒤 (Phase 97)', (await rpcAs(outsider, 'heartbeat', true)).ach_new === false);
+	await rpcAs(outsider, 'claim_welcome_badges');
+	check('뱃지 안내가 끝나면 박동 대답에 새 업적', (await rpcAs(outsider, 'heartbeat', true)).ach_new === true);
 	await rpcAs(outsider, 'mark_achievements_seen');
 	check('새 업적 없으면 ach_new = false', (await rpcAs(outsider, 'heartbeat', true)).ach_new === false);
 	await db.query(`insert into private.user_achievements (user_id, code, tier) values ($1, 'talk', 1)`, [outsider]);

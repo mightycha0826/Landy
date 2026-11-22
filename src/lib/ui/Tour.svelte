@@ -12,8 +12,9 @@
 	import { focustrap } from '$lib/focustrap';
 	import { backClose } from '$lib/overlay.svelte';
 	import { S } from '$lib/state.svelte';
-	import { TOUR, markTourSeen, tourDue } from '$lib/tour.svelte';
-	import { badgeTourSeen, openBadgeTour } from '$lib/badgeTour.svelte';
+	import { untrack } from 'svelte';
+	import { TOUR, markTourSeen, tourDue, tourSeen } from '$lib/tour.svelte';
+	import { BADGE_TOUR, badgeTourSeen, claimWelcomeBadges, openBadgeTour } from '$lib/badgeTour.svelte';
 	import { gateMin, gateOn, lettersState } from '$lib/letters/gate.svelte';
 	import MannerTemp from './MannerTemp.svelte';
 
@@ -157,6 +158,10 @@
 		if (active && due !== active) TOUR.active = null;
 	});
 	$effect(() => () => void (TOUR.active = null)); // 화면이 통째로 사라질 때
+	// 프로필 안내와 이어지는 뱃지 안내가 끝나면(건너뛰어도) 첫 뱃지를 받는다 — 축하 창은 그 뒤에 뜬다 (Phase 97)
+	$effect(() => {
+		if (S.profile?.onboarded && !active && !BADGE_TOUR.open && tourSeen('me')) untrack(() => void claimWelcomeBadges());
+	});
 
 	const STEPS = $derived<Step[]>(active === 'me' ? meSteps() : active === 'letters' ? LETTERS : HOME);
 

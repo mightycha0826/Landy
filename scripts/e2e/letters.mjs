@@ -636,7 +636,7 @@ try {
 		check('★ 마지막 장 — 금 뱃지 5개면 칸 5개 · 지금 1/5', (await tour.locator('h2').innerText()) === '금 뱃지 5개면 칸이 5개' && (await tour.innerText()).includes('1/5'));
 		await p11.screenshot({ path: `${SP}/cnsa-tour.png` });
 		await tour.getByRole('button', { name: '확인' }).click(); await p11.waitForTimeout(300);
-		check('닫으면 이 기기에 "봤음" — 프로필 안내에서 다시 잇지 않는다', (await p11.evaluate(() => localStorage.getItem('cnsa-tour-v1'))) === '1');
+		check('닫으면 이 기기에 "봤음" — 프로필 안내에서 다시 잇지 않는다', (await p11.evaluate((k) => localStorage.getItem(k), `cnsa-tour-v1:${uid}`)) === '1');
 		// 다시 열어 마지막 장의 "뱃지 제출하기" — 창을 닫으며 제출 화면으로, 뒤로 오면 업적 화면
 		await p11.getByRole('button', { name: 'CNSA 뱃지 안내' }).click();
 		for (let i = 0; i < 4; i++) { await tour.getByRole('button', { name: '다음' }).click(); await p11.waitForTimeout(150); }
