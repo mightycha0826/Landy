@@ -3107,6 +3107,30 @@ console.log('\n[91] 실시간 전달 = DB 방송 · 비공개 채널 (Phase 55)'
 	await rpcAs(B, 'mark_read', r, m); // 같은 값 — 행이 안 바뀐다
 	check('바뀐 게 없으면 방송도 없다', (await sent()).length === 0);
 
+	// Phase 98 — 화면이 바뀌지 않는 방송은 보내지 않는다
+	const sendAs = async (uid, seat) => (await rowsAs(uid, `insert into public.messages (room_id, sender_seat, body, client_msg_id)
+	                                                       values ($1, $2, '방송 줄이기', gen_random_uuid()) returning id`, [r, seat]))[0].id;
+	const viewing = (uid, on) => db.query(`update public.room_members set viewing_until = ${on ? `now() + interval '45 seconds'` : 'null'} where room_id = $1 and user_id = $2`, [r, uid]);
+	const readOf = async (seat) => Number((await one(`select read${seat} v from public.rooms where id = $1`, [r])).v);
+	const mine = await sendAs(B, seatB);
+	await clear();
+	await rpcAs(B, 'mark_read', r, mine);
+	check('★ 내 메시지까지 읽어도 읽음 위치 · 방송이 그대로', (await readOf(seatB)) === Number(m) && (await sent()).length === 0);
+	await rpcAs(B, 'mark_read', r, Number(mine) + 1000);
+	check('★ 아직 없는 메시지를 미리 읽음으로 만들 수 없다', (await readOf(seatB)) === Number(m));
+
+	await viewing(A, true);
+	await clear();
+	const toA = await sendAs(B, seatB);
+	got = await sent();
+	check('★ 보고 있는 사람의 목록 신호는 생략 · 안 보는 사람은 받는다', on(got, `inbox:${A}`, 'changed').length === 0 && on(got, `inbox:${B}`, 'changed').length === 1 && on(got, `room:${r}`, 'msg').length === 1, JSON.stringify(got));
+	await clear();
+	await db.query(`update public.rooms set expires_at = expires_at + interval '1 second' where id = $1`, [r]);
+	got = await sent();
+	check('★ 시간만 바뀌면 안 보는 사람의 목록만', on(got, `room:${r}`, 'room').length === 1 && on(got, `inbox:${A}`, 'changed').length === 0 && on(got, `inbox:${B}`, 'changed').length === 1, JSON.stringify(got));
+	await rpcAs(A, 'mark_read', r, toA);
+	check('상대 메시지를 읽으면 읽음 위치가 올라간다', (await readOf(seatA)) === Number(toA));
+
 	await clear();
 	await rpcAs(B, 'react_message', m, 'heart');
 	got = await sent();
@@ -3116,7 +3140,7 @@ console.log('\n[91] 실시간 전달 = DB 방송 · 비공개 채널 (Phase 55)'
 	await db.query(`insert into public.extension_votes (room_id, round, seat, agree) values ($1, 1, $2, true)`, [r, seatA]);
 	check('연장 투표 → vote', on(await sent(), `room:${r}`, 'vote')[0]?.payload.agree === true);
 
-	await clear();
+	await clear(); // A 는 아직 보고 있다 — 방 상태가 바뀌면 보고 있어도 받는다
 	await db.query(`select public.close_room($1, 'left')`, [r]);
 	got = await sent();
 	check('★ 방 닫힘 → room(closed) + 두 사람 목록 changed', on(got, `room:${r}`, 'room')[0]?.payload.status === 'closed'

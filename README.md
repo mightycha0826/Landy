@@ -929,4 +929,7 @@ node scripts/dev-user.mjs simbun-test3@cnsa.hs.kr 비밀번호 m      # 성별�
 - [x] **Phase 97 — 첫 뱃지는 뱃지 안내가 끝난 뒤에 · 사용법 안내는 계정마다** —
       첫 접속(`touch_streak`)은 개척자 뱃지를 주지 않고, 프로필 · 뱃지 안내가 끝나면(건너뛰어도) 앱이 `claim_welcome_badges()` 로 계정당 한 번 받는다.
       안내 "봤음"은 기기가 아니라 기기의 계정마다 저장한다. 실DB 반영 완료 (`supabase/migrations/20261122120000_welcome_badges_phase97.sql`).
+- [x] **Phase 98 — 화면이 바뀌지 않는 실시간 방송 줄이기** —
+      읽음 위치는 상대 메시지까지만 올리고, 대화 목록 신호는 그 대화를 보고 있지 않은 사람에게만 보낸다. 방 상태 · 라운드 · 고정이 바뀌면 전처럼 둘 다에게.
+      앱 업데이트 없이 DB 만으로 적용된다. 실DB 반영 완료 (`supabase/migrations/20261123120000_realtime_quota_phase98.sql`).
 - [ ] Phase 7 — (보류) Durable Object 전송 계층. 학술탐구 큐 · 벤치는 별도 저장소(serverless-log-queue)에서 진행하고, 앱 적용 여부는 실험 결과를 본 뒤 따로 정한다.
