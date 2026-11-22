@@ -297,7 +297,6 @@
 		// 고르기 줄이 열려 있는 동안 사람의 손가락·휠은 가림막(ReactionPicker 의 scrim)이 받아서 닫는다.
 		// 그래도 scroll 이 오면 목록이 저절로 움직인 것(상대 입력 중 표시가 사라짐 · 새 메시지) — 닫지 않고 따라간다.
 		followPicker();
-		if (!cssGradient) paintSoon();
 		fromBottom = listEl.scrollHeight - listEl.scrollTop - listEl.clientHeight;
 		atBottom = fromBottom < 48;
 		if (atBottom) room?.markRead();
@@ -306,35 +305,7 @@
 		if (!listEl) return;
 		// 키보드가 올라와 목록이 줄어들면, 아래쪽(최근 메시지)이 그대로 보이게 위치를 맞춘다
 		listEl.scrollTop = listEl.scrollHeight - listEl.clientHeight - (atBottom ? 0 : fromBottom);
-		paintSoon();
 	}
-	// ── 내 말풍선 그라디언트 ─────────────────────────────────────
-	// 인스타 DM 처럼 화면 위쪽 말풍선과 아래쪽 말풍선의 색이 다르다. 그라디언트 하나를 목록 화면에 깔고
-	// 말풍선마다 자기 위치만큼 밀어서 보여준다. (background-attachment: fixed 는 iOS 가 무시해서 직접 계산)
-	// 미는 일은 CSS 스크롤 연동 애니메이션(animation-timeline: view())이 스크롤과 같은 프레임에 한다.
-	// 예전엔 scroll 이벤트 → 다음 프레임에 JS 로 위치를 고쳤는데, 빠르게 스크롤하면 몇 프레임씩 늦어
-	// 말풍선이 그라디언트 바깥(엉뚱한 바탕색)을 보여 색이 잠깐 바뀌었다. JS 계산은 지원하지 않는 브라우저에서만.
-	const cssGradient = typeof CSS !== 'undefined' && !!CSS.supports?.('animation-timeline: view()');
-	let painting = false;
-	function paintSoon() {
-		if (painting) return;
-		painting = true;
-		requestAnimationFrame(() => {
-			painting = false;
-			if (!listEl) return;
-			listEl.style.setProperty('--lh', listEl.clientHeight + 'px');
-			if (cssGradient) return;
-			const top = listEl.getBoundingClientRect().top;
-			const els = listEl.querySelectorAll<HTMLElement>('.mine .bubble');
-			// 읽기를 먼저 모두 끝내고 쓴다 (레이아웃 재계산 반복 방지)
-			const ys = Array.from(els, (el) => el.getBoundingClientRect().top - top);
-			els.forEach((el, i) => el.style.setProperty('--by', -ys[i] + 'px'));
-		});
-	}
-	$effect(() => {
-		void room?.msgs.length;
-		void tick().then(paintSoon);
-	});
 	$effect(() => {
 		if (!listEl) return;
 		const ro = new ResizeObserver(onListResize); // 키보드가 올라오거나 화면이 돌아갈 때
@@ -724,7 +695,6 @@
 									if (!swipe.active) press.up(m); // 밀기였으면 톡으로 세지 않는다 (줄의 손 떼기보다 먼저 온다)
 								}}
 								onpointercancel={press.cancel}
-								onpointerleave={press.cancel}
 								oncontextmenu={(e) => press.menu(e, m)}
 							>
 								<span class="sr-only">{mine ? '나' : room.snap?.partner_alias}: </span>{m.body}
@@ -1026,41 +996,10 @@
 	.mine .bubble {
 		position: relative;
 		isolation: isolate;
-		/* 예전엔 여기 옛 기본색 보라(#9a36e4)가 있어서, 그라디언트 위치가 스크롤을 못 따라간 순간 보라가 비쳐 색이 바뀌어 보였다 */
+		/* 말풍선마다 고정된 그라디언트 — 스크롤에 맞춰 매 프레임 다시 칠하던 것이 대화방 스크롤 렉의 주원인이었다 */
 		background-color: var(--bubble-b);
+		background-image: linear-gradient(115deg, var(--bubble-a), var(--bubble-b) 55%, var(--bubble-c));
 		color: var(--on-accent);
-	}
-	/* 목록 높이 H(--lh)의 그라디언트를 말풍선 위치만큼 올려서 보여준다 — 위 paintSoon().
-	   그림은 3H 높이: 가운데 H 가 실제 그라디언트, 위아래 H 는 끝 색 그대로 — 위치가 한 화면 가까이 어긋나도
-	   (빠른 스크롤에서 그리기가 늦는 프레임) 말풍선이 그라디언트 밖의 엉뚱한 색을 보이지 않는다.
-	   말풍선 자신이 아니라 뒤판에 두어 반짝임(flash) 애니메이션과 서로 덮어쓰지 않게 */
-	.mine .bubble::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		z-index: -1;
-		border-radius: inherit;
-		background-image: linear-gradient(180deg, var(--bubble-a) 33.333%, var(--bubble-b) 51.667%, var(--bubble-c) 66.667%);
-		background-size: 100% calc(3 * var(--lh, 100%));
-		background-position: 0 calc(var(--by, 0px) - var(--lh, 0px));
-		background-repeat: no-repeat;
-		pointer-events: none;
-	}
-	/* 스크롤 연동: 말풍선 윗변이 목록 아래 끝(y = H)에서 위 끝을 지나 사라질 때(y = -h)까지
-	   그림을 -(H + y) 에 둔다 = -2H → h - H. 배경이 3H 라 100% = h - 3H, 그래서 끝은 100% + 2H */
-	@supports (animation-timeline: view()) {
-		.mine .bubble::before {
-			animation: bubble-grad linear both;
-			animation-timeline: view();
-		}
-	}
-	@keyframes bubble-grad {
-		from {
-			background-position: 0 calc(-2 * var(--lh, 0px));
-		}
-		to {
-			background-position: 0 calc(100% + 2 * var(--lh, 0px));
-		}
 	}
 	.mine .bubble:not(.first) {
 		border-top-right-radius: 4px;

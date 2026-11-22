@@ -83,9 +83,9 @@
 	const onChat = $derived(path === '/');
 	const onMe = $derived(path === '/me');
 
-	// 안 읽은 편지 — 익명편지 탭 위 빨간 점. 앱이 보이는 동안 2분마다 (새 편지는 푸시로도 알린다)
+	// 안 읽은 편지 — 익명편지 탭 위 빨간 점. 앱이 보이는 동안 5분마다 (새 편지는 푸시로도 알린다)
 	// 익명편지가 잠겨 있는 동안(Phase 44)은 묻지 않는다 — 새 편지가 올 수 없다
-	$effect(() => whileVisible(() => lettersState() === 'open' && void refreshUnread(), 120_000));
+	$effect(() => whileVisible(() => lettersState() === 'open' && void refreshUnread(), 300_000));
 	// 처음 한 번 — 편지가 열려 있으면 바로, 잠겨 있으면 열리는 순간에 (앱을 켤 때 이미 열렸는지 한 번 본다: checkGate)
 	$effect(() => {
 		if (!S.settings) return;
@@ -115,6 +115,17 @@
 			INBOX.onNew = null;
 			INBOX.stop();
 		};
+	});
+	// 대화방 안에서는 목록을 드물게 읽으니(lib/inbox) 나올 때 한 번 새로 읽는다 — 홈의 마지막 메시지 · 안 읽은 수가 바로 맞게
+	let wasInRoom = false;
+	$effect(() => {
+		const inRoom = path.startsWith('/chat/');
+		const home = path === '/';
+		untrack(() => {
+			INBOX.setLive(home);
+			if (wasInRoom && !inRoom) void INBOX.load();
+		});
+		wasInRoom = inRoom;
 	});
 	// 편지 — 푸시 알림을 안 켠 기기는 안 읽은 편지 수가 늘어난 것으로 알려 준다 (켠 기기는 서비스워커가 알린다)
 	let lastUnread = -1;

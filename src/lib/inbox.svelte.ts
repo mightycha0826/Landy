@@ -28,6 +28,10 @@ export type InboxRoom = {
 const POLL_MS = 60_000;
 const DEBOUNCE_MS = 300;
 const MIN_REFRESH_MS = 3000;
+/** 홈이 아닌 화면에서는 목록이 안 보이니 드물게 — 새 메시지는 푸시가 알리고, 대화방을 나오면 한 번 새로 읽는다 */
+const OFF_HOME_POLL_MS = 180_000;
+/** 이만큼 내려가 있으면 실시간 연결을 놓는다 (동시 연결 200개 한도). 돌아오면 load() 가 다시 붙는다 */
+const BG_RELEASE_MS = 30_000;
 
 /**
  * 대화 목록 (인스타 DM 받은편지함).
@@ -69,6 +73,12 @@ class Inbox {
 	/** 새 메시지 · 새로 연결된 대화 */
 	onNew: ((r: InboxRoom) => void) | null = null;
 
+	#bgTimer: ReturnType<typeof setTimeout> | null = null;
+	#onVisibility = () => {
+		if (this.#bgTimer) clearTimeout(this.#bgTimer);
+		this.#bgTimer = document.visibilityState === 'visible' ? null : setTimeout(() => this.#unsubscribe(), BG_RELEASE_MS);
+	};
+
 	constructor() {
 		onAccountChange(() => this.#reset());
 	}
@@ -94,7 +104,10 @@ class Inbox {
 		if (this.#running++ > 0) return; // 이미 켜져 있다
 		this.#stopped = false;
 		void this.load();
-		this.#stopPoll = whileVisible(() => void this.load(), POLL_MS);
+		this.#stopPoll = whileVisible(() => {
+			if (location.pathname === '/' || Date.now() - this.#lastLoad >= OFF_HOME_POLL_MS) void this.load();
+		}, POLL_MS);
+		globalThis.document?.addEventListener('visibilitychange', this.#onVisibility);
 	}
 
 	stop() {
@@ -106,6 +119,9 @@ class Inbox {
 		this.#request++;
 		this.#stopPoll?.();
 		this.#stopPoll = null;
+		globalThis.document?.removeEventListener('visibilitychange', this.#onVisibility);
+		if (this.#bgTimer) clearTimeout(this.#bgTimer);
+		this.#bgTimer = null;
 		if (this.#debounce) clearTimeout(this.#debounce);
 		this.#debounce = null;
 		this.#unsubscribe();
@@ -146,7 +162,14 @@ class Inbox {
 		}
 		this.rooms = res.rooms;
 		this.loaded = true;
-		this.#listen(res.rooms.length > 0);
+		this.#listen(this.#live && res.rooms.length > 0);
+	}
+
+	/** 실시간 목록은 홈을 보는 동안만 — Free 플랜 동시 연결 200개를 대화 중인 사람에게 먼저 남긴다 */
+	#live = false;
+	setLive(on: boolean) {
+		this.#live = on;
+		if (!this.#stopped) this.#listen(on && this.rooms.length > 0);
 	}
 
 	#announce(rooms: InboxRoom[]) {

@@ -695,10 +695,8 @@ a {
 	gap: 10px;
 	height: calc(var(--header-h) + var(--safe-top));
 	padding: var(--safe-top) var(--pad) 0;
-	/* 반투명 유리 — 아래로 흐르는 내용이 흐릿하게 비친다 */
-	background: var(--glass);
-	-webkit-backdrop-filter: blur(20px);
-	backdrop-filter: blur(20px);
+	/* 불투명 — 스크롤 내내 뒤를 흐리게 다시 그리는 backdrop-filter 는 휴대폰에서 스크롤 렉의 큰 원인이었다 */
+	background: var(--bg);
 	border-bottom: 0;
 }
 
@@ -775,9 +773,7 @@ a {
 .topbar.ios {
 	justify-content: flex-end;
 	height: calc(52px + var(--safe-top));
-	background: color-mix(in srgb, var(--group-bg) 88%, transparent);
-	-webkit-backdrop-filter: blur(20px);
-	backdrop-filter: blur(20px);
+	background: var(--group-bg);
 	border-bottom: 0;
 }
 .topbar.ios .title {
@@ -1396,9 +1392,6 @@ html.kb-open .toasts {
 /* 탭 첫 화면 제목 — 화면 제목(text-title)을 왼쪽에 */
 .topbar.root {
 	height: calc(64px + var(--safe-top));
-	background: var(--bg);
-	-webkit-backdrop-filter: none;
-	backdrop-filter: none;
 }
 .topbar.root .title {
 	font-size: 26px;

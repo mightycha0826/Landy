@@ -23,6 +23,33 @@ const form = (values) => {
 };
 const jsonRequest = (body) => new Request('https://landy.test/api', { method: 'POST', body });
 
+await test('앱 복귀 새로 읽기 — 방금 읽었으면 건너뛰고 15초가 지나면 다시 읽는다', async () => {
+	const { whileVisible } = await import('../src/lib/visible.ts');
+	const realDocument = globalThis.document, realNow = Date.now;
+	let onVisible, now = 1_000_000, calls = 0;
+	globalThis.document = { visibilityState: 'visible', addEventListener: (_, fn) => (onVisible = fn), removeEventListener() {} };
+	Date.now = () => now;
+	try {
+		const stop = whileVisible(() => calls++, 60_000);
+		onVisible();
+		assert.equal(calls, 1);
+		now += 14_999;
+		onVisible();
+		assert.equal(calls, 1);
+		now += 1;
+		onVisible();
+		assert.equal(calls, 2);
+		document.visibilityState = 'hidden';
+		now += 60_000;
+		onVisible();
+		assert.equal(calls, 2);
+		stop();
+	} finally {
+		globalThis.document = realDocument;
+		Date.now = realNow;
+	}
+});
+
 await test('전체·개인 공지의 공백 정리와 기존 길이 경계', () => {
 	assert.deepEqual(noticeInput(form({ title: ' 제목 ', body: '\n내용\n' })), { title: '제목', body: '내용' });
 	assert.equal(noticeError({ title: '', body: '' }), '제목을 적어 주세요');

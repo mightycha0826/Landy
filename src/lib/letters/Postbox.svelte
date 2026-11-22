@@ -78,11 +78,12 @@
 		plusN = n;
 		plus?.animate(
 			[
-				{ opacity: 0, transform: 'translate(-50%, -10%) scale(0.5) rotate(-4deg)' },
-				{ opacity: 1, transform: 'translate(-50%, -80%) scale(1.08) rotate(2deg)', offset: 0.18 },
-				{ opacity: 1, transform: 'translate(-50%, -74%) scale(1) rotate(0)', offset: 0.3 },
-				{ opacity: 1, transform: 'translate(-50%, -82%) scale(1)', offset: 0.75 },
-				{ opacity: 0, transform: 'translate(-50%, -160%) scale(0.96)' }
+				// 위의 불투명한 머리글(z-index 10)에 가려 잘리지 않게 우체통 위 여백(8px) 안에서만 오른다
+				{ opacity: 0, transform: 'translate(-50%, 60%) scale(0.5) rotate(-4deg)' },
+				{ opacity: 1, transform: 'translate(-50%, -18%) scale(1.08) rotate(2deg)', offset: 0.18 },
+				{ opacity: 1, transform: 'translate(-50%, -10%) scale(1) rotate(0)', offset: 0.3 },
+				{ opacity: 1, transform: 'translate(-50%, -18%) scale(1)', offset: 0.75 },
+				{ opacity: 0, transform: 'translate(-50%, -34%) scale(0.96)' }
 			],
 			{ duration: 1700, easing: 'ease-out' }
 		);
@@ -178,15 +179,18 @@
 			<circle cx="150" cy="127" r="3.4" fill="#e0405f" />
 		</g>
 
-		<!-- 편지가 왔다 — 오른쪽 위 모서리에 빨간 점 (바탕색 테로 통과 떼어 놓고, 은은히 퍼지는 고리) -->
-		{#if inside > 0}
+	</svg>
+	<!-- 편지가 왔다 — 오른쪽 위 모서리에 빨간 점 (바탕색 테로 통과 떼어 놓고, 은은히 퍼지는 고리).
+	     그림자(filter)가 걸린 몸통과 다른 svg 에 둔다 — 같이 있으면 고리가 퍼지는 매 프레임 그림자까지 다시 계산해 렉이 생긴다 -->
+	{#if inside > 0}
+		<svg class="badge" viewBox="0 0 300 210" aria-hidden="true">
 			<g class="dot">
 				<circle class="ping" cx="276" cy="20" r="13" />
 				<circle cx="276" cy="20" r="13" fill="#ff2d3f" style:stroke="var(--bg)" stroke-width="4.5" paint-order="stroke" />
 				<circle cx="272" cy="16" r="4" fill="#fff" fill-opacity="0.35" />
 			</g>
-		{/if}
-	</svg>
+		</svg>
+	{/if}
 	<!-- "+✉" — 편지가 들어왔다 (종이 꼬리표처럼) -->
 	<span class="plus" bind:this={plus} aria-hidden="true">
 		<b>+{plusN > 1 ? plusN : ''}</b>
@@ -228,7 +232,13 @@
 		color: var(--accent);
 		box-shadow: var(--shadow-2);
 		opacity: 0;
-		transform: translate(-50%, -74%);
+		transform: translate(-50%, -10%);
+		pointer-events: none;
+	}
+	.badge {
+		position: absolute;
+		inset: 0;
+		filter: none;
 		pointer-events: none;
 	}
 	.plus b {

@@ -27,7 +27,7 @@ export const S = $state({
 	 */
 	me: undefined as { name: string; grade: number | null; source: 'roster' | 'self' } | null | undefined,
 	/**
-	 * 서버 점검 중 (Phase 52) — 켜져 있으면 앱 전체가 점검 화면. 앱을 열 때 설정으로, 그 뒤엔 1분마다 보내는 heartbeat 의 대답으로 안다
+	 * 서버 점검 중 (Phase 52) — 켜져 있으면 앱 전체가 점검 화면. 앱을 열 때 설정으로, 그 뒤엔 주기적으로 보내는 heartbeat 의 대답으로 안다
 	 * (점검이 끝나면 다음 박동에 저절로 풀린다). null = 점검 아님
 	 */
 	maint: null as { msg: string; until: string | null } | null,
@@ -269,10 +269,10 @@ export async function saveMyName(name: string) {
 }
 
 // ── 온라인 표시 ───────────────────────────────────────────────────────
-// 앱이 화면에 떠 있는 동안 60초마다 "켜져 있음"을 알린다. 서버는 130초 동안 온라인으로 본다.
+// 앱이 화면에 떠 있는 동안 100초마다 "켜져 있음"을 알린다. 서버는 130초 동안 온라인으로 본다.
 // 백그라운드로 가면 곧바로 오프라인을 알린다 (그래야 상대 화면의 초록 점이 바로 꺼진다).
-// 요청 하나하나가 Supabase 로그 사용량이 되므로 주기는 필요한 만큼만 (Phase 36).
-const BEAT_MS = 60_000;
+// 요청 하나하나가 Supabase 사용량이 되므로 주기는 필요한 만큼만 (Phase 36).
+const BEAT_MS = 100_000;
 let beatTimer: ReturnType<typeof setInterval> | null = null;
 
 async function beat(online: boolean) {
@@ -308,11 +308,20 @@ function startHeartbeat() {
 	beatTimer = setInterval(() => {
 		if (document.visibilityState === 'visible') void beat(true);
 	}, BEAT_MS);
+	// 앱을 닫으면 visibilitychange 와 pagehide 가 둘 다 온다 — 오프라인 알림은 한 번만
+	let away = false;
+	const leave = () => {
+		if (away) return;
+		away = true;
+		void beat(false);
+	};
 	document.addEventListener('visibilitychange', () => {
-		void beat(document.visibilityState === 'visible');
+		if (document.visibilityState !== 'visible') return leave();
+		away = false;
+		void beat(true);
 	});
 	// 앱을 완전히 닫을 때 — 응답을 기다릴 수 없으니 최선을 다할 뿐, 못 보내도 130초 뒤 자연히 오프라인
-	window.addEventListener('pagehide', () => void beat(false));
+	window.addEventListener('pagehide', leave);
 }
 
 // ── 설치 게이트 ───────────────────────────────────────────────────────

@@ -16,9 +16,11 @@ import type {
 import type { Reason, RateStatus, Score } from '../manner';
 
 const TYPING_SHOW_MS = 3000;
-const TYPING_SEND_EVERY_MS = 1500;
+const TYPING_SEND_EVERY_MS = 2500;
 const TAIL_SWEEP_DELAY_MS = 1500;
 const BG_RECREATE_MS = 10_000;
+/** 이만큼 내려가 있으면 실시간 연결을 놓는다 — Free 플랜 동시 연결 200개를 화면을 보는 사람에게 남긴다. 돌아오면 다시 붙고 빠진 것을 읽는다 */
+const BG_RELEASE_MS = 30_000;
 /**
  * 안전망 동기화 주기. Supabase Realtime 은 전달을 보장하지 않는다 —
  * 소켓이 멀쩡히 연결된 채로 메시지 하나가 조용히 빠질 수 있고, 그러면 재연결 전까지 안 보인다.
@@ -26,7 +28,9 @@ const BG_RECREATE_MS = 10_000;
  */
 const SAFETY_SYNC_MS = 90_000;
 /** "보고 있음" 신호 간격 — 서버는 45초 동안 보고 있는 것으로 친다 (Phase 28 · 36). 떠날 때는 곧바로 알린다 */
-const VIEW_PING_MS = 20_000;
+const VIEW_PING_MS = 30_000;
+/** 실시간 연결이 거절 · 끊긴 동안(동시 연결 한도 등) 새 메시지를 읽는 간격 */
+const FALLBACK_POLL_MS = 6000;
 
 /**
  * 대화방 하나의 상태 전부.
@@ -145,9 +149,23 @@ export class ChatRoom {
 		this.#viewTimer = setInterval(() => {
 			if (!this.closed && document.visibilityState === 'visible') void this.#view(true);
 		}, VIEW_PING_MS);
+		// 실시간이 안 붙어도 대화는 이어지게 — 방 상태는 위 신호의 대답으로 오니 메시지만 읽는다
+		this.#fallbackTimer = setInterval(() => {
+			if (!this.connected && !this.closed && document.visibilityState === 'visible') void this.#fetchMessages().catch(() => {});
+		}, FALLBACK_POLL_MS);
 	}
 
 	#viewTimer: ReturnType<typeof setInterval> | null = null;
+	#fallbackTimer: ReturnType<typeof setInterval> | null = null;
+	#bgTimer: ReturnType<typeof setTimeout> | null = null;
+	#releaseSocket() {
+		this.#bgTimer = null;
+		if (this.#reconnectTimer) clearTimeout(this.#reconnectTimer);
+		this.#reconnectTimer = null;
+		this.#t.disconnect();
+		this.connected = false;
+		this.partnerHere = false;
+	}
 	async #view(on: boolean) {
 		try {
 			const s = await this.#t.view?.(this.roomId, on);
@@ -174,9 +192,11 @@ export class ChatRoom {
 		if (this.#tailTimer) clearTimeout(this.#tailTimer);
 		if (this.#safetyTimer) clearInterval(this.#safetyTimer);
 		if (this.#viewTimer) clearInterval(this.#viewTimer);
+		if (this.#fallbackTimer) clearInterval(this.#fallbackTimer);
 		if (this.#readTimer) clearTimeout(this.#readTimer);
-		this.#reconnectTimer = this.#tailTimer = this.#readTimer = null;
-		this.#safetyTimer = this.#viewTimer = null;
+		if (this.#bgTimer) clearTimeout(this.#bgTimer);
+		this.#reconnectTimer = this.#tailTimer = this.#readTimer = this.#bgTimer = null;
+		this.#safetyTimer = this.#viewTimer = this.#fallbackTimer = null;
 		document.removeEventListener('visibilitychange', this.#onVisibility);
 		window.removeEventListener('online', this.#onOnline);
 	}
@@ -240,9 +260,14 @@ export class ChatRoom {
 	 * 오래 나가 있었으면 채널을 통째로 재생성, 잠깐이면 갭만 메운다.
 	 */
 	#visibility() {
+		if (this.#bgTimer) clearTimeout(this.#bgTimer);
+		this.#bgTimer = null;
 		if (document.visibilityState !== 'visible') {
 			this.#hiddenAt = Date.now();
-			if (!this.closed) void this.#view(false); // 앱을 내렸다 → 시간 멈춤
+			if (!this.closed) {
+				void this.#view(false); // 앱을 내렸다 → 시간 멈춤
+				this.#bgTimer = setTimeout(() => this.#releaseSocket(), BG_RELEASE_MS);
+			}
 			return;
 		}
 		if (!this.closed) void this.#view(true);

@@ -38,7 +38,7 @@
 					added++;
 				});
 		}
-		return whileVisible(pollMailbox, 120_000);
+		return whileVisible(pollMailbox, 300_000);
 	});
 
 	const unread = $derived(BOX.received.filter((i) => !i.opened && !i.removed));

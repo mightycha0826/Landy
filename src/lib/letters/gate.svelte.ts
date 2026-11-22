@@ -48,22 +48,39 @@ export function watchSignups(): () => void {
 	if (!gateOn() || GATE.opened) return () => {};
 	const token = accountToken();
 	void load();
-	const ch: RealtimeChannel = supabase
-		.channel('signups', { config: { private: true } })
-		.on('broadcast', { event: 'students' }, ({ payload }) => {
-			if (!accountIsCurrent(token)) return;
-			const n = (payload as { students?: number } | undefined)?.students;
-			if (typeof n !== 'number') return;
-			GATE.students = n;
-			if (n >= gateMin()) GATE.opened = true;
-		})
-		.subscribe();
+	let ch: RealtimeChannel | null = null;
+	const listen = () => {
+		ch ??= supabase
+			.channel('signups', { config: { private: true } })
+			.on('broadcast', { event: 'students' }, ({ payload }) => {
+				if (!accountIsCurrent(token)) return;
+				const n = (payload as { students?: number } | undefined)?.students;
+				if (typeof n !== 'number') return;
+				GATE.students = n;
+				if (n >= gateMin()) GATE.opened = true;
+			})
+			.subscribe();
+	};
+	const drop = () => {
+		if (ch) void supabase.removeChannel(ch);
+		ch = null;
+	};
+	listen();
+	// 앱을 30초 넘게 내려 두면 연결을 놓는다 (Free 플랜 동시 연결 200개) — 돌아오면 다시 붙고 숫자를 새로 읽는다
+	let idle: ReturnType<typeof setTimeout> | undefined;
 	const onVis = () => {
-		if (accountIsCurrent(token) && document.visibilityState === 'visible') void load();
+		clearTimeout(idle);
+		if (document.visibilityState !== 'visible') {
+			idle = setTimeout(drop, 30_000);
+		} else if (accountIsCurrent(token)) {
+			listen();
+			void load();
+		}
 	};
 	document.addEventListener('visibilitychange', onVis);
 	return () => {
+		clearTimeout(idle);
 		document.removeEventListener('visibilitychange', onVis);
-		void supabase.removeChannel(ch);
+		drop();
 	};
 }

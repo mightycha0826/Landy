@@ -259,46 +259,11 @@ try {
 	check('상대 프로필 시트에 매너 온도 막대', (await page.locator('.profile').innerText()).includes('매너 온도') && (await page.locator('.profile').innerText()).includes('42.3°C'));
 	await page.keyboard.press('Escape');
 
-	console.log('[내 말풍선 그라디언트 — 빠르게 스크롤해도 색이 튀지 않게]');
-	// 목록이 스크롤되도록 낮은 화면. 말풍선 뒤판의 그라디언트 위치 = -(말풍선이 목록 위 끝에서 떨어진 거리) 여야 한다
+	console.log('[내 말풍선 그라디언트 — 스크롤 중 다시 칠하지 않는다]');
 	const sp = await (await browser.newContext({ viewport: { width: 390, height: 360 } })).newPage();
 	await sp.goto(U('/dev/chat?s=chat')); await sp.locator('.bubble', { hasText: '안녕하세요!' }).waitFor(); await sp.waitForTimeout(400);
-	// 스크롤한 뒤 말풍선마다 그라디언트 위치를 잰다 — scroll 이벤트 · JS 계산 없이 CSS 만으로
-	const drift = (y) => sp.evaluate((y) => new Promise((done) => {
-		const list = document.querySelector('.list');
-		list.scrollTop = y;
-		// 계산된 값은 다음 프레임의 타임라인 갱신 뒤에 읽힌다 (그리기는 그 프레임 안에서 이미 맞춰진다)
-		requestAnimationFrame(() => requestAnimationFrame(() => {
-		const top = list.getBoundingClientRect().top;
-		const H = list.clientHeight;
-		// 화면에 (조금이라도) 보이는 말풍선만 — 밖에 있는 것은 애니메이션 양 끝 값에 멈춰 있다 (보이지 않으니 상관없음)
-		const seen = [...document.querySelectorAll('.mine .bubble')].filter((b) => {
-			const y = b.getBoundingClientRect().top - top;
-			return y < H && y + b.offsetHeight > 0;
-		});
-		done(seen.length ? seen.map((b) => {
-			// 그림(3H)의 가운데 H 가 실제 그라디언트 → 말풍선이 목록 위에서 y 에 있으면 그림 위치는 -(H + y)
-			const want = -(H + b.getBoundingClientRect().top - top);
-			// 애니메이션 중간 값은 "calc(37.5% + 120px)" 꼴 — %는 (말풍선 높이 - 배경 높이 3H) 기준
-			const v = getComputedStyle(b, '::before').backgroundPositionY;
-			const k = b.offsetHeight - 3 * H, m = v.match(/^calc\((-?[\d.]+)% ([+-]) ([\d.]+)px\)$/);
-			const got = m ? (+m[1] / 100) * k + (m[2] === '-' ? -1 : 1) * +m[3] : v.endsWith('%') ? (parseFloat(v) / 100) * k : parseFloat(v);
-			return Math.abs(got - want);
-		}) : [Infinity]);
-		}));
-	}), y);
-	check('뒤판이 스크롤 연동 애니메이션으로 움직인다', (await sp.locator('.mine .bubble').first().evaluate((b) => getComputedStyle(b, '::before').animationName)) !== 'none');
-	let worst = 0;
-	// 말풍선 하나하나를 목록 가운데 · 위 끝 · 아래 끝에 오게 스크롤 (화면 구성이 바뀌어도 늘 내 말풍선이 보이게)
-	const targets = await sp.evaluate(() => {
-		const l = document.querySelector('.list'), top = l.getBoundingClientRect().top;
-		return [...document.querySelectorAll('.mine .bubble')].flatMap((b) => {
-			const y = b.getBoundingClientRect().top - top + l.scrollTop;
-			return [y - l.clientHeight / 2, y - 4, y - l.clientHeight + b.offsetHeight + 4].map((v) => Math.max(0, Math.round(v)));
-		});
-	});
-	for (const y of [9999, ...targets, 9999]) worst = Math.max(worst, ...(await drift(y)));
-	check('★ 스크롤해도 말풍선마다 제 위치의 색 (어긋남 1px 미만)', worst < 1, `${worst}px`);
+	const paint = await sp.locator('.mine .bubble').first().evaluate((b) => ({ image: getComputedStyle(b).backgroundImage, after: getComputedStyle(b, '::before').animationName, content: getComputedStyle(b, '::before').content }));
+	check('★ 말풍선 자체의 고정 그라디언트 · 스크롤 연동 애니메이션 없음', paint.image.startsWith('linear-gradient') && paint.after === 'none' && paint.content === 'none', JSON.stringify(paint));
 	check('말풍선 바탕은 테마의 가운데 색 (인스타 #d6246e)', (await sp.locator('.mine .bubble').first().evaluate((b) => getComputedStyle(b).backgroundColor)) === 'rgb(214, 36, 110)');
 	check('페이지 오류 없음', errs.length === 0, errs.join(' / '));
 } finally { await browser.close(); stopProcess(vite);  }

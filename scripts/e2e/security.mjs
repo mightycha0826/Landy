@@ -80,8 +80,8 @@ try {
 	await host.setContent(`<iframe id="f" src="${U('/login')}" width="300" height="300"></iframe>`, { waitUntil: 'domcontentloaded' });
 	await host.waitForTimeout(2500);
 	const urls = host.frames().slice(1).map((f) => f.url());
-	// 막히면 Chrome 은 틀 안을 오류 페이지로 바꾼다 (헤더 없는 페이지는 그대로 열린다 — 직접 대조해 봄)
-	check('다른 페이지의 iframe 안에서는 열리지 않는다', urls.length === 1 && urls[0].startsWith('chrome-error://'), urls.join());
+	// 막히면 Chrome 은 틀 안을 오류 페이지로 바꾼다 — 주소가 chrome-error:// 또는 빈 값(Chrome 156~). 헤더 없는 페이지는 제 주소로 열린다 (직접 대조해 봄)
+	check('다른 페이지의 iframe 안에서는 열리지 않는다', urls.length === 1 && (urls[0] === '' || urls[0].startsWith('chrome-error://')), urls.join());
 } catch (e) { fail++; console.error(e); }
 finally {
 	await browser.close();

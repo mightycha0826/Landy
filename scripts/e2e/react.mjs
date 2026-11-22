@@ -24,6 +24,8 @@ try {
 	const longPress = async (t) => {
 		const b = await bubble(t).boundingBox();
 		const pt = [{ x: b.x + 20, y: b.y + b.height / 2 }];
+		// 앞선 고르기 줄의 가림막이 닫히는 연출 중이면 손가락이 말풍선에 닿지 않는다 — 닿을 수 있을 때 누른다
+		await page.waitForFunction(({ x, y, t }) => document.elementFromPoint(x, y)?.closest('.bubble')?.textContent.includes(t), { ...pt[0], t }, { timeout: 3000 });
 		await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pt });
 		await page.waitForTimeout(600);
 		await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });

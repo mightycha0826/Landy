@@ -335,6 +335,16 @@ try {
 	await page.waitForURL(/\/letters$/, { timeout: 8000 }); await page.waitForTimeout(500);
 	const back = await page.evaluate(() => ({ plus: document.querySelector('.post .plus')?.getAnimations().length ?? 0 }));
 	check('★ 보내고 돌아오면 우체통 위 "+✉" (Phase 72)', back.plus > 0, JSON.stringify(back));
+	const plusClear = await page.evaluate(() => {
+		const el = document.querySelector('.post .plus'), bar = document.querySelector('.topbar.root').getBoundingClientRect().bottom, a = el.getAnimations()[0];
+		if (!a) return { ok: false };
+		a.pause();
+		let top = Infinity;
+		for (let t = 0; t <= 1700; t += 50) { a.currentTime = t; top = Math.min(top, el.getBoundingClientRect().top); }
+		a.finish();
+		return { ok: top >= bar, top, bar };
+	});
+	check('★ "+✉" 가 올라가는 내내 머리글에 가려 잘리지 않는다', plusClear.ok, JSON.stringify(plusClear));
 	check('★ 답장 → dm_reply_to (받은 편지 한 통에 · 이름으로 받은 쪽은 서명 없음)', JSON.stringify(called(w, 'dm_reply_to').at(-1)?.[1]) === JSON.stringify({ p_msg: 70, p_body: '고마워! 너도 잘 지내', p_fmt: null, p_nick: null }));
 	check('보내기 성공 후 답장 초안 삭제', !(await page.evaluate(() => Object.keys(localStorage).some(key => key.startsWith('landy-draft-v1:') && localStorage.getItem(key).includes('고마워! 너도 잘 지내')))));
 	await page.locator('.letter-shelf a.list-row').nth(1).click(); await page.waitForURL('**/letters/archive'); await page.locator('.archive .stack .item').first().waitFor(); await page.waitForTimeout(300);
