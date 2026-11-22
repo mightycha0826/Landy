@@ -152,6 +152,12 @@ async function loadAccountData(uid: string, token: number) {
 	try {
 		// 트리거가 못 만든 경우를 대비한 폴백 (gyeol ensureProfile 패턴). 익명 이름도 여기서 보장된다.
 		const { error } = await supabase.rpc('ensure_self');
+		// 23503 = 서버에서 지워진 계정 (토큰만 기기에 남았다) — 다시 시도해도 소용없으니 이 기기만 로그아웃해 로그인 화면으로
+		if (error?.code === '23503') {
+			await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+			if (accountIsCurrent(token)) selectSession(null);
+			return;
+		}
 		if (error) throw error;
 		if (!accountIsCurrent(token)) return;
 		const results = await Promise.allSettled([loadProfile(), loadSettings(), loadAccount()]);

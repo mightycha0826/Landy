@@ -53,7 +53,7 @@ try {
 		'  onAuthStateChange(fn) {this.emit = fn;},',
 		'  async signOut() {this.emit("SIGNED_OUT", null); return {error: null};}',
 		' },',
-		' rpc(fn, args) {return fn === "ensure_self" ? Promise.resolve({data: null}) : ask(fn, args);},',
+		' rpc(fn, args) {return fn === "ensure_self" ? Promise.resolve({data: null, error: this.ensureError ?? null}) : ask(fn, args);},',
 		' from(table) {let uid, patch; return {select() {return this;}, update(value) {patch = value; return this;},',
 		'  eq(_key, id) {uid = id; return patch ? ask("update:" + table, {uid, patch}) : this;},',
 		'  maybeSingle() {return ask(table, {uid});}};},',
@@ -176,6 +176,14 @@ try {
 	check('계정 조회 실패는 복구 가능한 오류 상태', !!S.bootError && !S.profileLoading);
 	const recovery = retryAccount(); await settleLogin('c'); await recovery;
 	check('같은 계정 재시도는 프로필을 다시 읽고 오류 해제', !S.bootError && S.profile.id === 'c');
+	supabase.auth.emit('SIGNED_OUT', null);
+	supabase.ensureError = { code: '23503', message: 'profiles_id_fkey' };
+	supabase.auth.emit('SIGNED_IN', session('gone'));
+	await drain();
+	supabase.ensureError = null;
+	check('★ 서버에서 지워진 계정은 오류 화면에 갇히지 않고 로그아웃', S.session === null && !S.bootError && !S.profileLoading);
+	supabase.auth.emit('SIGNED_IN', session('c'));
+	await settleLogin('c');
 	const D = await import(urls.get('drafts'));
 	const stored = new Map();
 	globalThis.localStorage = { get length() { return stored.size; }, key: (i) => [...stored.keys()][i], getItem: (k) => stored.get(k) ?? null, setItem: (k, v) => stored.set(k, v), removeItem: (k) => stored.delete(k) };
