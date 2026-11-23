@@ -4,7 +4,7 @@
 	 * 받는 사람에게 나는 "익명의 ○학생"(성별만) 또는 내가 적은 서명으로만 보인다 (Phase 35). 받기를 끈 사람은 검색에 나오지 않는다.
 	 * 차단 · 수신 거부 · 정지는 검색 결과를 바꾸지 않는다 — 결과 차이로 익명 상대를 찾을 수 없게 (SECURITY.md 2-1).
 	 * 찾기 결과에는 학년 · 학번 — 같은 학년 동명이인을 구분한다. 대표 뱃지도 (Phase 84 — 순서는 그 사람이 정한 대로).
-	 * 아직 찾지 않았으면 아래에 추천 3명 (Phase 84 — 들어올 때 한 번, "다른 추천"을 누르면 다시 — 하루 3번까지. 추천에 안 나오기는 설정 › 편지).
+	 * 아직 찾지 않았으면 아래에 추천 3명 (Phase 84 — 들어올 때 한 번, "다른 추천"을 누르면 다시 — 하루 1번까지. 추천에 안 나오기는 설정 › 편지).
 	 */
 	import { onMount } from 'svelte';
 	import BackButton from '$lib/ui/BackButton.svelte';
@@ -54,8 +54,8 @@
 
 	// 추천 3명 — 들어올 때 한 번 (주기 요청 없음). 서버는 5명까지 주고, 화면에는 앞의 3명만
 	const REC_SHOW = 3;
-	// "다른 추천"은 하루 3번까지 — 이 기기에 날짜와 함께 센다 (날이 바뀌면 다시 3번)
-	const REC_REFRESH = 3;
+	// "다른 추천"은 하루 1번까지 — 이 기기에 날짜와 함께 센다 (날이 바뀌면 다시 1번)
+	const REC_REFRESH = 1;
 	const REC_KEY = 'dm-rec-refresh-v1';
 	const today = () => new Date().toLocaleDateString('sv-SE');
 	function refreshesUsed() {
@@ -66,7 +66,7 @@
 			return 0;
 		}
 	}
-	let recLeft = $state(REC_REFRESH - refreshesUsed());
+	let recLeft = $state(Math.max(0, REC_REFRESH - refreshesUsed()));
 	let recs = $state<DmPerson[] | null>(null);
 	let recFailed = $state(false);
 	let recBusy = $state(false);
