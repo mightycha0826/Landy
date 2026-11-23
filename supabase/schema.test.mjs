@@ -3723,6 +3723,7 @@ console.log('\n[101] 도서부 코드 club_library → library — 이미 설치
 console.log('\n[102] 접속자가 많을 때 알림 — 가입 학생 30% 이상 접속이면 하루 한 번, 30대씩 (Phase 92)');
 {
 	await db.exec(`delete from private.crowd_push; delete from public.push_subscriptions;
+		insert into private.letters_open_push (id, done) values (true, true) on conflict (id) do update set done = true;
 		update public.user_presence set online_until = now() - interval '1 second'`);
 	const on = [await person('m', 'f'), await person('f', 'm'), await person('m', 'f')];
 	const away = await person('f', 'm'), muted = await person('m', 'f');
@@ -3818,12 +3819,62 @@ console.log('\n[104] 익명 친구에게 연락해보기 — 표(token)로만 ·
 	await expectError('로그인 안 하면 거절', () => rowsAs(null, `select public.friend_contact(gen_random_uuid())`), 'permission denied');
 }
 
+console.log('\n[Phase 99] 누군가 매칭 중 · 익명편지가 열리면 푸시');
+{
+	await db.exec(`update public.app_settings set is_open = true, maintenance = false, maintenance_at = null where id;
+		update public.user_presence set seeking_until = null, seeking_since = null`);
+	const [x, y, z] = [await person('m', 'f'), await person('f', 'm'), await person('m', 'f')];
+	const seeks = (u, secs = 15) => db.query(`insert into public.user_presence (user_id, online_until, seeking_until, seeking_since)
+		values ($1, now() + interval '1 minute', now() + make_interval(secs => $2), now())
+		on conflict (user_id) do update set seeking_until = excluded.seeking_until, seeking_since = excluded.seeking_since`, [u, secs]);
+	const hint = async (u) => (await rpcAs(u, 'my_rooms')).others_seeking;
+	check('아무도 안 찾으면 표시 없음', (await hint(x)) === false);
+	await seeks(z);
+	check('★ 조건이 안 맞는 사람만 찾으면 표시 없음', (await hint(x)) === false);
+	await seeks(y);
+	check('★ 이어질 수 있는 사람이 찾으면 표시', (await hint(x)) === true);
+	await db.query(`update public.user_presence set seeking_until = null where user_id = $1`, [z]);
+	check('★ 나 혼자 찾는 중이면 나에게는 표시 없음', (await hint(y)) === false);
+	await db.query(`insert into public.blocks (blocker_id, blocked_id) values ($1, $2)`, [y, x]);
+	check('★ 나를 차단한 사람이 찾아도 표시 없음', (await hint(x)) === false);
+	await db.query(`delete from public.blocks where blocker_id = $1 and blocked_id = $2`, [y, x]);
+	await seeks(y, -1);
+	check('찾기 시간이 지나면 표시 없음', (await hint(x)) === false);
+	await db.exec(`update public.user_presence set seeking_until = null, seeking_since = null`);
+
+	await db.exec(`delete from private.letters_open_push; delete from private.crowd_push; delete from public.push_subscriptions;
+		update public.user_presence set online_until = now() - interval '1 second';
+		update public.app_settings set letters_gate = true, letters_gate_min = 10000 where id`);
+	const sub = (ep, mute = '{}') => db.query(`insert into public.push_subscriptions (endpoint, user_id, p256dh, auth, mute) values ($1, $2, 'p', 'a', $3)`, [ep, x, mute]);
+	for (let i = 0; i < 31; i++) await sub(`https://fcm.googleapis.com/fcm/send/open-${String(i).padStart(2, '0')}`);
+	await sub('https://fcm.googleapis.com/fcm/send/open-muted', '{letter}');
+	const opened = async () => ((await svc('push_retry_jobs')) ?? []).filter((p) => p.tag === 'letters-open');
+	check('잠겨 있으면 보내지 않는다', (await opened()).length === 0 && (await one('select count(*)::int n from private.letters_open_push')).n === 0);
+	await db.exec(`update public.app_settings set letters_gate_min = 1, maintenance = true where id`);
+	check('점검 중에는 기다린다', (await opened()).length === 0);
+	await db.exec(`update public.app_settings set maintenance = false where id`);
+	const [first] = await opened();
+	check('★ 열리면 문구 · 편지 화면으로', first?.body === '익명편지가 열렸어요! 지금 편지를 보내 보세요' && first.url === '/letters' && first.kind === 'letter', JSON.stringify(first));
+	check('★ 한 번에 30대 · 편지 알림을 끈 기기는 뺀다', first.subs.length === 30 && first.subs.every((s) => /open-\d\d$/.test(s.endpoint)));
+	const [second] = await opened();
+	check('★ 나머지는 다음 분에 이어서', second?.subs.length === 1 && second.subs[0].endpoint.endsWith('open-30'), JSON.stringify(second));
+	check('★ 다 보내면 다시 보내지 않는다', (await opened()).length === 0 && (await opened()).length === 0);
+	await db.exec(`update public.app_settings set letters_gate_min = 10000 where id`);
+	await opened();
+	await db.exec(`update public.app_settings set letters_gate_min = 1 where id`);
+	check('★ 다시 잠갔다 열어도 두 번 보내지 않는다', (await opened()).length === 0);
+	await db.exec(`delete from private.letters_open_push`);
+	await db.exec(readFileSync(here + 'migrations/20261123130000_seek_hint_letters_open_phase99.sql', 'utf8'));
+	check('★ 적용할 때 이미 열려 있으면 보내지 않는다', (await opened()).length === 0);
+	await db.exec(`delete from public.push_subscriptions; update public.app_settings set letters_gate = false, letters_gate_min = 100 where id`);
+}
+
 console.log('\n[100] 마이그레이션과 스키마 snapshot 일치');
 {
 	const defs = async () => (await db.query("select n.nspname || '.' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' name, pg_get_functiondef(p.oid) body from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.prokind='f' order by 1")).rows;
 	const before = JSON.stringify(await defs());
 	// 운영에 적용한 순서대로 다시 실행하면 snapshot과 같아야 한다 (뒤 마이그레이션이 앞의 함수를 고쳐 쓴다)
-	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql', '20261102130000_anon_friends_phase93.sql', '20261102150000_friend_contact_phase95.sql', '20261110120000_admin_overview_phase96.sql'])
+	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql', '20261102130000_anon_friends_phase93.sql', '20261102150000_friend_contact_phase95.sql', '20261110120000_admin_overview_phase96.sql', '20261123130000_seek_hint_letters_open_phase99.sql'])
 		await db.exec(readFileSync(here + 'migrations/' + file, 'utf8'));
 	check('업그레이드 마이그레이션의 함수가 snapshot과 같음', JSON.stringify(await defs()) === before);
 }

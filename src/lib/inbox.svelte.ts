@@ -54,6 +54,8 @@ class Inbox {
 	skew = $state(0);
 	/** 마지막으로 불러온 서버 시각 (ms) — 멈춘 방의 남은 시간 계산용 */
 	serverAt = $state(0);
+	/** 나와 이어질 수 있는 누군가가 지금 상대를 찾고 있다 (Phase 99) — 목록을 읽을 때 같이 와서 요청이 늘지 않는다 */
+	othersSeeking = $state(false);
 	/** 평가 대상이 바뀌었을 때만 증가한다. 메시지·읽음 폴링은 평가 큐를 다시 열지 않는다. */
 	roomRevision = $state(0);
 	#signature = '';
@@ -92,6 +94,7 @@ class Inbox {
 		this.loaded = false;
 		this.failed = false;
 		this.skew = this.serverAt = 0;
+		this.othersSeeking = false;
 		this.#seen = null;
 		this.#signature = '';
 		this.roomRevision++;
@@ -148,10 +151,12 @@ class Inbox {
 		if (!accountIsCurrent(token) || request !== this.#request || this.#stopped) return;
 		if (error || !data) {
 			this.failed = true;
+			this.othersSeeking = false;
 			return;
 		}
 		this.failed = false;
-		const res = data as { rooms: InboxRoom[]; server_now: string };
+		const res = data as { rooms: InboxRoom[]; server_now: string; others_seeking?: boolean };
+		this.othersSeeking = res.others_seeking === true;
 		this.skew = Date.parse(res.server_now) - Date.now();
 		this.serverAt = Date.parse(res.server_now);
 		this.#announce(res.rooms);

@@ -301,6 +301,12 @@
 		{:else if full}
 			<button class="btn" disabled>대화는 동시에 {maxRooms}개까지</button>
 		{:else}
+			{#if inbox.othersSeeking}
+				<div class="notice-panel seek seek-other" role="status" in:surface={{ y: 6, scale: 1 }}>
+					<div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+					<span>누군가 매칭을 돌리고 있어요</span>
+				</div>
+			{/if}
 			<button class="btn" onclick={startSeek}>새 대화 찾기</button>
 		{/if}
 	</div>

@@ -1,4 +1,4 @@
-import { ROOT, CHROME } from './_env.mjs';
+import { ROOT, CHROME, OUT } from './_env.mjs';
 import { spawn, stopProcess } from './_process.mjs';
 import { chromium } from 'playwright-core';
 
@@ -43,7 +43,7 @@ try {
 	const errors = [];
 	page.on('pageerror', (e) => errors.push(String(e)));
 	// 가짜 서버 상태 — 시작하기를 마쳤는지 · 새 업적을 봤는지
-	const db = { onboarded: false, seen: false };
+	const db = { onboarded: false, seen: false, othersSeeking: false };
 	await page.route('https://fake-proj.supabase.co/**', async (route) => {
 		const req = route.request();
 		const u = new URL(req.url());
@@ -60,7 +60,7 @@ try {
 		if (fn === 'heartbeat') return json({ server_now: new Date().toISOString(), maintenance: null, maintenance_at: null, ach_new: !db.seen });
 		if (fn === 'new_achievements') return json(db.seen ? [] : [{ code: 'streak', title: '개근', icon: 'flame', tier: 1 }]);
 		if (fn === 'mark_achievements_seen') { db.seen = true; return json(null); }
-		if (fn === 'my_rooms') return json({ rooms: [], server_now: new Date().toISOString() });
+		if (fn === 'my_rooms') return json({ rooms: [], others_seeking: db.othersSeeking, server_now: new Date().toISOString() });
 		// 익명 친구에게 연락해보기 (Phase 95) — 상대가 열 때까지 하루를 기다리는 대기 대화
 		if (fn === 'anon_friends') return json([{ token: 't1', nickname: '새벽수달', bio: '안녕', interests: [], mbti: null, online: true, manner_temp: 40, badges: [], badge_count: 0 }]);
 		if (fn === 'friend_contact') return json({ status: 'ok', room_id: ROOM });
@@ -109,7 +109,7 @@ try {
 	await page.getByRole('button', { name: '동의하고 시작하기' }).click();
 	await page.waitForURL(`${BASE}/`, { timeout: 20000 });
 
-	console.log('\n[2] 홈 — 안내 → 축하 → 알림 받기, 한 번에 하나');
+	console.log('\n[2] 홈 — 안내 → 축하, 한 번에 하나 · 알림 받기는 다음 방문에');
 	await page.locator('.tour[role="dialog"]').waitFor({ timeout: 10000 });
 	await page.waitForTimeout(800);
 	check('★ 먼저 사용법 안내만', (await timeline()).at(-1) === '/ 안내', (await timeline()).at(-1));
@@ -118,16 +118,38 @@ try {
 	await page.waitForTimeout(800);
 	check('★ 안내를 닫으면 새 업적 축하만 (알림 받기는 아직)', (await timeline()).at(-1) === '/ 축하', (await timeline()).at(-1));
 	await page.keyboard.press('Escape');
+	await page.waitForTimeout(1200);
+	check('★ 안내를 끝낸 방문에는 알림을 묻지 않는다', (await timeline()).at(-1) === '/ -', (await timeline()).at(-1));
+	const firstVisit = windows(await timeline());
+
+	await page.reload();
 	await page.locator('#push-title').waitFor({ timeout: 10000 }).catch(() => {});
 	await page.waitForTimeout(800);
-	check('★ 축하를 닫으면 알림 받기', (await timeline()).at(-1) === '/ 알림', (await timeline()).at(-1));
+	check('★ 다시 들어오면 알림 받기', (await timeline()).at(-1) === '/ 알림', (await timeline()).at(-1));
+	await page.screenshot({ path: `${OUT}/preview-push-ask.png` });
 	await page.getByRole('button', { name: '나중에' }).click();
 	await page.waitForTimeout(600);
 
-	const all = windows(await timeline());
+	const all = [...firstVisit, ...windows(await timeline())];
 	check('★ 두 창이 겹쳐 뜬 적이 없다', all.every(([, open]) => !open.includes('+')), JSON.stringify(all));
 	check('★ 창은 홈에서만 떴다', all.every(([path]) => path === '/'), JSON.stringify(all));
 	check('다 닫힌 뒤 남은 창 없음', (await timeline()).at(-1) === '/ -', (await timeline()).at(-1));
+
+	console.log('\n[2-1] 누군가 매칭을 돌리고 있으면 홈에 표시');
+	const seekHint = page.locator('.seek-other');
+	db.othersSeeking = true;
+	await page.reload();
+	await seekHint.waitFor({ timeout: 10000 }).catch(() => {});
+	await page.waitForTimeout(500);
+	check('★ 문구가 새 대화 찾기 위에 뜬다', (await seekHint.innerText().catch(() => '')).includes('누군가 매칭을 돌리고 있어요')
+		&& (await seekHint.boundingBox()).y < (await page.getByRole('button', { name: '새 대화 찾기' }).boundingBox()).y);
+	check('★ 한 번 답한 알림 안내는 다시 뜨지 않는다', (await page.locator('#push-title').count()) === 0);
+	await page.screenshot({ path: `${OUT}/preview-seek-hint.png` });
+	db.othersSeeking = false;
+	await page.reload();
+	await page.getByRole('button', { name: '새 대화 찾기' }).waitFor({ timeout: 10000 });
+	await page.waitForTimeout(500);
+	check('찾는 사람이 없으면 문구가 없다', (await seekHint.count()) === 0);
 
 	console.log('\n[3] 연락해보기 — 대화방으로 한 칸만, 기다리는 동안 머리글은 대화 시간');
 	const at = () => page.evaluate(() => navigation.currentEntry.index); // 기록에서 지금 몇 번째 칸인가

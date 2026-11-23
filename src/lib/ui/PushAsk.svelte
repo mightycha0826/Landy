@@ -1,11 +1,24 @@
+<script module lang="ts">
+	/** 이번 방문이 시작된 때 — 앱을 새로 열었거나, 5분 넘게 내려 뒀다가 돌아왔을 때 (iOS 앱은 다시 열어도 새로 불러오지 않는다) */
+	const VISIT_GAP_MS = 5 * 60_000;
+	const visit = $state({ at: Date.now() });
+	if (typeof document !== 'undefined') {
+		let hiddenAt = 0;
+		document.addEventListener('visibilitychange', () => {
+			if (document.visibilityState !== 'visible') hiddenAt = Date.now();
+			else if (hiddenAt && Date.now() - hiddenAt >= VISIT_GAP_MS) visit.at = Date.now();
+		});
+	}
+</script>
+
 <script lang="ts">
 	/**
-	 * 처음 한 번 — 새 메시지 알림을 받을지 묻는 시트 (홈). 바깥을 눌러 닫지 않는다 (둘 중 하나를 골라야 다시 묻지 않는다).
-	 * open = 지금 물어야 하는지 (홈이 다른 창 — 매너 평가 — 을 이 동안 미룬다). 사용법 안내 · 업적 축하가 있으면 그 뒤에.
+	 * 새 메시지 알림을 받을지 묻는 시트 (홈) — 사용법 안내를 끝낸 뒤 다음 방문 때 한 번. 바깥을 눌러 닫지 않는다 (둘 중 하나를 골라야 다시 묻지 않는다).
+	 * open = 지금 물어야 하는지 (홈이 다른 창 — 매너 평가 — 을 이 동안 미룬다). 업적 축하가 있으면 그 뒤에.
 	 */
 	import Sheet from './Sheet.svelte';
-	import { UI, toast } from '$lib/state.svelte';
-	import { touring } from '$lib/tour.svelte';
+	import { S, UI, toast } from '$lib/state.svelte';
+	import { touring, tourSeen } from '$lib/tour.svelte';
 	import { enablePush, pushState } from '$lib/push';
 
 	let { open = $bindable(false) }: { open?: boolean } = $props();
@@ -14,14 +27,19 @@
 	// 그래서 먼저 우리 화면으로 이유를 설명하고, "알림 받기"를 누르면 그때 권한을 묻는다.
 	const ASKED = 'push-asked-v1';
 	$effect(() => {
-		let asked = false;
+		const uid = S.session?.user.id;
+		const startedAt = visit.at;
+		if (!uid || !tourSeen('home')) return;
+		const key = `push-tour-done-v1:${uid}`;
 		try {
-			asked = localStorage.getItem(ASKED) === '1';
+			if (localStorage.getItem(ASKED) === '1' || pushState() !== 'default') return;
+			const doneAt = Number(localStorage.getItem(key));
+			// 안내를 끝낸 것을 처음 본 방문에는 적어 두기만 한다
+			if (!doneAt) localStorage.setItem(key, String(Date.now()));
+			else if (doneAt < startedAt) open = true;
 		} catch {
 			/* 저장소를 못 쓰는 환경 — 매번 묻지 않도록 그냥 넘어간다 */
-			asked = true;
 		}
-		if (!asked && pushState() === 'default') open = true;
 	});
 	function doneAsking() {
 		open = false;
