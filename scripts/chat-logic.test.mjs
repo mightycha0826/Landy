@@ -386,6 +386,31 @@ try {
 		r.dispose();
 	}
 
+	console.log('\n[11-1] 시간이 멈춘 동안의 신호는 다시 조회하지 않는다');
+	{
+		const t = fake();
+		const left = new Date(Date.now() + 300_000).toISOString();
+		t.snap = snap({ paused: true, expires_at: left });
+		const r = new ChatRoom(ROOM, t);
+		await r.open();
+		const base = t.calls.snapshot;
+		const stopped = { id: ROOM, status: 'active', round: 1, expires_at: 'infinity', paused_left: '00:05:00', close_reason: null, alias1: 'a', alias2: 'b', read1: null, read2: 7 };
+		t.handlers.onRoom(stopped);
+		await sleep(10);
+		check('★ 멈춘 채 읽음만 바뀌면 조회 없이 읽음 표시만', t.calls.snapshot === base && r.snap.their_read_id === 7 && r.snap.paused === true && r.snap.expires_at === left, `${t.calls.snapshot - base}회`);
+
+		t.snap = snap({ paused: false });
+		t.handlers.onRoom({ ...stopped, expires_at: t.snap.expires_at, paused_left: null });
+		await sleep(10);
+		check('다시 흐르면 한 번 조회', t.calls.snapshot === base + 1 && !r.snap.paused, `${t.calls.snapshot - base}회`);
+
+		t.snap = snap({ paused: true, expires_at: left });
+		t.handlers.onRoom(stopped);
+		await sleep(10);
+		check('★ 다시 멈추면 남은 시간을 한 번 받는다', t.calls.snapshot === base + 2 && r.snap.paused === true && r.snap.expires_at === left, `${t.calls.snapshot - base}회`);
+		r.dispose();
+	}
+
 	console.log('\n[12] 연장 투표');
 	{
 		const t = fake();
