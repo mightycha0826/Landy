@@ -203,7 +203,7 @@
 
 	<section class="hero">
 		<h1><span class="line">이름보다</span><span class="line">이야기 <em>먼저.</em></span></h1>
-		<p class="lead">짧은 익명 대화로 서로를 알아가고,<br />직접 하기 어려웠던 말은 편지로 전해요.</p>
+		<p class="lead">익명으로 대화하고, 편지로 전해요.</p>
 
 		<!-- 장식 — 앱의 말풍선 · 항공우편 봉투가 리본 위에 떠 있다 -->
 		<div class="stage" aria-hidden="true">
@@ -225,7 +225,7 @@
 	<section id="sample" class="block" aria-labelledby="sample-title">
 		<p class="kicker">TRY IT</p>
 		<h2 id="sample-title">먼저 둘러보세요</h2>
-		<p class="hint">가상의 샘플이에요. 실제 학생에게 전송되지 않아요.</p>
+		<p class="hint">가상의 샘플이에요.</p>
 
 		<div class="seg" role="tablist" aria-label="샘플 선택" style:--i={sample === 'chat' ? 0 : 1}>
 			<button id="sample-chat-tab" role="tab" aria-selected={sample === 'chat'} aria-controls="sample-panel" tabindex={sample === 'chat' ? 0 : -1} onclick={() => (sample = 'chat')} onkeydown={moveSample}>익명 대화</button>
@@ -249,7 +249,7 @@
 							{/snippet}
 						</Banner>
 					{:else if banner === 'done'}
-						<Banner title="10분 연장됐어요" sub="둘 다 원해서 대화가 이어져요" />
+						<Banner title="10분 연장됐어요" />
 					{/if}
 
 					<div class="room-body">
@@ -314,12 +314,12 @@
 					<span class="plus">+10분</span>
 				</div>
 				<h3>짧게 시작하는 대화</h3>
-				<p>둘 다 원할 때 시간을 연장해요. 불편하면 나가거나 차단할 수 있어요.</p>
+				<p>둘 다 원하면 연장해요.</p>
 			</article>
 			<article class="card">
 				<div class="viz mail" aria-hidden="true"><Envelope to="김하늘" from="익명" date={stampDate} postmark={stampDate} border="m" w={104} /></div>
-				<h3>이름으로 찾아 보내는 편지</h3>
-				<p>발신자는 익명으로 말을 전해요. 받는 사람은 답장하거나 수신을 끌 수 있어요.</p>
+				<h3>익명편지</h3>
+				<p>이름으로 찾아 보내요.</p>
 			</article>
 			<article class="card">
 				<div class="viz steps" aria-hidden="true">
@@ -329,10 +329,9 @@
 					<span class="tag">🔒 동아리</span>
 				</div>
 				<h3>공개는 동의한 만큼</h3>
-				<p>채팅의 단계별 정보는 쌍방 동의 후 공개돼요. 글과 뱃지로 신원을 짐작할 수도 있어요.</p>
+				<p>서로 동의해야 열려요.</p>
 			</article>
 		</div>
-		<p class="hint">편지는 운영 설정과 참여 인원에 따라 잠겨 있을 수 있어요.</p>
 	</section>
 
 	<section id="start" class="block" aria-labelledby="start-title">
@@ -345,7 +344,8 @@
 		</ol>
 	</section>
 
-	<div class="privacy"><PrivacySummary expanded /></div>
+	<!-- 자세한 공개 범위는 접어 둔다 — 궁금한 사람만 펼쳐 본다 -->
+	<div class="privacy"><PrivacySummary /></div>
 
 	<footer>
 		<!-- 리본이 끝나는 자리 — og.jpg 처럼 리본 끝에 Landy 꽃잎 -->
@@ -357,7 +357,6 @@
 	<!-- 하단 고정 — 어디까지 내려 봐도 시작 버튼은 엄지 아래 -->
 	<div class="cta">
 		<a class="go" href="/install"><span>설치하고 시작하기</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13m-5-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg></a>
-		<p class="hint">학교 이메일 인증 후 이용할 수 있어요.</p>
 	</div>
 </main>
 
@@ -544,14 +543,13 @@
 	footer nav a { display: inline-flex; align-items: center; min-height: 44px; font-size: 12px; color: var(--ink-3); text-decoration: underline; }
 
 	/* 하단 고정 시작 버튼 — 리본 버튼 */
-	.cta { position: sticky; bottom: 0; z-index: 5; margin: 0 calc(-1 * var(--pad)); padding: 14px var(--pad) calc(10px + env(safe-area-inset-bottom)); background: linear-gradient(to top, #121212 55%, rgb(18 18 18 / 0)); text-align: center; }
+	.cta { position: sticky; bottom: 0; z-index: 5; margin: 0 calc(-1 * var(--pad)); padding: 14px var(--pad) calc(14px + env(safe-area-inset-bottom)); background: linear-gradient(to top, #121212 55%, rgb(18 18 18 / 0)); text-align: center; }
 	.go { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; height: 56px; overflow: hidden; border-radius: 999px; background: var(--rib); color: #fff; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; box-shadow: 0 10px 30px rgb(236 47 123 / 0.4); transition: transform 0.2s, filter 0.2s; }
 	.go::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.35) 50%, transparent 65%); transform: translateX(-100%); animation: shine 3.6s 1.5s ease-in-out infinite; }
 	.go svg { width: 20px; height: 20px; transition: transform 0.2s; }
 	.go:active { transform: scale(0.97); filter: brightness(0.92); }
 	@media (hover: hover) { .go:hover svg { transform: translateX(3px); } }
 	.go:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
-	.cta .hint { margin-top: 6px; }
 
 	@keyframes rise { from { opacity: 0; transform: translateY(22px); } }
 	@keyframes pop { from { opacity: 0; transform: scale(0.6) rotate(0deg); } to { opacity: 1; transform: rotate(var(--r)); } }
