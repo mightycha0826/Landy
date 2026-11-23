@@ -4,7 +4,8 @@
 	 * 받는 사람에게 나는 "익명의 ○학생"(성별만) 또는 내가 적은 서명으로만 보인다 (Phase 35). 받기를 끈 사람은 검색에 나오지 않는다.
 	 * 차단 · 수신 거부 · 정지는 검색 결과를 바꾸지 않는다 — 결과 차이로 익명 상대를 찾을 수 없게 (SECURITY.md 2-1).
 	 * 찾기 결과에는 학년 · 학번 — 같은 학년 동명이인을 구분한다. 대표 뱃지도 (Phase 84 — 순서는 그 사람이 정한 대로).
-	 * 아직 찾지 않았으면 아래에 추천 3명 (Phase 84 — 들어올 때 한 번, "다른 추천"을 누르면 다시 — 하루 1번까지. 추천에 안 나오기는 설정 › 편지).
+	 * 아직 찾지 않았으면 아래에 추천 3명 (Phase 84 — 그날 처음 들어올 때 한 번, "다른 추천"을 누르면 다시 — 하루 1번까지. 추천에 안 나오기는 설정 › 편지).
+	 * 받은 추천은 그날 · 그 계정 동안 이 기기에 둔다 — 나갔다 들어와도 같은 사람이 나온다 (들어올 때마다 새로 받으면 "다른 추천" 제한이 의미 없다).
 	 */
 	import { onMount } from 'svelte';
 	import BackButton from '$lib/ui/BackButton.svelte';
@@ -67,11 +68,34 @@
 		}
 	}
 	let recLeft = $state(Math.max(0, REC_REFRESH - refreshesUsed()));
+	// 오늘 받은 추천 — 계정별 · 날짜별로 이 기기에 둔다. 날이 바뀌거나 다른 계정이면 새로 받는다
+	const REC_LIST_KEY = 'dm-rec-list-v1';
+	const uid = () => S.session?.user.id ?? null;
+	function cachedRecs(): DmPerson[] | null {
+		try {
+			const v = JSON.parse(localStorage.getItem(REC_LIST_KEY) ?? 'null');
+			return v?.day === today() && v.uid && v.uid === uid() && Array.isArray(v.recs) && v.recs.length ? v.recs : null;
+		} catch {
+			return null;
+		}
+	}
+	function saveRecs(list: DmPerson[]) {
+		try {
+			if (list.length && uid()) localStorage.setItem(REC_LIST_KEY, JSON.stringify({ day: today(), uid: uid(), recs: list }));
+			else localStorage.removeItem(REC_LIST_KEY);
+		} catch {
+			/* 저장소를 못 쓰면 들어올 때마다 새로 받는다 */
+		}
+	}
 	let recs = $state<DmPerson[] | null>(null);
 	let recFailed = $state(false);
 	let recBusy = $state(false);
 	async function loadRecs(refresh = false) {
 		if (recBusy || !current()) return;
+		if (!refresh) {
+			const kept = cachedRecs();
+			if (kept) return void (recs = kept.slice(0, REC_SHOW));
+		}
 		if (refresh) {
 			const used = refreshesUsed();
 			if (used >= REC_REFRESH) return void (recLeft = 0);
@@ -86,7 +110,9 @@
 		recFailed = false;
 		try {
 			const r = await recommendPeople();
-			if (current()) recs = (r ?? []).slice(0, REC_SHOW);
+			const list = (r ?? []).slice(0, REC_SHOW);
+			saveRecs(list);
+			if (current()) recs = list;
 		} catch {
 			if (current()) {
 				recFailed = true;
@@ -106,7 +132,18 @@
 		to = p;
 	}
 
-	const send = (body: string, fmt: LetterFmt | null, nick: string | null) => (current() && to ? deliver(() => sendLetter(to!.id, body, fmt, nick)) : Promise.resolve(false));
+	// 편지를 보낸 사람은 오늘 추천에서 뺀다 (서버도 이미 편지를 주고받는 사람은 추천하지 않는다)
+	async function send(body: string, fmt: LetterFmt | null, nick: string | null) {
+		if (!current() || !to) return false;
+		const id = to.id;
+		const ok = await deliver(() => sendLetter(id, body, fmt, nick));
+		if (ok) {
+			const kept = cachedRecs();
+			if (kept) saveRecs(kept.filter((p) => p.id !== id));
+			if (recs) recs = recs.filter((p) => p.id !== id);
+		}
+		return ok;
+	}
 </script>
 
 <div class="topbar">

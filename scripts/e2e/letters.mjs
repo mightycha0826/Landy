@@ -366,6 +366,10 @@ try {
 		&& (await page.locator('.recs .person').first().locator('.badges .medal').count()) === 2 && called(w, 'dm_recommend').length === 1, JSON.stringify([recRows, await page.locator('.recs .person').first().locator('.badges .medal').count(), called(w, 'dm_recommend').length]));
 	await page.getByRole('button', { name: '다른 추천' }).click(); await page.waitForTimeout(300);
 	check('"다른 추천"을 누르면 다시 받는다 (그때만)', called(w, 'dm_recommend').length === 2);
+	await page.locator('button.back').click(); await page.waitForURL(/\/letters$/); await page.waitForTimeout(300);
+	await page.getByRole('link', { name: '편지 쓰기' }).click(); await page.waitForURL('**/letters/new');
+	await page.locator('.recs .person').first().waitFor({ timeout: 3000 });
+	check('★ 나갔다 다시 들어와도 추천을 새로 받지 않는다 — 오늘 받은 추천 그대로 (2026-11-23)', called(w, 'dm_recommend').length === 2 && (await page.locator('.recs .person').count()) === 2);
 	await search.fill('박'); await page.waitForTimeout(400);
 	check('한 글자로는 찾지 않는다 (추천은 그대로)', called(w, 'dm_search').length === 0 && (await page.locator('.recs .person').count()) === 2);
 	await search.fill('박받'); await page.waitForTimeout(600);
