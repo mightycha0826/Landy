@@ -51,6 +51,10 @@ export const UI = $state({
 	celebrating: false,
 	/** 대화방에서 "새 대화 찾기"로 홈에 돌아왔다 — 홈이 바로 찾기를 시작한다 (lib/nav.ts backToSeek) */
 	seekOnHome: false,
+	/** 내 매칭 기준에 맞는 사람이 접속 중이고 오늘 아직 안 알렸다 (Phase 100) — 박동 대답(match_nudge)으로 안다 */
+	matchNudge: false,
+	/** 그 알림을 눌렀다 — 앱 틀이 지금 화면에서 찾기를 시작한다 (lib/nav.ts seekFromNudge) */
+	seekNow: false,
 	/** 새로 딴 업적이 있다 (Phase 55) — 박동 대답(ach_new)으로 안다. 축하 창이 받아 가면 false */
 	achNew: false
 });
@@ -129,7 +133,7 @@ function selectSession(session: Session | null) {
 		S.bootError = null;
 		loadedFor = null;
 		otpVerifiedAt = 0;
-		UI.busy = UI.celebrating = UI.seekOnHome = UI.achNew = false;
+		UI.busy = UI.celebrating = UI.seekOnHome = UI.achNew = UI.matchNudge = UI.seekNow = false;
 		if (previous) UI.afterLogin = null;
 		toasts.splice(0);
 	}
@@ -292,6 +296,7 @@ async function beat(online: boolean) {
 				maintenance?: { msg?: string; until?: string | null } | null;
 				maintenance_at?: string | null;
 				ach_new?: boolean;
+				match_nudge?: boolean;
 			} | null;
 			const m = d?.maintenance;
 			setMaint(m ? { msg: m.msg ?? '', until: m.until ?? null } : null);
@@ -300,6 +305,7 @@ async function beat(online: boolean) {
 			if (at !== S.maintAt) S.maintAt = at;
 			// 새 업적 (Phase 55) — 예전엔 축하 창이 10분마다 따로 물었다. 이제 박동이 "있다"고 할 때만 받아 간다
 			if (d?.ach_new) UI.achNew = true;
+			UI.matchNudge = d?.match_nudge === true;
 		}
 	} catch {
 		/* 다음 박동에 다시 */

@@ -43,7 +43,7 @@ try {
 	const errors = [];
 	page.on('pageerror', (e) => errors.push(String(e)));
 	// 가짜 서버 상태 — 시작하기를 마쳤는지 · 새 업적을 봤는지
-	const db = { onboarded: false, seen: false, othersSeeking: false };
+	const db = { onboarded: false, seen: false, othersSeeking: false, nudge: false, claims: 0 };
 	await page.route('https://fake-proj.supabase.co/**', async (route) => {
 		const req = route.request();
 		const u = new URL(req.url());
@@ -57,7 +57,8 @@ try {
 		}
 		if (u.pathname === '/rest/v1/app_settings') return json({ is_open: true, notice: '', room_minutes: 10, extend_minutes: 10, vote_window_sec: 30, join_grace_sec: 30, max_rounds: 99, heartbeat_sec: 30, presence_ttl_sec: 70, msg_max_len: 500, max_open_rooms: 5 });
 		if (fn === 'my_account') return json({ has_password: true, name: '홍길동', grade: 1, name_source: 'roster' });
-		if (fn === 'heartbeat') return json({ server_now: new Date().toISOString(), maintenance: null, maintenance_at: null, ach_new: !db.seen });
+		if (fn === 'heartbeat') return json({ server_now: new Date().toISOString(), maintenance: null, maintenance_at: null, ach_new: !db.seen, match_nudge: db.nudge });
+		if (fn === 'claim_match_nudge') { const ok = db.nudge; db.nudge = false; db.claims++; return json(ok); }
 		if (fn === 'new_achievements') return json(db.seen ? [] : [{ code: 'streak', title: '개근', icon: 'flame', tier: 1 }]);
 		if (fn === 'mark_achievements_seen') { db.seen = true; return json(null); }
 		if (fn === 'my_rooms') return json({ rooms: [], others_seeking: db.othersSeeking, server_now: new Date().toISOString() });
@@ -150,6 +151,32 @@ try {
 	await page.getByRole('button', { name: '새 대화 찾기' }).waitFor({ timeout: 10000 });
 	await page.waitForTimeout(500);
 	check('찾는 사람이 없으면 문구가 없다', (await seekHint.count()) === 0);
+
+	console.log('\n[2-2] 내 기준에 맞는 사람이 접속 중이면 앱 안 알림 → 누르면 바로 찾기');
+	const nudgeText = '현재 누군가 접속중이에요 매칭을 돌려볼까요?';
+	const nudge = page.locator('.inapp', { hasText: nudgeText });
+	db.nudge = true;
+	await page.reload();
+	await nudge.waitFor({ timeout: 10000 }).catch(() => {});
+	check('★ 홈에서도 앱 안 알림이 올라온다 · 하루 몫을 한 번만 받는다', (await nudge.count()) === 1 && db.claims === 1, `${await nudge.count()} / ${db.claims}`);
+	await nudge.locator('button').click();
+	await page.locator('.notice-panel.seek', { hasText: '찾는 중' }).waitFor({ timeout: 10000 }).catch(() => {});
+	await page.waitForTimeout(300);
+	check('★ 누르면 바로 찾기 시작 · 주소는 그대로', (await page.locator('.notice-panel.seek', { hasText: '찾는 중' }).count()) === 1 && new URL(page.url()).search === '', page.url());
+	check('★ 뒤로가기 종료 안내가 잘못 뜨지 않는다', (await page.getByText('뒤로가기를 한 번 더').count()) === 0);
+	await page.getByRole('button', { name: '그만' }).click();
+	await page.getByRole('button', { name: '새 대화 찾기' }).waitFor({ timeout: 10000 });
+	await page.goto(`${BASE}/?seek`); // 앱이 꺼져 있을 때 푸시를 누른 경우
+	await page.locator('.notice-panel.seek', { hasText: '찾는 중' }).waitFor({ timeout: 10000 }).catch(() => {});
+	await page.waitForTimeout(500);
+	check('★ 꺼진 앱에서 푸시를 눌러도 바로 찾기 · 주소 정리 · 종료 안내 없음', (await page.locator('.notice-panel.seek', { hasText: '찾는 중' }).count()) === 1
+		&& new URL(page.url()).search === '' && (await page.getByText('뒤로가기를 한 번 더').count()) === 0, page.url());
+	await page.getByRole('button', { name: '그만' }).click();
+	await page.getByRole('button', { name: '새 대화 찾기' }).waitFor({ timeout: 10000 });
+	await page.reload();
+	await page.getByRole('button', { name: '새 대화 찾기' }).waitFor({ timeout: 10000 });
+	await page.waitForTimeout(800);
+	check('오늘 받은 뒤에는 다시 뜨지 않는다', (await nudge.count()) === 0 && db.claims === 1, `${await nudge.count()} / ${db.claims}`);
 
 	console.log('\n[3] 연락해보기 — 대화방으로 한 칸만, 기다리는 동안 머리글은 대화 시간');
 	const at = () => page.evaluate(() => navigation.currentEntry.index); // 기록에서 지금 몇 번째 칸인가

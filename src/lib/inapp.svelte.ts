@@ -14,6 +14,8 @@ export type InApp = {
 	body: string;
 	url: string;
 	kind: 'chat' | 'letter' | 'notice' | 'reaction';
+	/** 누르면 화면을 옮기는 대신 이것을 한다 */
+	act?: () => void;
 	/** 같은 key 로 바뀔 때마다 올라간다 — 띠가 다시 살짝 튄다 */
 	n: number;
 };
@@ -31,10 +33,11 @@ onAccountChange(() => {
 	recent.clear();
 });
 
-export function notifyInApp(n: Omit<InApp, 'n'>, dedupeKey = '') {
+/** showHere = 그 화면을 보고 있어도 띄운다 ("매칭을 돌려볼까요?"는 홈에서도 물어야 한다) */
+export function notifyInApp(n: Omit<InApp, 'n'>, dedupeKey = '', showHere = false) {
 	untrack(() => {
 		if (!PREFS.inApp) return;
-		if (typeof location !== 'undefined' && location.pathname === n.url.split('?')[0]) return; // 편지함을 보고 있으면 편지 알림(/letters?take=…)도 — 우체통에 바로 보인다
+		if (!showHere && typeof location !== 'undefined' && location.pathname === n.url.split('?')[0]) return; // 편지함을 보고 있으면 편지 알림(/letters?take=…)도 — 우체통에 바로 보인다
 		if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
 		if (dedupeKey) {
 			const t = recent.get(dedupeKey);

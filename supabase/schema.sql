@@ -1509,7 +1509,9 @@ begin
                            then cfg.maintenance_at end,
     -- 새로 딴 업적이 있나 (Phase 55) — 앱이 10분마다 따로 묻던 것을 박동에 싣는다. 있을 때만 앱이 new_achievements() 를 부른다
     'ach_new', p_online and exists (select 1 from private.user_achievements a join public.profiles p on p.id = a.user_id
-                                     where a.user_id = auth.uid() and a.earned_at > coalesce(p.ach_seen_at, '-infinity')));
+                                     where a.user_id = auth.uid() and a.earned_at > coalesce(p.ach_seen_at, '-infinity')),
+    -- 내 기준에 맞는 사람이 접속 중이고 오늘 아직 안 알렸나 (Phase 100)
+    'match_nudge', case when p_online then private.match_nudge_due(auth.uid()) else false end);
 end
 $fn$;
 
@@ -1517,7 +1519,7 @@ $fn$;
 -- ── 29. 대화 목록 · 상대 프로필 ─────────────────────────────────────
 -- 내 열린 대화 전부. ★ 방마다 room_id 외의 uuid 는 없다.
 -- 나와 이어질 수 있는 사람이 지금 찾고 있나 — request_match 의 상대 조건과 같다 (Phase 99)
-create or replace function private.someone_seeking(p_me uuid)
+create or replace function private.match_available(p_me uuid, p_online boolean)
 returns boolean language plpgsql stable security definer set search_path = public, private as $fn$
 declare
   cfg public.app_settings%rowtype;
@@ -1531,7 +1533,7 @@ begin
       from public.user_presence c
       join public.profiles p on p.id = c.user_id
      where c.user_id <> p_me
-       and c.seeking_until > now()
+       and (case when p_online then c.online_until else c.seeking_until end) > now()
        and private.open_rooms(c.user_id) < cfg.max_open_rooms
        and not exists (select 1 from public.room_members x
                          join public.room_members y on y.room_id = x.room_id
@@ -1548,6 +1550,14 @@ begin
                             where h.user_lo = least(p_me, c.user_id)
                               and h.user_hi = greatest(p_me, c.user_id)
                               and h.last_matched_at > now() - make_interval(days => cfg.rematch_cooldown_days))));
+end
+$fn$;
+revoke all on function private.match_available(uuid, boolean) from public, anon, authenticated;
+
+create or replace function private.someone_seeking(p_me uuid)
+returns boolean language plpgsql stable security definer set search_path = public, private as $fn$
+begin
+  return private.match_available(p_me, false);
 end
 $fn$;
 revoke all on function private.someone_seeking(uuid) from public, anon, authenticated;
@@ -1689,7 +1699,7 @@ begin
   if auth.uid() is null then raise exception 'unauthenticated'; end if;
   select coalesce(array_agg(distinct k order by k), '{}') into m
     from unnest(coalesce(p_mute, '{}')) k
-   where k in ('chat', 'reaction', 'letter', 'crowd');
+   where k in ('chat', 'reaction', 'letter', 'crowd', 'online');
   update public.push_subscriptions set mute = m where endpoint = p_endpoint and user_id = auth.uid();
 end
 $fn$;
@@ -7054,8 +7064,8 @@ begin
       if payload->>'skip' <> 'already' then update private.push_outbox set state='skipped' where job_key=job.job_key and lease=job.lease; end if;
     else out := out || jsonb_build_array(payload || jsonb_build_object('kind',job.kind)); end if;
   end loop;
-  -- 한 번 실행에 대량 발송은 한 묶음만 (Worker 하위 요청 한도) — 편지 열림(Phase 99)이 먼저, 없으면 접속자 알림(Phase 92)
-  payload := coalesce(private.letters_open_push_batch(), private.crowd_push_batch());
+  -- 한 번 실행에 대량 발송은 한 묶음만 (Worker 하위 요청 한도) — 편지 열림(Phase 99) → 접속자 알림(Phase 92) → 맞는 사람 접속(Phase 100)
+  payload := coalesce(private.letters_open_push_batch(), private.crowd_push_batch(), private.online_nudge_push_batch());
   if payload is not null then out := out || jsonb_build_array(payload); end if;
   return out;
 end
@@ -7709,4 +7719,115 @@ revoke all on function private.letters_open_push_batch() from public, anon, auth
 insert into private.letters_open_push (id, done)
 select true, true where not private.letters_locked()
 on conflict (id) do nothing;
+notify pgrst, 'reload schema';
+
+-- ════════════════════════════════════════════════════════════════════
+--  Phase 100 — 내 매칭 기준에 맞는 사람이 접속 중이면 "현재 누군가 접속중이에요 매칭을 돌려볼까요?"
+--
+--  · 기준은 request_match 와 같다 (서로의 성별 조건 · 차단 · 재매칭 제한 · 이미 대화 중 · 대화 상한).
+--  · 학생마다 하루(한국 날짜) 한 번, 아침 8시 ~ 밤 11시 — 앱 안 알림과 푸시를 합쳐서 한 번이다 (private.online_nudges).
+--  · 앱을 켜 둔 학생: 이미 보내는 heartbeat 대답(match_nudge)을 보고 앱이 claim_match_nudge() 로 받아 앱 안 알림을 띄운다.
+--    찾는 중 · 대화방을 보는 중 · 다른 창이 떠 있으면 다음 박동까지 기다린다.
+--  · 앱을 안 켠 학생: Worker 의 1분 예약 작업이 이미 부르는 push_retry_jobs() 가 30대씩 돌려준다. 방금(30분 안에) 앱을 쓴 학생은 뺀다.
+--  · 설정 › 알림에서 끌 수 있다 (mute 'online').
+--  heartbeat · set_push_mute · push_retry_jobs · someone_seeking 은 제자리에서 고쳤다. 실DB 는 supabase/migrations/20261123140000_match_nudge_phase100.sql.
+-- ════════════════════════════════════════════════════════════════════
+create table if not exists private.online_nudges (
+  user_id uuid primary key references auth.users on delete cascade,
+  day     date not null,                               -- 마지막으로 받은 한국 날짜
+  sent_at timestamptz not null default now()
+);
+alter table private.online_nudges enable row level security;
+revoke all on private.online_nudges from public, anon, authenticated;
+
+-- 보내지 않는 시간 (한국 시간 밤 11시 ~ 아침 8시)
+create or replace function private.nudge_quiet(p_at timestamptz default now())
+returns boolean language sql stable set search_path = '' as $fn$
+  select extract(hour from p_at at time zone 'Asia/Seoul') not between 8 and 22;
+$fn$;
+revoke all on function private.nudge_quiet(timestamptz) from public, anon, authenticated;
+
+-- 오늘 이 학생에게 알려도 되나
+create or replace function private.match_nudge_due(p_me uuid)
+returns boolean language plpgsql stable security definer set search_path = public, private as $fn$
+declare
+  cfg public.app_settings%rowtype;
+  m   public.profiles%rowtype;
+begin
+  if private.nudge_quiet() or private.in_maintenance() then return false; end if;
+  if exists (select 1 from private.online_nudges n
+              where n.user_id = p_me and n.day = (now() at time zone 'Asia/Seoul')::date) then return false; end if;
+  select * into cfg from public.app_settings where id;
+  if not cfg.is_open then return false; end if;
+  select * into m from public.profiles where id = p_me;
+  if not found or not m.verified or not m.onboarded or m.status <> 'active'
+     or (m.suspended_until is not null and m.suspended_until > now()) then return false; end if;
+  if exists (select 1 from public.user_presence up where up.user_id = p_me and up.seeking_until > now()) then return false; end if;
+  if exists (select 1 from public.room_members rm where rm.user_id = p_me and rm.open and rm.viewing_until > now()) then return false; end if;
+  if private.open_rooms(p_me) >= cfg.max_open_rooms then return false; end if;
+  return private.match_available(p_me, true);
+end
+$fn$;
+revoke all on function private.match_nudge_due(uuid) from public, anon, authenticated;
+
+-- 오늘 몫을 받아 간다 — 앱 안 알림과 푸시가 겹치지 않게 한 줄로
+create or replace function private.take_match_nudge(p_me uuid)
+returns boolean language plpgsql security definer set search_path = public, private as $fn$
+declare v_day date := (now() at time zone 'Asia/Seoul')::date;
+begin
+  if not private.match_nudge_due(p_me) then return false; end if;
+  insert into private.online_nudges (user_id, day) values (p_me, v_day)
+  on conflict (user_id) do update set day = excluded.day, sent_at = now()
+   where private.online_nudges.day < excluded.day;
+  return found;
+end
+$fn$;
+revoke all on function private.take_match_nudge(uuid) from public, anon, authenticated;
+
+create or replace function public.claim_match_nudge()
+returns boolean language plpgsql security definer set search_path = public, private as $fn$
+begin
+  if auth.uid() is null then raise exception 'unauthenticated'; end if;
+  return private.take_match_nudge(auth.uid());
+end
+$fn$;
+revoke all on function public.claim_match_nudge() from public, anon;
+grant execute on function public.claim_match_nudge() to authenticated;
+
+-- 이번 분에 앱을 안 켠 학생들에게 보낼 한 묶음 (없으면 null)
+create or replace function private.online_nudge_push_batch()
+returns jsonb language plpgsql security definer set search_path = '' as $fn$
+declare
+  v_day  date := (now() at time zone 'Asia/Seoul')::date;
+  u      uuid;
+  v_one  jsonb;
+  v_subs jsonb := '[]'::jsonb;
+begin
+  if private.nudge_quiet() or private.in_maintenance()
+     or not coalesce((select s.is_open from public.app_settings s where s.id), false)
+     or not exists (select 1 from public.user_presence p where p.online_until > now()) then
+    return null;
+  end if;
+  for u in
+    select s.user_id from public.push_subscriptions s
+     where not ('online' = any(s.mute))
+       and not exists (select 1 from public.user_presence up
+                        where up.user_id = s.user_id and up.online_until > now() - interval '30 minutes')
+       and not exists (select 1 from private.online_nudges n where n.user_id = s.user_id and n.day = v_day)
+     group by s.user_id
+     order by random()
+     limit 60
+  loop
+    select coalesce(jsonb_agg(jsonb_build_object('endpoint', s.endpoint, 'p256dh', s.p256dh, 'auth', s.auth, 'mute', s.mute)), '[]'::jsonb)
+      into v_one from public.push_subscriptions s where s.user_id = u and not ('online' = any(s.mute));
+    exit when jsonb_array_length(v_subs) + jsonb_array_length(v_one) > 30;
+    if private.take_match_nudge(u) then v_subs := v_subs || v_one; end if;
+  end loop;
+  if jsonb_array_length(v_subs) = 0 then return null; end if;
+  return jsonb_build_object('kind', 'online', 'title', 'Landy', 'body', '현재 누군가 접속중이에요 매칭을 돌려볼까요?',
+                            'url', '/?seek', 'tag', 'match-nudge', 'subs', v_subs);
+end
+$fn$;
+revoke all on function private.online_nudge_push_batch() from public, anon, authenticated;
+
 notify pgrst, 'reload schema';

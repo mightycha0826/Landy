@@ -14,6 +14,7 @@
 	import { loadTheme } from '$lib/theme.svelte';
 	import { loadPrefs } from '$lib/prefs.svelte';
 	import { listenServiceWorker } from '$lib/push';
+	import { seekFromNudge } from '$lib/nav';
 	import { notifyInApp } from '$lib/inapp.svelte';
 	import InAppBanner from '$lib/ui/InAppBanner.svelte';
 	import BadgeSheet from '$lib/ui/BadgeSheet.svelte';
@@ -109,11 +110,12 @@
 			push: (n) => {
 				if (!S.session) return;
 				notifyInApp(
-					{ key: n.tag, title: n.title, body: n.body, url: viaMailbox(n.url), kind: n.kind === 'other' || n.kind === 'crowd' ? 'notice' : n.kind },
-					`${n.tag}|${n.body.slice(0, 60)}`
+					{ key: n.tag, title: n.title, body: n.body, url: viaMailbox(n.url), kind: n.kind === 'other' || n.kind === 'crowd' || n.kind === 'online' ? 'notice' : n.kind, act: n.kind === 'online' ? seekFromNudge : undefined },
+					`${n.tag}|${n.body.slice(0, 60)}`,
+					n.kind === 'online'
 				);
 			},
-			open: (url) => void navigateFromOverlay(viaMailbox(url))
+			open: (url) => (url === '/?seek' ? seekFromNudge() : void navigateFromOverlay(viaMailbox(url)))
 		});
 	});
 

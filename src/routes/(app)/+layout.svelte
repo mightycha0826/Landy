@@ -3,10 +3,14 @@
 	import { page } from '$app/state';
 	import { useTabBack } from '$lib/tabBack.svelte';
 	import { checkGate, lettersState } from '$lib/letters/gate.svelte';
-	import { S, toast } from '$lib/state.svelte';
+	import { S, UI, toast } from '$lib/state.svelte';
 	import { Seeker } from '$lib/seeker.svelte';
 	import { MATCHING_CONTEXT } from '$lib/matching';
-	import { onAccountChange } from '$lib/accountScope';
+	import { accountIsCurrent, accountToken, onAccountChange } from '$lib/accountScope';
+	import { supabase } from '$lib/supabase';
+	import { PREFS } from '$lib/prefs.svelte';
+	import { touring } from '$lib/tour.svelte';
+	import { seekFromNudge } from '$lib/nav';
 	import { navigateFromOverlay } from '$lib/overlay.svelte';
 	import { isRestricted } from '$lib/restriction';
 	import { mmss } from '$lib/time';
@@ -19,7 +23,7 @@
 	import PullRefresh from '$lib/ui/PullRefresh.svelte';
 	import { INBOX } from '$lib/inbox.svelte';
 	import { notifyInApp } from '$lib/inapp.svelte';
-	import { pushState } from '$lib/push';
+	import { pushMuted, pushState } from '$lib/push';
 	import { holdScreenOn } from '$lib/wakeLock';
 
 	/** 이만큼 넘게 앱을 떠나 있었으면 서버 대기에서 빠져 있었다 (seek_ttl_sec 기본 15초) */
@@ -115,6 +119,24 @@
 			INBOX.onNew = null;
 			INBOX.stop();
 		};
+	});
+	// 내 기준에 맞는 사람이 접속 중 (Phase 100) — 박동이 알려 주면 탭 화면에서, 찾는 중이 아니고 다른 창이 없을 때 하루 한 번.
+	// 띄울 수 있을 때만 서버에서 오늘 몫을 받아 간다 (못 띄우면 다음 박동에 다시)
+	$effect(() => {
+		if (!UI.matchNudge || !showTabs || seeker.seeking || touring() || UI.celebrating) return;
+		untrack(() => {
+			UI.matchNudge = false;
+			if (!PREFS.inApp || pushMuted().includes('online') || document.querySelector('[role="dialog"]')) return;
+			const token = accountToken();
+			void (async () => {
+				const { data } = await supabase.rpc('claim_match_nudge');
+				if (data === true && accountIsCurrent(token))
+					notifyInApp({ key: 'match-nudge', title: 'Landy', body: '현재 누군가 접속중이에요 매칭을 돌려볼까요?', url: '/', kind: 'notice', act: seekFromNudge }, 'match-nudge', true);
+			})().catch(() => {});
+		});
+	});
+	$effect(() => {
+		if (UI.seekNow) untrack(() => { UI.seekNow = false; seeker.start(); });
 	});
 	// 대화방 안에서는 목록을 드물게 읽으니(lib/inbox) 나올 때 한 번 새로 읽는다 — 홈의 마지막 메시지 · 안 읽은 수가 바로 맞게
 	let wasInRoom = false;

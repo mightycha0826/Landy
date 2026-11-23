@@ -3869,12 +3869,70 @@ console.log('\n[Phase 99] 누군가 매칭 중 · 익명편지가 열리면 푸�
 	await db.exec(`delete from public.push_subscriptions; update public.app_settings set letters_gate = false, letters_gate_min = 100 where id`);
 }
 
+console.log('\n[Phase 100] 내 기준에 맞는 사람이 접속 중이면 하루 한 번 알림');
+{
+	await db.exec(readFileSync(here + 'migrations/20261123140000_match_nudge_phase100.sql', 'utf8')); // 위 Phase 99 검사가 그 파일을 다시 실행했다
+	const quiet = async (at) => (await one(`select private.nudge_quiet($1::timestamptz) q`, [at])).q;
+	check('★ 한국 시간 8시부터 22시 59분까지만', (await quiet('2026-11-23T07:59:00+09:00')) === true && (await quiet('2026-11-23T08:00:00+09:00')) === false
+		&& (await quiet('2026-11-23T22:59:00+09:00')) === false && (await quiet('2026-11-23T23:00:00+09:00')) === true);
+	// 나머지 검사는 실행 시각과 상관없게 — 끝에서 마이그레이션으로 되돌린다
+	await db.exec(`create or replace function private.nudge_quiet(p_at timestamptz default now()) returns boolean language sql stable set search_path = '' as $fn$ select false $fn$;
+		update public.app_settings set is_open = true, maintenance = false, maintenance_at = null where id;
+		update public.user_presence set online_until = now() - interval '2 hours', seeking_until = null, seeking_since = null;
+		update public.room_members set viewing_until = null;
+		delete from private.online_nudges; delete from public.push_subscriptions;
+		insert into private.letters_open_push (id, done) values (true, true) on conflict (id) do update set done = true;
+		insert into private.crowd_push (day, done) values ((now() at time zone 'Asia/Seoul')::date, true) on conflict (day) do update set done = true`);
+	const [a, b, c, r] = [await person('m', 'f'), await person('f', 'm'), await person('m', 'f'), await person('f', 'm')];
+	const online = (u, secs = 120) => db.query(`insert into public.user_presence (user_id, online_until) values ($1, now() + make_interval(secs => $2))
+		on conflict (user_id) do update set online_until = excluded.online_until`, [u, secs]);
+	const due = async (u) => (await rpcAs(u, 'heartbeat', true)).match_nudge;
+	await db.query(`update public.user_presence set online_until = now() - interval '2 hours' where user_id = any($1)`, [[a, b, c, r]]);
+	await online(a);
+	check('아무도 없으면 알리지 않는다', (await due(a)) === false);
+	await online(c);
+	check('★ 내 기준에 안 맞는 사람만 접속 중이면 알리지 않는다', (await due(a)) === false);
+	await online(b);
+	check('★ 내 기준에 맞는 사람이 접속 중이면 박동 대답에', (await due(a)) === true);
+	await db.query(`insert into public.blocks (blocker_id, blocked_id) values ($1, $2)`, [b, a]);
+	check('★ 나를 차단한 사람은 세지 않는다', (await due(a)) === false);
+	await db.query(`delete from public.blocks where blocker_id = $1 and blocked_id = $2`, [b, a]);
+	await db.query(`update public.user_presence set seeking_until = now() + interval '15 seconds' where user_id = $1`, [a]);
+	check('이미 찾는 중이면 알리지 않는다', (await due(a)) === false);
+	await db.query(`update public.user_presence set seeking_until = null where user_id = $1`, [a]);
+	check('★ 받아 가면 true', (await rpcAs(a, 'claim_match_nudge')) === true);
+	check('★ 하루 한 번 — 다시 받을 수 없다', (await rpcAs(a, 'claim_match_nudge')) === false && (await due(a)) === false);
+	await db.query(`update private.online_nudges set day = day - 1 where user_id = $1`, [a]);
+	check('다음 날이면 다시', (await due(a)) === true);
+	await expectError('로그인 안 하면 못 받는다', () => rowsAs(null, `select public.claim_match_nudge()`), 'permission denied');
+	await expectError('★ 학생은 발송 묶음을 직접 못 부른다', () => rowsAs(a, `select private.online_nudge_push_batch()`), 'permission denied');
+
+	await db.query(`delete from private.online_nudges`);
+	const sub = (ep, u, mute = '{}') => db.query(`insert into public.push_subscriptions (endpoint, user_id, p256dh, auth, mute) values ($1, $2, 'p', 'a', $3)`, [ep, u, mute]);
+	await sub('https://fcm.googleapis.com/fcm/send/nudge-r', r);
+	await sub('https://fcm.googleapis.com/fcm/send/nudge-r-muted', r, '{online}');
+	await sub('https://fcm.googleapis.com/fcm/send/nudge-on', b);
+	const nudges = async () => ((await svc('push_retry_jobs')) ?? []).filter((p) => p.tag === 'match-nudge');
+	await db.query(`update public.user_presence set online_until = now() - interval '10 minutes' where user_id = $1`, [r]);
+	check('★ 방금(30분 안에) 앱을 쓴 학생에게는 보내지 않는다', (await nudges()).length === 0);
+	await db.query(`update public.user_presence set online_until = now() - interval '2 hours' where user_id = $1`, [r]);
+	const [push] = await nudges();
+	check('★ 앱을 안 켠 학생에게 문구와 함께 · 누르면 찾기', push?.body === '현재 누군가 접속중이에요 매칭을 돌려볼까요?' && push.url === '/?seek' && push.kind === 'online', JSON.stringify(push));
+	check('★ 접속 중인 학생 · 이 알림을 끈 기기는 뺀다', push.subs.length === 1 && push.subs[0].endpoint.endsWith('nudge-r'), JSON.stringify(push.subs));
+	check('★ 푸시도 하루 한 번', (await nudges()).length === 0 && (await one(`select count(*)::int n from private.online_nudges where user_id = $1`, [r])).n === 1);
+	await rpcAs(r, 'set_push_mute', 'https://fcm.googleapis.com/fcm/send/nudge-r', ['online', 'hack']);
+	check('설정 › 알림에서 끌 수 있다 (mute online)', (await one(`select mute from public.push_subscriptions where endpoint like '%nudge-r'`)).mute.join() === 'online');
+	await db.exec(`delete from public.push_subscriptions; delete from private.online_nudges; delete from private.crowd_push;
+		update public.user_presence set online_until = now() - interval '1 second'`);
+	await db.exec(readFileSync(here + 'migrations/20261123140000_match_nudge_phase100.sql', 'utf8'));
+}
+
 console.log('\n[100] 마이그레이션과 스키마 snapshot 일치');
 {
 	const defs = async () => (await db.query("select n.nspname || '.' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' name, pg_get_functiondef(p.oid) body from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.prokind='f' order by 1")).rows;
 	const before = JSON.stringify(await defs());
 	// 운영에 적용한 순서대로 다시 실행하면 snapshot과 같아야 한다 (뒤 마이그레이션이 앞의 함수를 고쳐 쓴다)
-	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql', '20261102130000_anon_friends_phase93.sql', '20261102150000_friend_contact_phase95.sql', '20261110120000_admin_overview_phase96.sql', '20261123130000_seek_hint_letters_open_phase99.sql'])
+	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql', '20261102130000_anon_friends_phase93.sql', '20261102150000_friend_contact_phase95.sql', '20261110120000_admin_overview_phase96.sql', '20261123130000_seek_hint_letters_open_phase99.sql', '20261123140000_match_nudge_phase100.sql'])
 		await db.exec(readFileSync(here + 'migrations/' + file, 'utf8'));
 	check('업그레이드 마이그레이션의 함수가 snapshot과 같음', JSON.stringify(await defs()) === before);
 }

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { surface } from '$lib/transitions';
 	import { getContext, onDestroy, untrack } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { goto, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import Avatar from '$lib/ui/Avatar.svelte';
 	import { INBOX, type InboxRoom } from '$lib/inbox.svelte';
@@ -100,8 +100,9 @@
 				UI.seekOnHome = false;
 				seeker.start();
 			} else if (page.url.searchParams.has('seek')) {
-				// 옛 주소(/?seek) 호환 — 주소만 정리
-				void goto('/', { replaceState: true, keepFocus: true, noScroll: true, state: page.state });
+				// 앱이 꺼져 있을 때 "매칭을 돌려볼까요?" 푸시를 눌렀다 (옛 주소도 같다) — 주소만 정리.
+				// ★ goto 로 바꾸면 방금 쌓은 뒤로가기 칸(tabBack 의 guard)이 사라져 "한 번 더 누르면 종료"가 잘못 뜬다
+				replaceState('/', page.state);
 				seeker.start();
 			}
 		});

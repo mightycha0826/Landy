@@ -1,7 +1,7 @@
 import { isPushEndpoint, sendPush, type PushSub } from './webpush';
 
 export type PushNote = {
-	kind: 'chat' | 'reaction' | 'letter' | 'notice' | 'crowd';
+	kind: 'chat' | 'reaction' | 'letter' | 'notice' | 'crowd' | 'online';
 	title: string; body: string; room_id?: string; id?: number; at?: string; url?: string; tag?: string;
 	subs: PushSub[]; job?: string; lease?: string;
 };

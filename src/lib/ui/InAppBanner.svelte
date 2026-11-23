@@ -21,7 +21,8 @@
 		const n = INAPP.cur;
 		if (!n) return;
 		dismissInApp();
-		void navigateFromOverlay(n.url); // 시트가 열려 있어도 이동이 취소되지 않게
+		if (n.act) n.act();
+		else void navigateFromOverlay(n.url); // 시트가 열려 있어도 이동이 취소되지 않게
 	}
 	function down(e: PointerEvent) {
 		if (e.button !== 0 || dragging) return;

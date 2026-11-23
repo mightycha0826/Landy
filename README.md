@@ -935,4 +935,7 @@ node scripts/dev-user.mjs simbun-test3@cnsa.hs.kr 비밀번호 m      # 성별�
 - [x] **Phase 99 — 재방문 알림 안내 · 누군가 매칭 중 표시 · 익명편지 오픈 푸시** —
       알림 권한은 홈 안내를 끝낸 다음 방문에 묻는다. 홈은 `my_rooms` 대답의 `others_seeking` 으로 나와 이어질 수 있는 사람이 찾는 중인지 보여 준다 (요청 · 방송이 늘지 않는다).
       익명편지가 열리면 `push_retry_jobs()` 가 30대씩 한 번만 보낸다. 실DB 반영 완료 (`supabase/migrations/20261123130000_seek_hint_letters_open_phase99.sql`).
+- [x] **Phase 100 — 내 매칭 기준에 맞는 사람이 접속 중이면 알림** —
+      "현재 누군가 접속중이에요 매칭을 돌려볼까요?"를 앱 안 알림과 푸시로 학생마다 하루 한 번(아침 8시 ~ 밤 11시) 보낸다. 누르면 바로 찾기 시작, 설정 › 알림에서 끌 수 있다.
+      실DB 반영 완료 (`supabase/migrations/20261123140000_match_nudge_phase100.sql`).
 - [ ] Phase 7 — (보류) Durable Object 전송 계층. 학술탐구 큐 · 벤치는 별도 저장소(serverless-log-queue)에서 진행하고, 앱 적용 여부는 실험 결과를 본 뒤 따로 정한다.

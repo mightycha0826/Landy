@@ -1,5 +1,6 @@
 import { goto } from '$app/navigation';
 import { page } from '$app/state';
+import { navigateFromOverlay } from './overlay.svelte';
 import { UI } from './state.svelte';
 
 /**
@@ -20,4 +21,16 @@ export function goBack(fallback = '/') {
 export function backToSeek() {
 	UI.seekOnHome = true;
 	goBack('/');
+}
+
+/**
+ * "매칭을 돌려볼까요?" 알림을 눌렀다 (Phase 100) — 탭 화면이면 주소를 바꾸지 않고 그 자리에서 찾는다.
+ * ★ 홈에서 주소를 옮기면 뒤로가기 칸(tabBack 의 guard)이 사라져 "한 번 더 누르면 종료"가 잘못 뜬다.
+ */
+export function seekFromNudge() {
+	if (/^\/(letters|me)?$/.test(page.url.pathname)) UI.seekNow = true;
+	else {
+		UI.seekOnHome = true;
+		void navigateFromOverlay('/');
+	}
 }
