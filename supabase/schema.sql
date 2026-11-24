@@ -816,13 +816,19 @@ begin
     return jsonb_build_object('status', 'not_eligible', 'server_now', v_now);
   end if;
 
-  insert into public.user_presence (user_id, online_until, seeking_until, seeking_since)
-  values (me, v_now + make_interval(secs => cfg.seek_ttl_sec),
-              v_now + make_interval(secs => cfg.seek_ttl_sec), v_now)
-  on conflict (user_id) do update
-     set online_until  = greatest(public.user_presence.online_until, excluded.online_until),
-         seeking_until = excluded.seeking_until,
-         seeking_since = coalesce(public.user_presence.seeking_since, excluded.seeking_since);
+  -- 방금 갱신해서 남은 시간이 절반 넘게 있으면 다시 쓰지 않는다 — 몇 초마다 오는 대기 요청이 매번 디스크에 쓰지 않게 (Phase 101)
+  if not exists (select 1 from public.user_presence
+                  where user_id = me and seeking_since is not null
+                    and seeking_until > v_now + cfg.seek_ttl_sec * interval '500 milliseconds'
+                    and online_until  > v_now + cfg.seek_ttl_sec * interval '500 milliseconds') then
+    insert into public.user_presence (user_id, online_until, seeking_until, seeking_since)
+    values (me, v_now + make_interval(secs => cfg.seek_ttl_sec),
+                v_now + make_interval(secs => cfg.seek_ttl_sec), v_now)
+    on conflict (user_id) do update
+       set online_until  = greatest(public.user_presence.online_until, excluded.online_until),
+           seeking_until = excluded.seeking_until,
+           seeking_since = coalesce(public.user_presence.seeking_since, excluded.seeking_since);
+  end if;
 
   if not pg_try_advisory_xact_lock(hashtext('simbun_match_pool')) then
     return jsonb_build_object('status', 'busy', 'retry_after_ms', 300, 'server_now', v_now);
@@ -3964,13 +3970,23 @@ $fn$;
 -- 방 시계 맞추기 — 둘 다 보고 있으면 흐르게, 아니면 멈추게
 create or replace function private.room_clock(p_room uuid)
 returns void language plpgsql security definer set search_path = public, private as $fn$
-declare r public.rooms%rowtype; v_n int; v_stop timestamptz; v_left interval;
+declare r public.rooms%rowtype; v_n int; v_stop timestamptz; v_left interval; v_locked boolean := false;
 begin
-  select * into r from public.rooms where id = p_room for update;
-  if not found or r.status <> 'active' or r.pinned then return; end if;
-  select count(*) filter (where viewing_until > now()), min(coalesce(viewing_until, now() - interval '90 seconds'))
-    into v_n, v_stop
-    from public.room_members where room_id = p_room;
+  -- 대부분은 바꿀 게 없다 (이미 흐르는 중 · 이미 멈춤). 행 잠금도 디스크에 쓰는 일이라 바꿀 때만 잠그고 다시 본다 (Phase 101)
+  loop
+    if v_locked then
+      select * into r from public.rooms where id = p_room for update;
+    else
+      select * into r from public.rooms where id = p_room;
+    end if;
+    if not found or r.status <> 'active' or r.pinned then return; end if;
+    select count(*) filter (where viewing_until > now()), min(coalesce(viewing_until, now() - interval '90 seconds'))
+      into v_n, v_stop
+      from public.room_members where room_id = p_room;
+    if (v_n = 2) = (r.paused_left is null) then return; end if;   -- 둘 다 보면 흐르는 중 · 아니면 멈춘 중 — 그대로
+    exit when v_locked;
+    v_locked := true;
+  end loop;
   if v_n = 2 then
     if r.paused_left is not null then
       update public.rooms set expires_at = now() + r.paused_left, paused_left = null, paused_since = null where id = p_room;
@@ -7329,6 +7345,8 @@ declare
   v_subs  jsonb;
   v_last  text;
 begin
+  -- 오늘 몫을 다 보냈으면 잠그지 않고 끝 — 1분마다 부르므로 (Phase 101)
+  if exists (select 1 from private.crowd_push where day = v_day and done) then return null; end if;
   select * into c from private.crowd_push where day = v_day for update;
   if not found then
     v_total := coalesce((select students from public.signup_stats where id), 0);
@@ -7690,6 +7708,8 @@ declare
   v_subs  jsonb;
   v_last  text;
 begin
+  -- 이미 다 보냈으면 잠그지 않고 끝 — 1분마다 부르므로 (Phase 101)
+  if exists (select 1 from private.letters_open_push where id and done) then return null; end if;
   select * into c from private.letters_open_push where id for update;
   if not found then
     if private.letters_locked() or private.in_maintenance()

@@ -3927,12 +3927,56 @@ console.log('\n[Phase 100] 내 기준에 맞는 사람이 접속 중이면 하�
 	await db.exec(readFileSync(here + 'migrations/20261123140000_match_nudge_phase100.sql', 'utf8'));
 }
 
+console.log('\n[Phase 101] 바뀌는 게 없으면 디스크에 쓰지 않는다 (Disk IO)');
+{
+	// 위 Phase 99 · 100 검사가 그 파일들을 다시 실행해 옛 함수로 돌려놓았다
+	await db.exec(readFileSync(here + 'migrations/20261124120000_disk_io_phase101.sql', 'utf8'));
+	await resetPool();
+	await db.exec(`update public.app_settings set is_open = true, maintenance = false, maintenance_at = null where id`);
+	const a = await person('m', 'f');
+	const b = await person('f', 'm');
+	const pres = () => one(`select xmin::text v, seeking_until from public.user_presence where user_id = $1`, [a]);
+	check('혼자 찾으면 기다린다', (await match(a)).status === 'waiting');
+	const p1 = await pres();
+	check('★ 방금 갱신한 대기 요청은 다시 쓰지 않는다', (await match(a)).status === 'waiting' && (await pres()).v === p1.v);
+	await db.query(`update public.user_presence set seeking_until = now() + interval '5 seconds' where user_id = $1`, [a]);
+	const p2 = await pres();
+	await match(a);
+	const p3 = await pres();
+	check('★ 남은 시간이 절반 아래면 다시 늘린다', p3.v !== p2.v && Date.parse(p3.seeking_until) - Date.now() > 12_000, JSON.stringify(p3));
+	const got = await match(b);
+	check('쓰지 않은 동안에도 풀에 있어 매칭된다', got.status === 'matched', JSON.stringify(got));
+
+	await resetPool();
+	const email = async (id) => (await one('select email from auth.users where id = $1', [id])).email;
+	const room = (await one(`select private.dev_open_room($1, $2, 10) as id`, [await email(a), await email(b)])).id;
+	const roomVer = () => one(`select xmax::text v, paused_left is null as running from public.rooms where id = $1`, [room]);
+	await rpcAs(a, 'room_view', room, true);
+	check('한쪽만 보면 멈춘다 (그대로)', (await roomVer()).running === false);
+	await rpcAs(b, 'room_view', room, true);
+	const r1 = await roomVer();
+	check('둘 다 보면 흐른다 (그대로)', r1.running === true);
+	await rpcAs(a, 'room_view', room, true);
+	check('★ 이미 흐르는 중이면 "보고 있음"이 방을 잠그지 않는다', (await roomVer()).v === r1.v, JSON.stringify(await roomVer()));
+	await rpcAs(b, 'room_view', room, false);
+	check('떠나면 바로 멈춘다 (그대로)', (await roomVer()).running === false);
+	await resetPool();
+
+	await db.exec(`insert into private.letters_open_push (id, done) values (true, true) on conflict (id) do update set done = true;
+		insert into private.crowd_push (day, done) values ((now() at time zone 'Asia/Seoul')::date, true) on conflict (day) do update set done = true`);
+	const locks = async () => (await one(`select (select xmax::text from private.letters_open_push where id) l, (select xmax::text from private.crowd_push where day = (now() at time zone 'Asia/Seoul')::date) c`));
+	const l1 = await locks();
+	await svc('push_retry_jobs');
+	check('★ 다 보낸 단체 알림은 1분마다 잠그지 않는다', JSON.stringify(await locks()) === JSON.stringify(l1), JSON.stringify([l1, await locks()]));
+	await db.exec(`delete from private.letters_open_push; delete from private.crowd_push`);
+}
+
 console.log('\n[100] 마이그레이션과 스키마 snapshot 일치');
 {
 	const defs = async () => (await db.query("select n.nspname || '.' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' name, pg_get_functiondef(p.oid) body from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.prokind='f' order by 1")).rows;
 	const before = JSON.stringify(await defs());
 	// 운영에 적용한 순서대로 다시 실행하면 snapshot과 같아야 한다 (뒤 마이그레이션이 앞의 함수를 고쳐 쓴다)
-	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql', '20261102130000_anon_friends_phase93.sql', '20261102150000_friend_contact_phase95.sql', '20261110120000_admin_overview_phase96.sql', '20261123130000_seek_hint_letters_open_phase99.sql', '20261123140000_match_nudge_phase100.sql'])
+	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql', '20261102130000_anon_friends_phase93.sql', '20261102150000_friend_contact_phase95.sql', '20261110120000_admin_overview_phase96.sql', '20261123130000_seek_hint_letters_open_phase99.sql', '20261123140000_match_nudge_phase100.sql', '20261124120000_disk_io_phase101.sql'])
 		await db.exec(readFileSync(here + 'migrations/' + file, 'utf8'));
 	check('업그레이드 마이그레이션의 함수가 snapshot과 같음', JSON.stringify(await defs()) === before);
 }

@@ -938,4 +938,8 @@ node scripts/dev-user.mjs simbun-test3@cnsa.hs.kr 비밀번호 m      # 성별�
 - [x] **Phase 100 — 내 매칭 기준에 맞는 사람이 접속 중이면 알림** —
       "현재 누군가 접속중이에요 매칭을 돌려볼까요?"를 앱 안 알림과 푸시로 학생마다 하루 한 번(아침 8시 ~ 밤 11시) 보낸다. 누르면 바로 찾기 시작, 설정 › 알림에서 끌 수 있다.
       실DB 반영 완료 (`supabase/migrations/20261123140000_match_nudge_phase100.sql`).
+- [x] **Phase 101 — Disk IO 예산 경고: 바뀌는 게 없는 쓰기 빼기** —
+      "보고 있음"은 방 시계를 바꿀 때만 방을 잠그고, 찾는 중 요청은 남은 시간이 절반 아래일 때만 접속 기록을 고쳐 쓰며, 다 끝난 단체 알림은 1분마다 잠그지 않는다. 동작은 그대로.
+      앱 업데이트 없이 DB 만으로 적용된다. 실DB 반영 전 (`supabase/migrations/20261124120000_disk_io_phase101.sql`).
+      원인 진단은 `supabase/diagnostics/disk-io.sql` (읽기만 하는 쿼리).
 - [ ] Phase 7 — (보류) Durable Object 전송 계층. 학술탐구 큐 · 벤치는 별도 저장소(serverless-log-queue)에서 진행하고, 앱 적용 여부는 실험 결과를 본 뒤 따로 정한다.
