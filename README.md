@@ -940,7 +940,7 @@ node scripts/dev-user.mjs simbun-test3@cnsa.hs.kr 비밀번호 m      # 성별�
       실DB 반영 완료 (`supabase/migrations/20261123140000_match_nudge_phase100.sql`).
 - [x] **Phase 101 — Disk IO 예산 경고: 바뀌는 게 없는 쓰기 빼기** —
       "보고 있음"은 방 시계를 바꿀 때만 방을 잠그고, 찾는 중 요청은 남은 시간이 절반 아래일 때만 접속 기록을 고쳐 쓰며, 다 끝난 단체 알림은 1분마다 잠그지 않는다. 동작은 그대로.
-      앱 업데이트 없이 DB 만으로 적용된다. 실DB 반영 전 (`supabase/migrations/20261124120000_disk_io_phase101.sql`).
+      앱 업데이트 없이 DB 만으로 적용된다. 실DB 반영 완료 (`supabase/migrations/20261124120000_disk_io_phase101.sql`).
       원인 진단은 `supabase/diagnostics/disk-io.sql` (읽기만 하는 쿼리).
 - [x] **Phase 102 — 닉네임 랜덤 변경권** —
       가입 1장 · 처음 딴 Landy 뱃지 1장 · Landy 금 뱃지마다 1장 (개척자 · 운영진 특별 · CNSA 뱃지 제외). 프로필에서 쓰면 서버가 새 닉네임을 무작위로 정하고, 이미 시작한 대화의 이름은 그대로.
