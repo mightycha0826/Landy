@@ -4,6 +4,7 @@
 	import Uniform from '$lib/ui/Uniform.svelte';
 	import BadgeDetail from '$lib/ui/BadgeDetail.svelte';
 	import Sheet from '$lib/ui/Sheet.svelte';
+	import NicknameTicket from '$lib/ui/NicknameTicket.svelte';
 	import {
 		featuredError,
 		featuredOf,
@@ -27,7 +28,7 @@
 	 * 설정 화면과 같은 아이폰 설정식 디자인 (app.css .g-*): 맨 위 낮은 이름 카드(아바타 · 이름 · 매너 온도),
 	 * 그 아래 교복(대표 업적 = 깃의 배지, Phase 60), 그 아래 둥근 카드들.
 	 * 알림 · 비밀번호 · 계정 · 개인정보 안내 · 로그아웃은 설정(/settings)에.
-	 * 익명 이름은 고정. 대화 상대에게 보이는 건 이름 + 소개 + 관심사 + MBTI 뿐이다.
+	 * 익명 이름은 변경권(가입 · 처음 뱃지 · 금 뱃지마다 한 장)으로만 무작위로 바뀐다 (Phase 102). 대화 상대에게 보이는 건 이름 + 소개 + 관심사 + MBTI 뿐이다.
 	 */
 
 	let busy = $state(false);
@@ -201,6 +202,9 @@
 				<svg class="lr-chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
 			</a>
 			<div class="g-card temp"><MannerTemp temp={S.profile.manner_temp} /></div>
+			{#if fame?.nickname_tickets}
+				<NicknameTicket tickets={fame.nickname_tickets} onused={(left) => { if (fame) fame = { ...fame, nickname_tickets: left }; }} />
+			{/if}
 		</section>
 	{/if}
 

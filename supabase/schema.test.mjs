@@ -3971,12 +3971,53 @@ console.log('\n[Phase 101] 바뀌는 게 없으면 디스크에 쓰지 않는다
 	await db.exec(`delete from private.letters_open_push; delete from private.crowd_push`);
 }
 
+console.log('\n[Phase 102] 닉네임 랜덤 변경권 — 가입 1장 · 처음 딴 뱃지 1장 · 금 뱃지마다 1장');
+{
+	await db.exec(readFileSync(here + 'migrations/20261124130000_nickname_ticket_phase102.sql', 'utf8')); // 실DB 와 같은 모양(줄바꿈)으로
+	const u = await person('m', 'f');
+	await db.query(`delete from private.user_achievements where user_id = $1`, [u]);
+	const nick = async (id = u) => (await one(`select nickname from public.profiles where id = $1`, [id])).nickname;
+	const left = async (id = u) => (await rpcAs(id, 'my_achievements')).nickname_tickets;
+	const news = async () => (await rowsAs(u, `select public.new_achievements() a`))[0].a;
+	const first = await nick();
+	check('★ 가입하면 1장 (지금 쓰는 학생도 그대로 받는다)', (await left()) === 1, String(await left()));
+	await db.query(`select private.award_stat($1, 'pioneer', 1)`, [u]);
+	check('★ 가입 때 저절로 받는 개척자 · CNSA 뱃지는 세지 않는다', (await left()) === 1, String(await left()));
+	const fresh1 = await news();
+	check('축하 창에도 변경권 표시 없음', fresh1.find((b) => b.code === 'pioneer')?.ticket === false && fresh1.find((b) => b.code === 'cnsa_student')?.ticket === false, JSON.stringify(fresh1));
+
+	const partner = await person('f', 'm');
+	const room = (await one(`insert into public.rooms (status, expires_at, alias1, alias2) select 'active', now() + interval '5 minutes', p.nickname, '상대이름' from public.profiles p where p.id = $1 returning id`, [u])).id;
+	await db.query(`insert into public.room_members (room_id, user_id, seat) values ($1, $2, 1), ($1, $3, 2)`, [room, u, partner]);
+	const r = await rpcAs(u, 'reroll_nickname');
+	check('★ 쓰면 새 이름 · 남은 0장', r.status === 'ok' && r.nickname !== first && r.nickname === (await nick()) && r.tickets === 0 && (await left()) === 0, JSON.stringify(r));
+	check('★ 이미 시작한 대화의 이름은 그대로', (await rpcAs(partner, 'partner_profile', room)).nickname === first);
+	check('★ 한 장은 한 번만', (await rpcAs(u, 'reroll_nickname')).status === 'no_ticket' && (await nick()) === r.nickname);
+
+	const [d1, d2] = (await db.query(`select code, stat, bronze, gold from private.achievement_defs
+		where not granted and category <> 'cnsa' and not lower_better and stat not in ('temp', 'pioneer')
+		  and stat in (select stat from private.achievement_defs group by stat having count(*) = 1)
+		order by sort limit 2`)).rows;
+	await db.query(`select private.award_stat($1, $2, $3)`, [u, d1.stat, d1.bronze]);
+	check('★ 처음 동 뱃지를 따면 한 장', (await left()) === 1 && (await news()).find((b) => b.code === d1.code)?.ticket === true, String(await left()));
+	await db.query(`select private.award_stat($1, $2, $3)`, [u, d2.stat, d2.bronze]);
+	check('★ 두 번째 동 뱃지부터는 없다', (await left()) === 1 && (await news()).find((b) => b.code === d2.code)?.ticket === false, String(await left()));
+	await db.query(`select private.award_stat($1, $2, $3)`, [u, d1.stat, d1.gold]);
+	check('★ 금 뱃지마다 한 장', (await left()) === 2 && (await news()).find((b) => b.code === d1.code)?.ticket === true, String(await left()));
+	await expectError('★ 학생이 쓴 장수를 고칠 수 없다', () => rowsAs(u, `update public.profiles set nickname_rerolls_used = 0 where id = auth.uid()`), 'permission denied');
+	await expectError('★ 학생이 이름을 직접 고칠 수 없다', () => rowsAs(u, `update public.profiles set nickname = '내맘대로' where id = auth.uid()`), 'permission denied');
+	await db.query(`update public.profiles set suspended_until = now() + interval '1 day' where id = $1`, [u]);
+	check('★ 이용 제한 중에는 못 쓴다', (await rpcAs(u, 'reroll_nickname')).status === 'not_eligible' && (await left()) === 2);
+	await db.query(`update public.profiles set suspended_until = null where id = $1`, [u]);
+	await expectError('로그인 안 하면 못 쓴다', () => rowsAs(null, `select public.reroll_nickname()`), 'permission denied');
+}
+
 console.log('\n[100] 마이그레이션과 스키마 snapshot 일치');
 {
 	const defs = async () => (await db.query("select n.nspname || '.' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' name, pg_get_functiondef(p.oid) body from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.prokind='f' order by 1")).rows;
 	const before = JSON.stringify(await defs());
 	// 운영에 적용한 순서대로 다시 실행하면 snapshot과 같아야 한다 (뒤 마이그레이션이 앞의 함수를 고쳐 쓴다)
-	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql', '20261102130000_anon_friends_phase93.sql', '20261102150000_friend_contact_phase95.sql', '20261110120000_admin_overview_phase96.sql', '20261123130000_seek_hint_letters_open_phase99.sql', '20261123140000_match_nudge_phase100.sql', '20261124120000_disk_io_phase101.sql'])
+	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql', '20261102130000_anon_friends_phase93.sql', '20261102150000_friend_contact_phase95.sql', '20261110120000_admin_overview_phase96.sql', '20261123130000_seek_hint_letters_open_phase99.sql', '20261123140000_match_nudge_phase100.sql', '20261124120000_disk_io_phase101.sql', '20261124130000_nickname_ticket_phase102.sql'])
 		await db.exec(readFileSync(here + 'migrations/' + file, 'utf8'));
 	check('업그레이드 마이그레이션의 함수가 snapshot과 같음', JSON.stringify(await defs()) === before);
 }

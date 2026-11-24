@@ -11,7 +11,14 @@ export type Tier = 0 | 1 | 2 | 3;
 export type Category = 'chat' | 'manner' | 'letter' | 'special' | 'cnsa';
 
 /** 상대 프로필 · 대표 업적에 쓰는 짧은 모양 */
-export type BadgeLite = { code: string; title: string; icon: string; tier: Tier };
+export type BadgeLite = {
+	code: string;
+	title: string;
+	icon: string;
+	tier: Tier;
+	/** 새 업적 축하에서 — 이 금 뱃지로 닉네임 변경권을 받았다 (Phase 102) */
+	ticket?: boolean;
+};
 
 /** 업적 정의 — 이름 · 설명 · 등급 기준 (누구의 것도 아닌 공개 정보, achievement_catalog) */
 export type AchievementDef = {
@@ -45,6 +52,8 @@ export type MyAchievements = {
 	slots?: number;
 	/** Landy 금 뱃지 수 (운영진이 주는 특별 · CNSA 빼고) */
 	golds?: number;
+	/** 남은 닉네임 랜덤 변경권 = Landy 금 뱃지 수 - 쓴 장수 (Phase 102) */
+	nickname_tickets?: number;
 	/** 가진 뱃지마다 랜덤채팅에 보이는지 — 정하지 않았으면 CNSA 는 숨김 */
 	chat?: Record<string, boolean>;
 };
@@ -88,6 +97,9 @@ onAccountChange(() => (FAME.last = null));
 export const fetchNewAchievements = () =>
 	rpc<BadgeLite[] | null>('new_achievements').then((r) => noClubs(r ?? []), () => [] as BadgeLite[]);
 export const markAchievementsSeen = () => rpc<void>('mark_achievements_seen');
+/** 변경권 한 장으로 닉네임을 무작위로 바꾼다 (Phase 102) */
+export const rerollNickname = () =>
+	rpc<{ status: 'ok' | 'no_ticket' | 'not_eligible' | 'retry'; nickname?: string; tickets?: number }>('reroll_nickname');
 export const setFeaturedBadges = (codes: string[]) =>
 	rpc<{ status: 'ok' | 'too_many' | 'not_owned'; featured?: BadgeLite[] }>('set_featured_badges', { p_codes: codes });
 /** 대표 뱃지를 못 바꿨을 때 알림 글 */

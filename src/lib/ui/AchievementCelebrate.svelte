@@ -72,6 +72,7 @@
 	backClose(() => void close(), { auto: true, open: () => showing });
 	const top = $derived(fresh.slice(0, 6));
 	const one = $derived(fresh.length === 1);
+	const tickets = $derived(fresh.filter((b) => b.ticket).length); // 이번에 딴 금 뱃지만큼 닉네임 변경권 (Phase 102)
 
 	// 색종이 — 조각마다 제각각 (터지는 방향 · 높이 · 떨어지는 곳 · 회전 · 시간)
 	const COLORS = ['var(--g-orange)', 'var(--g-pink)', '#f2c14e', '#7059f5', '#14a37f', '#3b8af6', 'var(--g-coral)'];
@@ -140,6 +141,7 @@
 			<p class="kicker">새 업적</p>
 			<h2>{one ? (PIN_BADGES[fresh[0].code] ? (fresh[0].title.endsWith('뱃지') ? `${fresh[0].title}!` : `CNSA 뱃지 ${fresh[0].title}!`) : SPECIAL_BADGES.has(fresh[0].code) ? `특별 업적 ${fresh[0].title}!` : `${fresh[0].title} ${TIER_NAME[fresh[0].tier]} 등급!`) : `업적 ${fresh.length}개를 모았어요!`}</h2>
 			{#if fresh.length > top.length}<p class="more muted">외 {fresh.length - top.length}개</p>{/if}
+			{#if tickets}<p class="reward">닉네임 랜덤 변경권 <strong class="num">{tickets}장</strong>을 받았어요</p>{/if}
 			<div class="acts">
 				<button class="btn" onclick={() => close(true)}>업적 보러 가기</button>
 				<button class="later u-tap" onclick={() => close()}>닫기</button>
@@ -337,6 +339,15 @@
 	.more {
 		margin: 0;
 		font-size: 12px;
+	}
+	.reward {
+		margin: 0;
+		padding: 8px 14px;
+		border-radius: 12px;
+		background: var(--row);
+		font-size: 14px;
+		font-weight: 600;
+		animation: up 0.5s 0.72s ease-out both;
 	}
 	.acts {
 		display: flex;
