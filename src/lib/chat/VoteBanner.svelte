@@ -1,65 +1,78 @@
-<script lang="ts" module>
-	/** 공통 질문 차례 (Phase 29) — 이름표 대신 그 방의 질문 자체가 label 이다 */
-	export const isQuestion = (k: string | null | undefined) => k === 'q1' || k === 'q2';
-</script>
-
 <script lang="ts">
 	/**
-	 * 연장 · 고정 투표 띠 (마감 직전에만 뜬다).
-	 *   연장 차례: "10분 더 얘기할까요?" — 연장하면 공개될 것(학년 · 공통 질문 답 · 디플로마 · 동아리), 적는 차례면 적는 칸
-	 *   고정 차례(동아리 다음, Phase 29): "이 채팅을 고정하시겠습니까?"
-	 * 표를 던지는 일 · 적은 값 확인은 ChatView(vote) 가 한다.
+	 * 연장 · 고정 투표 띠 (마감 직전, 그리고 시간이 다 된 뒤의 "연장할까요?" 화면).
+	 *   연장 차례: "10분 더 얘기할까요?" — 연장하면 공개할 것을 하나 고른다 (Phase 103): 학년 · 디플로마 · 동아리 · 랜덤 질문.
+	 *     랜덤 질문을 고르면 슬롯이 돌아 이번 질문에 멈추고(둘이 고르면 같은 질문), 답을 적는다.
+	 *   고정 차례(공개를 다섯 번 한 다음, Phase 29): "이 채팅을 고정하시겠습니까?"
+	 * 표를 던지는 일 · 고른 것 · 적은 값 확인은 ChatView(vote) 가 한다.
 	 */
 	import Banner from './Banner.svelte';
-	import { S } from '$lib/state.svelte';
+	import SlotReel, { QUESTION_POOL } from './SlotReel.svelte';
 	import { isDiploma, searchDiplomas } from './diplomas';
-	import type { RoomSnap } from './types';
+	import type { HintKind, RoomSnap } from './types';
 
 	let {
 		snap,
 		pinNext,
 		voting,
 		hintDraft = $bindable(''),
+		pick = $bindable(null),
 		onvote
 	}: {
 		snap: RoomSnap;
 		pinNext: boolean;
 		voting: boolean;
 		hintDraft?: string;
+		/** 고른 공개 */
+		pick?: HintKind | null;
 		onvote: (agree: boolean) => void;
 	} = $props();
 
-	const nextHint = $derived(snap.next_hint ?? null);
+	const options = $derived(pinNext ? [] : (snap.next_options ?? []));
+	const chosen = $derived(options.find((o) => o.kind === pick) ?? null);
+	const asking = $derived(snap.my_vote !== true);
 	const view = $derived.by(() => {
 		if (snap.my_vote === true)
 			return { title: '상대의 대답을 기다리는 중', sub: pinNext ? '둘 다 원해야 고정돼요' : `둘 다 원해야 ${snap.extend_minutes}분 이어져요`, want: false };
 		const want = snap.partner_vote === true;
 		if (pinNext)
 			return { title: '이 채팅을 고정하시겠습니까?', sub: want ? '상대가 고정을 원해요' : '둘 다 고정하면 맨 위에 남고 사라지지 않아요', want };
-		const sub = want
-			? '상대가 연장을 원해요'
-			: isQuestion(nextHint?.kind)
-				? '답을 적고 연장하면 서로의 답 공개'
-				: nextHint
-					? `연장하면 서로의 ${nextHint.label} 공개`
-					: '둘 다 원해야 이어져요';
+		const sub = want ? '상대가 연장을 원해요' : options.length ? '연장하면 공개할 것을 하나 골라요' : '둘 다 원해야 이어져요';
 		return { title: `${snap.extend_minutes}분 더 얘기할까요?`, sub, want };
 	});
-	const asking = $derived(snap.my_vote !== true);
-	const disclosure = $derived(nextHint?.typed ? hintDraft.trim() : nextHint?.kind === 'grade' && S.me?.grade ? `${S.me.grade}학년` : null);
+	const disclosure = $derived(
+		!chosen ? null : chosen.kind === 'grade' ? (chosen.value ?? null) : chosen.kind === 'question' ? (hintDraft.trim() ? `"${hintDraft.trim()}"` : null) : hintDraft.trim() || null
+	);
+
+	function choose(k: HintKind) {
+		if (pick === k) return;
+		pick = k;
+		hintDraft = '';
+		dq = '';
+	}
 
 	// 디플로마 검색 칸 (Phase 35) — 고른 값만 hintDraft 로 (목록에 없는 글은 보낼 수 없다)
-	// svelte-ignore state_referenced_locally
-	let dq = $state(hintDraft);
+	let dq = $state('');
 	const matches = $derived(searchDiplomas(dq));
 	const picked = $derived(isDiploma(dq));
+	// 슬롯 — 질문 목록을 섞어 굴리다 이번 질문에 멈춘다
+	const decoys = $derived([...QUESTION_POOL].sort(() => Math.random() - 0.5));
 </script>
 
 <Banner title={view.title} sub={view.sub} want={view.want}>
-	{#if !pinNext && nextHint}
-		<p class="disclosure"><b>둘 다 동의하면 공개:</b> {nextHint.label}{disclosure ? ` · ${disclosure}` : nextHint.typed ? ' · 아래에 적는 내용' : ' · 학교에 등록된 정보'}<br /><span>공개한 정보로 나를 짐작할 수 있어요. 원하지 않으면 그만해도 괜찮아요.</span></p>
+	{#if asking && options.length}
+		<div class="picks" role="radiogroup" aria-label="연장하면 공개할 것">
+			{#each options as o (o.kind)}
+				<button role="radio" aria-checked={pick === o.kind} class:on={pick === o.kind} onclick={() => choose(o.kind)}>
+					{o.label}
+				</button>
+			{/each}
+		</div>
 	{/if}
-	{#if asking && nextHint?.kind === 'diploma' && !pinNext}
+	{#if asking && chosen?.kind === 'question' && chosen.question}
+		<SlotReel items={decoys} final={chosen.question} label="이번 질문 " />
+		<input class="hint-in" bind:value={hintDraft} maxlength="30" placeholder="내 답" aria-label={`랜덤 질문 ${chosen.question} — 내 답`} />
+	{:else if asking && chosen?.kind === 'diploma'}
 		<!-- 디플로마 — 학교 목록에서만: 적으면 맞는 것이 아래에 뜨고, 눌러서 고른다 (Phase 35) -->
 		<div class="dip">
 			<input
@@ -94,16 +107,11 @@
 				</ul>
 			{/if}
 		</div>
-	{:else if asking && nextHint?.typed && !pinNext}
-		{@const q = isQuestion(nextHint.kind)}
-		{#if q}<p class="question">Q. {nextHint.label}</p>{/if}
-		<input
-			class="hint-in"
-			bind:value={hintDraft}
-			maxlength={q ? 30 : 20}
-			placeholder={q ? '내 답' : `내 ${nextHint.label}`}
-			aria-label={q ? `공통 질문 ${nextHint.label} — 내 답` : `내 ${nextHint.label}`}
-		/>
+	{:else if asking && chosen?.kind === 'club'}
+		<input class="hint-in" bind:value={hintDraft} maxlength="20" placeholder="내 동아리" aria-label="내 동아리" />
+	{/if}
+	{#if asking && chosen}
+		<p class="disclosure"><b>둘 다 동의하면 공개:</b> {chosen.kind === 'question' ? '질문 답' : chosen.label}{disclosure ? ` · ${disclosure}` : ''}<br /><span>공개한 정보로 나를 짐작할 수 있어요. 원하지 않으면 그만해도 괜찮아요.</span></p>
 	{/if}
 	{#snippet actions()}
 		{#if asking}
@@ -114,22 +122,40 @@
 </Banner>
 
 <style>
-	.disclosure { order: 3; flex-basis: 100%; margin: 4px 0 0; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
-	.disclosure span { color: var(--text-2); }
-	/* 공통 질문 — 띠 아래 한 줄 전체, 적는 칸 바로 위 */
-	.question {
+	/* 고르는 칸 — 띠 아래 한 줄에 나란히 (좁은 폰에서도 한 줄) */
+	.picks {
 		order: 3;
 		flex-basis: 100%;
-		margin: -4px 0 -6px;
-		font-size: 14px;
-		font-weight: 600;
+		display: grid;
+		grid-auto-flow: column;
+		grid-auto-columns: minmax(0, 1fr);
+		gap: 6px;
 	}
-	/* 디플로마 · 동아리 · 공통 질문 답 적는 칸 — 띠 아래 한 줄 전체 */
+	.picks button {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 44px;
+		padding: 0 4px;
+		border-radius: 14px;
+		border: 1.5px solid transparent;
+		background: var(--field);
+		font-size: 13px;
+		font-weight: 600;
+		white-space: nowrap;
+	}
+	.picks button.on {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+		color: var(--accent);
+	}
+	.disclosure { order: 3; flex-basis: 100%; margin: 0; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+	.disclosure span { color: var(--text-2); }
+	/* 디플로마 · 동아리 · 질문 답 적는 칸 — 띠 아래 한 줄 전체 */
 	.hint-in {
 		order: 3;
 		flex-basis: 100%;
 		width: 100%;
-		margin-top: -2px;
 		padding: 10px 14px;
 		border: 1.5px solid transparent;
 		border-radius: 12px;

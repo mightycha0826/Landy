@@ -180,11 +180,15 @@ try {
 	const a1 = await page.locator('.timer').innerText(); await page.waitForTimeout(2200);
 	check('둘 다 보고 있으면 평소처럼 흐른다', a1 !== (await page.locator('.timer').innerText()) && (await page.locator('.timer .pause-ic').count()) === 0);
 
-	console.log('[연장 공개 순서 — 학년 → 공통 질문 → 디플로마 → 공통 질문 → 동아리]');
+	console.log('[연장 공개 — 각자 고른다: 학년 · 디플로마 · 동아리 · 랜덤 질문 (Phase 103)]');
 	await page.goto(U('/dev/chat?s=hints')); await bubble('안녕하세요!').waitFor(); await page.waitForTimeout(300);
-	check('★ 공개된 상대 힌트: 학년 · 공통 질문 답', (await page.locator('.hint-chip').allInnerTexts()).map((x) => x.replace(/\s+/g, '')).join(',') === '학년2학년,요즘빠져있는것밴드음악', JSON.stringify(await page.locator('.hint-chip').allInnerTexts()));
+	check('★ 공개된 상대 힌트: 학년 · 질문 답', (await page.locator('.hint-chip').allInnerTexts()).map((x) => x.replace(/\s+/g, '')).join(',') === '학년2학년,요즘빠져있는것밴드음악', JSON.stringify(await page.locator('.hint-chip').allInnerTexts()));
+	check('★ 고를 것: 이미 공개한 학년은 빠지고 디플로마 · 동아리 · 랜덤 질문', (await page.getByRole('radio').allInnerTexts()).map((x) => x.replace(/\s+/g, '')).join(',') === '디플로마,동아리,랜덤질문', JSON.stringify(await page.getByRole('radio').allInnerTexts()));
+	await page.getByRole('button', { name: '더 얘기하기' }).click(); await page.waitForTimeout(300);
+	check('★ 안 고르면 연장이 안 된다', (await page.evaluate(() => (window.__votes ?? []).length)) === 0 && (await page.getByText('연장하면 공개할 것을 하나 골라 주세요').isVisible()));
+	await page.getByRole('radio', { name: /디플로마/ }).click();
 	const dip = page.getByRole('combobox', { name: '내 디플로마 검색' });
-	check('연장 배너: "연장하면 서로의 디플로마 공개" · 디플로마 검색 칸', (await page.locator('.extend').innerText()).includes('서로의 디플로마 공개') && (await dip.count()) === 1);
+	check('디플로마를 고르면 검색 칸 · "둘 다 동의하면 공개: 디플로마"', (await page.locator('.extend').innerText()).includes('둘 다 동의하면 공개: 디플로마') && (await dip.count()) === 1);
 	check('비어 있으면 목록을 늘어놓지 않는다 (적어야 검색)', (await page.locator('#dip-list').count()) === 0);
 	await page.screenshot({ path: `${SP}/feat-9-hints.png` });
 	await page.getByRole('button', { name: '더 얘기하기' }).click(); await page.waitForTimeout(300);
@@ -202,17 +206,26 @@ try {
 	check('고르면 칸에 채워지고 목록이 닫힌다', (await dip.inputValue()) === '물리학' && (await page.locator('#dip-list').count()) === 0);
 	check('★ 검색해서 고르면 검색 키보드를 내린다 (칸에서 초점이 빠진다)', await dip.evaluate((e) => e !== document.activeElement));
 	await page.getByRole('button', { name: '더 얘기하기' }).click(); await page.waitForTimeout(300);
-	check('★ 고르고 연장하면 그 값과 함께 투표', JSON.stringify(await page.evaluate(() => window.__votes)) === '[{"agree":true,"hint":"물리학"}]', JSON.stringify(await page.evaluate(() => window.__votes)));
+	check('★ 고르고 연장하면 고른 것 · 그 값과 함께 투표', JSON.stringify(await page.evaluate(() => window.__votes)) === '[{"agree":true,"hint":"물리학","kind":"diploma"}]', JSON.stringify(await page.evaluate(() => window.__votes)));
 
 	await page.goto(U('/dev/chat?s=question')); await bubble('안녕하세요!').waitFor(); await page.waitForTimeout(300);
-	const qBox = page.getByRole('textbox', { name: '공통 질문 요즘 빠져 있는 것 — 내 답' });
-	check('★ 20분 째: 공통 질문과 내 답 칸', (await page.locator('.extend .question').innerText()) === 'Q. 요즘 빠져 있는 것' && (await qBox.count()) === 1 && (await qBox.getAttribute('maxlength')) === '30');
+	await page.getByRole('radio', { name: /랜덤 질문/ }).click(); await page.waitForTimeout(1900);
+	const qBox = page.getByRole('textbox', { name: '랜덤 질문 요즘 빠져 있는 것 — 내 답' });
+	check('★ 랜덤 질문: 슬롯이 이번 질문에 멈추고 내 답 칸', (await page.locator('.slot').getAttribute('aria-label')) === '이번 질문 요즘 빠져 있는 것' && (await qBox.count()) === 1 && (await qBox.getAttribute('maxlength')) === '30');
 	await page.screenshot({ path: `${SP}/feat-10-question.png` });
 	await page.getByRole('button', { name: '더 얘기하기' }).click(); await page.waitForTimeout(300);
-	check('답을 안 적으면 연장이 안 된다', (await page.evaluate(() => (window.__votes ?? []).length)) === 0 && (await page.getByText('답을(를) 적어 주세요').isVisible()));
+	check('답을 안 적으면 연장이 안 된다', (await page.evaluate(() => (window.__votes ?? []).length)) === 0 && (await page.getByText('답을 적어 주세요').isVisible()));
 	await qBox.fill('러닝');
 	await page.getByRole('button', { name: '더 얘기하기' }).click(); await page.waitForTimeout(300);
-	check('답과 함께 투표', JSON.stringify(await page.evaluate(() => window.__votes)) === '[{"agree":true,"hint":"러닝"}]');
+	check('답과 함께 투표', JSON.stringify(await page.evaluate(() => window.__votes)) === '[{"agree":true,"hint":"러닝","kind":"question"}]');
+
+	console.log('[시간이 다 된 뒤 "연장할까요?" — 평가 전에 (Phase 103)]');
+	await page.goto(U('/dev/chat?s=decide')); await bubble('안녕하세요!').waitFor(); await page.waitForTimeout(300);
+	const card = page.locator('.decide');
+	check('★ 시간이 다 되면 가운데 "연장할까요?" · 남은 초 · 입력은 막힘', (await card.count()) === 1 && /\d+초 안에 골라 주세요/.test(await card.innerText()) && (await page.locator('textarea').isDisabled()), await card.innerText());
+	await card.getByRole('radio', { name: /학년/ }).click();
+	await card.getByRole('button', { name: '더 얘기하기' }).click(); await page.waitForTimeout(2200);
+	check('★ 연장되면 화면이 닫히고 상대가 고른 공개가 슬롯 칸에 — "상대는 2학년!"', (await card.count()) === 0 && (await page.locator('.slot').getAttribute('aria-label')) === '상대는 2학년!', await page.locator('.slot').getAttribute('aria-label'));
 
 	console.log('[대화 고정]');
 	await page.goto(U('/dev/chat?s=pin')); await bubble('안녕하세요!').waitFor(); await page.waitForTimeout(300);

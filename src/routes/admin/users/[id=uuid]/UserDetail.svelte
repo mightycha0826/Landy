@@ -57,6 +57,10 @@
 		}
 	});
 	const askUnnotify = confirmed(() => '이 개인 공지를 거둘까요? 학생 화면에서 사라집니다 (기록은 남음).');
+
+	// 닉네임 랜덤 변경권 (Phase 103)
+	let ticketN = $state(1);
+	const askTickets = confirmed(() => `이 학생에게 닉네임 랜덤 변경권 ${ticketN}장을 줄까요? 바로 쓸 수 있고 기록에 남습니다.`);
 </script>
 
 <a class="a-back" href="/admin/users">← 사용자 목록</a>
@@ -240,6 +244,20 @@
 			</section>
 		{/if}
 
+		{#if data.tickets !== null}
+			<!-- 닉네임 랜덤 변경권 (Phase 103) — 가입 · 뱃지로 받는 것에 더해 운영진이 몇 장 더 -->
+			<section class="a-card">
+				<h2 class="a-h2">닉네임 변경권 <span class="muted">남은 {data.tickets}장</span></h2>
+				<form class="tickets" method="POST" action="?/tickets" use:enhance={askTickets}>
+					<select class="field" name="n" bind:value={ticketN} aria-label="줄 장수">
+						{#each [1, 2, 3, 5, 10] as n (n)}<option value={n}>{n}장</option>{/each}
+					</select>
+					<button class="btn sm-inline">주기</button>
+				</form>
+				<p class="a-hint">학생이 쓰면 닉네임이 무작위로 바뀝니다. 준 기록은 활동 기록에 남아요.</p>
+			</section>
+		{/if}
+
 		<section class="a-card">
 			<h2 class="a-h2">개인 공지</h2>
 			<p class="a-hint" style="margin-top:0">이 학생에게만 보이는 공지 — 경고나 개인 연락. 학생 앱의 공지 · 알림(하트)에 뜨고 알림도 갑니다.</p>
@@ -331,6 +349,14 @@
 	.badges li {
 		align-items: center;
 		gap: 8px;
+	}
+	.tickets {
+		display: flex;
+		gap: 8px;
+		align-items: center;
+	}
+	.tickets select {
+		flex: 1;
 	}
 	.sm-inline {
 		width: auto;

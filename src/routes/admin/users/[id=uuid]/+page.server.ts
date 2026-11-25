@@ -16,17 +16,19 @@ async function detail(id: string, staff: string) {
 export const load: PageServerLoad = async ({ params, locals, url }) => {
 	guard(locals, url); // 운영자 · 관리자 (Phase 49)
 	const staff = locals.staff!.id;
-	const [d, rooms, notices, badges] = await Promise.all([
+	const [d, rooms, notices, badges, tickets] = await Promise.all([
 		detail(params.id, staff),
 		isAdmin(locals)
 			? adminRpc<UserRoomRow[]>('admin_user_rooms', { p_user: params.id, p_staff: staff })
 			: Promise.resolve(null),
 		adminRpc<PersonalNoticeRow[]>('admin_personal_notices', { p_staff: staff, p_user: params.id }).catch(() => [] as PersonalNoticeRow[]),
 		// 특별 업적 (Phase 44) — DB 에 아직 없으면 빈 목록 (칸이 안 보인다)
-		adminRpc<UserBadgeRow[]>('admin_user_badges', { p_staff: staff, p_user: params.id }).catch(() => [] as UserBadgeRow[])
+		adminRpc<UserBadgeRow[]>('admin_user_badges', { p_staff: staff, p_user: params.id }).catch(() => [] as UserBadgeRow[]),
+		// 닉네임 랜덤 변경권 (Phase 103) — DB 에 아직 없으면 null (칸이 안 보인다)
+		adminRpc<number>('admin_nickname_tickets', { p_staff: staff, p_user: params.id }).catch(() => null)
 	]);
 	const students = await studentLabels(locals, [params.id, ...(rooms ?? []).map((r) => r.partner_id)]);
-	return { d, rooms, students, notices, badges };
+	return { d, rooms, students, notices, badges, tickets };
 };
 
 export const actions: Actions = {
@@ -71,6 +73,18 @@ export const actions: Actions = {
 		const res = await runSanction(locals, params.id, await request.formData(), null);
 		if (typeof res !== 'string') return res;
 		return { done: res === 'reinstate' ? '정지를 풀었어요' : '조치 완료' };
+	},
+
+	// 닉네임 랜덤 변경권 주기 (Phase 103) — 운영진 누구나, 1~20장, 기록에 남는다
+	tickets: async ({ params, request, locals }) => {
+		const n = Number((await request.formData()).get('n'));
+		if (!Number.isInteger(n) || n < 1 || n > 20) return fail(400, { error: '1~20장 사이로 골라 주세요' });
+		try {
+			await adminRpc('admin_grant_nickname_tickets', { p_staff: locals.staff!.id, p_user: params.id, p_n: n });
+		} catch (e) {
+			return friendly(e);
+		}
+		return { done: `닉네임 변경권 ${n}장을 줬어요` };
 	},
 
 	// 특별 업적 주기 · 거두기 (Phase 44) — 운영진 누구나, 기록에 남는다

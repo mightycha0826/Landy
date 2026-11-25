@@ -299,6 +299,7 @@ export const ACTION_LABEL: Record<string, string> = {
 	remove_personal_notice: '개인 공지 거둠',
 	answer_inquiry: '문의 답변',
 	grant_badge: '특별 업적 줌',
+	grant_nickname_tickets: '닉네임 변경권 줌',
 	revoke_badge: '특별 업적 거둠',
 	// Phase 50 · 51 — 운영진 관리
 	set_staff: '운영진 지정 · 변경',

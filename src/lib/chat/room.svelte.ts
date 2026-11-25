@@ -2,6 +2,7 @@ import type { ChatTransport } from './transport';
 import { SupabaseTransport } from './supabase-transport';
 import { MessageLedger, type MessageUpdate } from './message-ledger.svelte';
 import type {
+	HintKind,
 	Msg,
 	PartnerProfile,
 	ReactResult,
@@ -419,12 +420,12 @@ export class ChatRoom {
 	// ── 타임박스 ─────────────────────────────────────────────────
 	voting = $state(false);
 
-	/** hint = 디플로마 · 동아리 · 공통 질문 차례에 연장하면서 적은 내 값. 고정을 묻는 차례면 agree = 고정하기 */
-	async vote(agree: boolean, hint: string | null = null): Promise<VoteResult | null> {
+	/** kind = 공개할 것 (Phase 103), hint = 디플로마 · 동아리 · 질문 답처럼 적은 내 값. 고정을 묻는 차례면 agree = 고정하기 */
+	async vote(agree: boolean, hint: string | null = null, kind: HintKind | null = null): Promise<VoteResult | null> {
 		if (!this.snap || this.voting || this.#disposed) return null;
 		this.voting = true;
 		try {
-			const { result, snap } = await this.#t.vote(this.roomId, agree, hint);
+			const { result, snap } = await this.#t.vote(this.roomId, agree, hint, kind);
 			this.#absorb(snap);
 			return result;
 		} catch {

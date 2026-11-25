@@ -385,6 +385,7 @@ begin
     from public.room_members rm join public.user_presence up on up.user_id = rm.user_id
    where rm.room_id = p_room and rm.seat <> s;
   v_next := case when not r.pinned then private.hint_kind(r.round) end;
+  if v_next in ('q1', 'q2') then v_next := 'question'; end if;
   if r.status = 'closed' or r.pinned then
     v_rated := exists (select 1 from private.ratings x where x.room_id = p_room and x.rater_id = auth.uid());
     v_can_rate := not v_rated and private.rating_eligible(p_room, auth.uid());
@@ -412,8 +413,14 @@ begin
     'close_reason',    r.close_reason,
     'partner_hints',   private.room_hints_of(p_room, (3 - s)::smallint, r.round - 1),
     'my_hints',        private.room_hints_of(p_room, s, r.round - 1),
+    -- 다음 연장 때 공개할 것 — 각자 고른다 (Phase 103). next_hint 는 "공개 차례가 있다"는 표시 · 옛 앱용 (질문 = 이 라운드의 질문)
     'next_hint',       case when v_next is not null then jsonb_build_object(
-                         'kind', v_next, 'label', private.hint_label_in(p_room, v_next), 'typed', private.hint_typed(v_next)) end,
+                         'kind', v_next,
+                         'label', case when v_next = 'question' then private.round_question(p_room, r.round) else private.hint_label(v_next) end,
+                         'typed', private.hint_typed(v_next)) end,
+    'next_options',    case when v_next is not null then private.hint_options(p_room, s, r.round) end,
+    -- 시간이 다 된 뒤에도 이만큼은 연장을 고를 수 있다 (Phase 103) — 그 사이 대화는 막히고 앱은 "연장할까요?" 화면
+    'vote_grace_sec',  extract(epoch from private.vote_grace(r.round))::int,
     'can_rate',        v_can_rate,
     'rated',           v_rated,
     'server_now',      now());
@@ -665,7 +672,9 @@ begin
   if public.my_seat(p_room) is null then raise exception 'not_member'; end if;
   perform private.room_clock(p_room);
   select * into r from public.rooms where id = p_room for update;
-  if r.status <> 'closed' and now() >= r.expires_at then
+  -- 대화 중이던 방은 시간이 다 된 뒤 연장을 고르는 동안(vote_grace)은 닫지 않는다 (Phase 103)
+  if r.status <> 'closed'
+     and now() >= r.expires_at + (case when r.status = 'active' then private.vote_grace(r.round) else interval '0' end) then
     perform public.close_room(p_room, case when r.status = 'pending' then 'no_show' else 'expired' end);
   end if;
   return public.room_snapshot(p_room);   -- 언제나 최신 스냅샷 + server_now
@@ -714,6 +723,7 @@ begin
   end loop;
   for v in select id, status from public.rooms
             where status <> 'closed' and now() >= expires_at
+              and now() >= expires_at + case when status = 'active' then private.vote_grace(round) else interval '0' end
             order by expires_at limit 500
             for update skip locked
   loop
@@ -4040,36 +4050,31 @@ returns text language sql immutable set search_path = '' as $fn$
                      when 'diploma' then '디플로마' when 'q1' then '공통 질문' when 'q2' then '공통 질문' end;
 $fn$;
 
--- 한 사람의 공개된 힌트들 (연장한 만큼)
+-- 한 사람의 공개된 힌트들 (연장한 만큼) — 라운드마다 그 사람이 고른 것 (Phase 103: 순서가 정해져 있지 않다)
 create or replace function private.room_hints_of(p_room uuid, p_seat smallint, p_count int)
 returns jsonb language plpgsql stable security definer set search_path = public, private as $fn$
-declare v_user uuid; v_name text; v_grade smallint; k text; v text; out jsonb := '[]'::jsonb;
 begin
-  select user_id into v_user from public.room_members where room_id = p_room and seat = p_seat;
-  select name, grade into v_name, v_grade from private.person(v_user);
-  for i in 1 .. least(greatest(p_count, 0), 5) loop
-    k := private.hint_kind(i);
-    v := case k
-           when 'grade' then case when v_grade is not null then v_grade || '학년' end
-           else (select h.value from private.room_hints h where h.room_id = p_room and h.seat = p_seat and h.kind = k)
-         end;
-    out := out || jsonb_build_array(jsonb_build_object('kind', k, 'label', private.hint_label_in(p_room, k), 'value', coalesce(v, '비공개')));
-  end loop;
-  return out;
+  return (select coalesce(jsonb_agg(jsonb_build_object('kind', h.kind,
+                                                      'label', coalesce(h.label, private.hint_label_in(p_room, h.kind)),
+                                                      'value', h.value) order by h.round), '[]'::jsonb)
+            from private.room_hints h
+           where h.room_id = p_room and h.seat = p_seat and h.round <= p_count);
 end
 $fn$;
 revoke all on function private.room_hints_of(uuid, smallint, int) from public, anon, authenticated;
 
 
--- 연장 투표 — 동아리 · 디플로마 차례면 "연장"을 누를 때 내 값을 같이 (p_hint)
+-- 연장 투표 — 공개 차례면 공개할 것(p_kind: grade · diploma · club · question)을 골라서, 적는 것이면 내 값(p_hint)도 같이.
+-- p_kind 가 없으면(옛 앱) 예전 순서의 차례 (Phase 103)
 drop function if exists public.vote_extension(uuid, boolean);
-create or replace function public.vote_extension(p_room uuid, p_agree boolean, p_hint text default null)
+drop function if exists public.vote_extension(uuid, boolean, text);
+create or replace function public.vote_extension(p_room uuid, p_agree boolean, p_hint text default null, p_kind text default null)
 returns jsonb language plpgsql security definer set search_path = public, private as $fn$
 declare
   r   public.rooms%rowtype;
   cfg public.app_settings%rowtype;
   s   smallint;
-  v_yes int; v_no int; v_kind text; v_hint text; v_pin boolean;
+  v_yes int; v_no int; v_kind text; v_hint text; v_pin boolean; v_label text; v_opt jsonb; v_msg text;
 begin
   s := public.my_seat(p_room);
   if s is null then raise exception 'not_member'; end if;
@@ -4082,7 +4087,8 @@ begin
   if r.pinned then
     return jsonb_build_object('result', 'pinned', 'snap', public.room_snapshot(p_room));
   end if;
-  if now() >= r.expires_at then
+  -- 시간이 다 된 뒤에도 vote_grace 동안은 고를 수 있다 (Phase 103)
+  if now() >= r.expires_at + private.vote_grace(r.round) then
     perform public.close_room(p_room, 'expired');
     return jsonb_build_object('result', 'expired', 'snap', public.room_snapshot(p_room));
   end if;
@@ -4095,15 +4101,30 @@ begin
 
   v_kind := private.hint_kind(r.round);
   v_pin  := private.pin_round(r);
-  if p_agree and private.hint_typed(v_kind) then
-    v_hint := btrim(coalesce(p_hint, ''));
-    if char_length(v_hint) not between 1 and (case when v_kind in ('q1', 'q2') then 30 else 20 end)
-       or private.rule_violation(v_hint) is not null
-       or (v_kind = 'diploma' and not (v_hint = any (private.diplomas()))) then
+  if p_agree and v_kind is not null then
+    v_kind := coalesce(p_kind, case when v_kind in ('q1', 'q2') then 'question' else v_kind end);
+    -- 고를 수 있는 것만 (학년은 명단에 있을 때, 학년 · 디플로마 · 동아리는 한 번씩, 질문은 매번)
+    select o into v_opt from jsonb_array_elements(private.hint_options(p_room, s, r.round)) o where o->>'kind' = v_kind;
+    if v_opt is null and p_kind is null and v_kind = 'grade' then
+      v_kind := null;   -- 옛 앱의 학년 차례인데 명단에 학년이 없다 — 예전처럼 공개 없이 ("비공개")
+    elsif v_opt is null then
       return jsonb_build_object('result', 'need_hint', 'snap', public.room_snapshot(p_room));
     end if;
-    insert into private.room_hints (room_id, seat, kind, value) values (p_room, s, v_kind, v_hint)
-    on conflict (room_id, seat, kind) do update set value = excluded.value;
+  end if;
+  if p_agree and v_kind is not null and v_opt is not null then
+    if v_kind = 'grade' then
+      v_hint := v_opt->>'value';
+    else
+      v_hint := btrim(coalesce(p_hint, ''));
+      if char_length(v_hint) not between 1 and (case when v_kind = 'question' then 30 else 20 end)
+         or private.rule_violation(v_hint) is not null
+         or (v_kind = 'diploma' and not (v_hint = any (private.diplomas()))) then
+        return jsonb_build_object('result', 'need_hint', 'snap', public.room_snapshot(p_room));
+      end if;
+    end if;
+    v_label := case when v_kind = 'question' then private.round_question(p_room, r.round) end;
+    insert into private.room_hints (room_id, seat, round, kind, label, value) values (p_room, s, r.round, v_kind, v_label, v_hint)
+    on conflict (room_id, seat, round) do update set kind = excluded.kind, label = excluded.label, value = excluded.value;
   end if;
 
   insert into public.extension_votes (room_id, round, seat, agree)
@@ -4128,16 +4149,19 @@ begin
     values (p_room, 0, '둘 다 고정했어요. 이제 시간 제한 없이 이야기할 수 있어요.', gen_random_uuid());
     return jsonb_build_object('result', 'pinned', 'snap', public.room_snapshot(p_room));
   elsif v_yes = 2 then
+    -- 시간이 다 된 뒤(vote_grace)에 연장했으면 지금부터 (Phase 103)
     update public.rooms
-       set expires_at = r.expires_at + make_interval(mins => cfg.extend_minutes),
+       set expires_at = greatest(r.expires_at, now()) + make_interval(mins => cfg.extend_minutes),
            round      = r.round + 1
      where id = p_room;
+    -- 둘이 같은 걸 골랐으면 그 이름으로, 다르면 "고른 정보"
+    select case when count(distinct kind) = 1 and min(kind) = 'question' then ' 질문 답 공개!'
+                when count(distinct kind) = 1 then ' 서로의 ' || private.hint_label(min(kind)) || ' 공개!'
+                when count(*) > 0 then ' 서로 고른 정보 공개!' else '' end
+      into v_msg
+      from private.room_hints where room_id = p_room and round = r.round;
     insert into public.messages (room_id, sender_seat, body, client_msg_id)
-    values (p_room, 0, cfg.extend_minutes || '분 연장됨.'
-                       || case when v_kind in ('q1', 'q2') then ' 공통 질문 답 공개!'
-                               when v_kind is not null then ' 서로의 ' || private.hint_label(v_kind) || ' 공개!'
-                               else '' end,
-            gen_random_uuid());
+    values (p_room, 0, cfg.extend_minutes || '분 연장됨.' || coalesce(v_msg, ''), gen_random_uuid());
     return jsonb_build_object('result', 'extended', 'snap', public.room_snapshot(p_room));
   end if;
   return jsonb_build_object('result', 'waiting', 'snap', public.room_snapshot(p_room));
@@ -4150,7 +4174,7 @@ revoke all on function public.sweep_rooms() from public, anon, authenticated;
 do $do$
 declare f text;
 begin
-  foreach f in array array['delete_message(bigint)', 'room_view(uuid, boolean)', 'vote_extension(uuid, boolean, text)']
+  foreach f in array array['delete_message(bigint)', 'room_view(uuid, boolean)', 'vote_extension(uuid, boolean, text, text)']
   loop
     execute format('revoke all on function public.%s from public, anon', f);
     execute format('grant execute on function public.%s to authenticated', f);
@@ -4174,7 +4198,7 @@ $do$;
 
 -- ── 1) 공개 순서 · 공통 질문 ──
 alter table private.room_hints drop constraint if exists room_hints_kind_check;
-alter table private.room_hints add  constraint room_hints_kind_check check (kind in ('club', 'diploma', 'q1', 'q2'));
+alter table private.room_hints add  constraint room_hints_kind_check check (kind in ('grade', 'club', 'diploma', 'question', 'q1', 'q2'));   -- grade · question: Phase 103
 alter table private.room_hints drop constraint if exists room_hints_value_check;
 alter table private.room_hints add  constraint room_hints_value_check check (char_length(value) between 1 and 30);
 
@@ -4182,7 +4206,7 @@ alter table private.room_hints add  constraint room_hints_value_check check (cha
 -- 연장할 때 직접 적는 것
 create or replace function private.hint_typed(p_kind text)
 returns boolean language sql immutable set search_path = '' as $fn$
-  select coalesce(p_kind in ('club', 'diploma', 'q1', 'q2'), false);
+  select coalesce(p_kind in ('club', 'diploma', 'q1', 'q2', 'question'), false);
 $fn$;
 
 -- 방의 공통 질문 — 둘에게 같은 질문, 방마다 다르게, 두 번째는 첫 번째와 겹치지 않게.
@@ -4619,7 +4643,7 @@ create trigger rooms_stats after update on public.rooms
 create or replace function private.stats_on_hint()
 returns trigger language plpgsql security definer set search_path = public, private as $fn$
 begin
-  if new.kind in ('q1', 'q2') then perform private.bump(private.seat_user(new.room_id, new.seat), 'answers'); end if;
+  if new.kind in ('q1', 'q2', 'question') then perform private.bump(private.seat_user(new.room_id, new.seat), 'answers'); end if;
   return null;
 end
 $fn$;
@@ -4825,7 +4849,7 @@ begin
       'msgs',    (select count(*) from public.room_members rm join public.messages m on m.room_id = rm.room_id and m.sender_seat = rm.seat
                    where rm.user_id = u.id),
       'answers', (select count(*) from private.room_hints h join public.room_members rm on rm.room_id = h.room_id and rm.seat = h.seat
-                   where rm.user_id = u.id and h.kind in ('q1', 'q2')),
+                   where rm.user_id = u.id and h.kind in ('q1', 'q2', 'question')),
       'letters_sent', (select count(*) from private.dm_msgs m join private.dm_threads t on t.id = m.thread_id
                         where m.is_letter and ((m.from_sender and t.sender_id = u.id) or (not m.from_sender and t.recipient_id = u.id))),
       'letters_got',  (select count(*) from private.dm_msgs m join private.dm_threads t on t.id = m.thread_id
@@ -7872,6 +7896,8 @@ notify pgrst, 'reload schema';
 --  my_achievements · new_achievements 는 제자리에서 고쳤다. 실DB 는 supabase/migrations/20261124130000_nickname_ticket_phase102.sql.
 -- ════════════════════════════════════════════════════════════════════
 alter table public.profiles add column if not exists nickname_rerolls_used int not null default 0;
+-- 운영진이 따로 준 장수 (Phase 103 — 관리자 › 사용자)
+alter table public.profiles add column if not exists nickname_tickets_granted int not null default 0;
 
 -- 남은 변경권
 create or replace function private.nickname_tickets(p_user uuid)
@@ -7880,7 +7906,7 @@ returns int language sql stable security definer set search_path = '' as $fn$
     + (select (count(*) > 0)::int + (count(*) filter (where a.tier = 3))::int
          from private.user_achievements a join private.achievement_defs d on d.code = a.code
         where a.user_id = p_user and not d.granted and d.category <> 'cnsa' and d.code <> 'pioneer')
-    - coalesce((select p.nickname_rerolls_used from public.profiles p where p.id = p_user), 0));
+    - coalesce((select p.nickname_rerolls_used - p.nickname_tickets_granted from public.profiles p where p.id = p_user), 0));
 $fn$;
 revoke all on function private.nickname_tickets(uuid) from public, anon, authenticated;
 
@@ -7921,4 +7947,123 @@ end
 $fn$;
 revoke all on function public.reroll_nickname() from public, anon;
 grant execute on function public.reroll_nickname() to authenticated;
+notify pgrst, 'reload schema';
+
+-- ════════════════════════════════════════════════════════════════════
+--  Phase 103 — 연장: 시간이 다 된 뒤 "연장할까요?" · 공개할 것을 각자 고르기 · 운영진이 닉네임 변경권 주기
+--
+--  1) 시간이 다 되면 바로 닫지 않고 vote_grace(60초) 동안 연장을 고를 수 있다. 그동안 대화는 막힌다(room_is_writable 그대로)
+--     → 앱은 "연장할까요?" 화면을 띄운다. 닫는 곳(close_if_expired · sweep_rooms · vote_extension)이 모두 같은 기한을 쓴다.
+--     그 사이 연장하면 지금부터 10분. 연장 상한(max_rounds)에 닿은 방은 기다릴 게 없어 바로 닫는다.
+--  2) 연장할 때 공개할 것을 정해진 순서(학년 → 질문 → 디플로마 → 질문 → 동아리) 대신 각자 하나씩 고른다:
+--     학년(명단에 있을 때) · 디플로마 · 동아리는 한 번씩, 랜덤 질문은 매번 (라운드마다 다른 질문, 둘이 고르면 같은 질문).
+--     private.room_hints 는 라운드마다 한 줄 (room_id, seat, round). 학년도 그 자리에서 명단 값을 적어 둔다.
+--     공개 차례 수(5번)와 그 다음의 고정 여부는 그대로.
+--  3) 관리자 › 사용자에서 닉네임 랜덤 변경권을 몇 장 줄 수 있다 (profiles.nickname_tickets_granted, 기록에 남는다).
+--  room_snapshot · room_hints_of · vote_extension · close_if_expired · sweep_rooms · stats_on_hint · nickname_tickets 는 제자리에서 고쳤다.
+--  실DB 는 supabase/migrations/20261125120000_extend_choice_phase103.sql.
+-- ════════════════════════════════════════════════════════════════════
+
+-- ── 1) 시간이 다 된 뒤 연장을 고르는 시간 ──
+create or replace function private.vote_grace(p_round int)
+returns interval language sql stable security definer set search_path = '' as $fn$
+  select case when c.max_rounds > 0 and p_round >= c.max_rounds then interval '0' else interval '60 seconds' end
+    from public.app_settings c where c.id;
+$fn$;
+revoke all on function private.vote_grace(int) from public, anon, authenticated;
+
+-- ── 2) 라운드마다 고르는 공개 ──
+alter table private.room_hints add column if not exists round smallint;
+alter table private.room_hints add column if not exists label text;
+alter table private.room_hints drop constraint if exists room_hints_kind_check;
+alter table private.room_hints add  constraint room_hints_kind_check check (kind in ('grade', 'club', 'diploma', 'question', 'q1', 'q2'));
+-- 예전 줄은 예전 순서의 라운드 (학년 1 · 질문 2 · 디플로마 3 · 질문 4 · 동아리 5)
+update private.room_hints set round = case kind when 'q1' then 2 when 'diploma' then 3 when 'q2' then 4 when 'club' then 5 end
+ where round is null;
+-- 예전엔 학년을 적어 두지 않고 명단에서 읽었다 — 아직 열린(고정 포함) 대화만 적어 둔다 (닫힌 대화는 힌트를 보이지 않는다)
+insert into private.room_hints (room_id, seat, round, kind, value)
+select r.id, m.seat, 1, 'grade', p.grade || '학년'
+  from public.rooms r
+  join public.room_members m on m.room_id = r.id
+  cross join lateral private.person(m.user_id) p
+ where r.status <> 'closed' and r.round > 1 and p.grade is not null
+   and not exists (select 1 from private.room_hints h where h.room_id = r.id and h.seat = m.seat and (h.round = 1 or h.kind = 'grade'));
+alter table private.room_hints alter column round set not null;
+do $do$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'room_hints_pkey'
+                    and pg_get_constraintdef(oid) = 'PRIMARY KEY (room_id, seat, round)') then
+    alter table private.room_hints drop constraint if exists room_hints_pkey;
+    alter table private.room_hints add constraint room_hints_pkey primary key (room_id, seat, round);
+  end if;
+end
+$do$;
+
+-- 라운드의 랜덤 질문 — 둘에게 같은 질문, 방마다 다르게, 한 방 안에서는 라운드마다 겹치지 않게 (10개, 10과 서로소인 걸음).
+-- 신상(학년 · 반 · 이름 · SNS)을 묻지 않는 가벼운 것만 — 앱의 슬롯 그림(VoteBanner QUESTION_POOL)과 같은 목록
+create or replace function private.round_question(p_room uuid, p_round int)
+returns text language sql immutable set search_path = '' as $fn$
+  select (array['요즘 빠져 있는 것', '제일 좋아하는 급식 메뉴', '주말에 주로 하는 일', '요즘 자주 듣는 노래',
+                '가 보고 싶은 여행지', '스트레스 푸는 방법', '인생 영화나 드라마', '시험 끝나면 하고 싶은 일',
+                '좋아하는 계절', '요즘 소소한 행복'])[1 + ((h + (p_round - 1) * (array[1, 3, 7, 9])[1 + (h / 10) % 4]) % 10)::int]
+    from (select abs(hashtext(p_room::text)::bigint) h) x;
+$fn$;
+revoke all on function private.round_question(uuid, int) from public, anon, authenticated;
+
+-- 이번 라운드에 내가 고를 수 있는 것 — [{kind, label, typed, value?(학년), question?(랜덤 질문)}]
+create or replace function private.hint_options(p_room uuid, p_seat smallint, p_round int)
+returns jsonb language plpgsql stable security definer set search_path = public, private as $fn$
+declare v_user uuid; v_grade smallint; v_used text[]; out jsonb := '[]'::jsonb;
+begin
+  select user_id into v_user from public.room_members where room_id = p_room and seat = p_seat;
+  select p.grade into v_grade from private.person(v_user) p;
+  select coalesce(array_agg(kind), '{}') into v_used from private.room_hints
+   where room_id = p_room and seat = p_seat and round < p_round;
+  if v_grade is not null and not ('grade' = any (v_used)) then
+    out := out || jsonb_build_array(jsonb_build_object('kind', 'grade', 'label', '학년', 'typed', false, 'value', v_grade || '학년'));
+  end if;
+  if not ('diploma' = any (v_used)) then
+    out := out || jsonb_build_array(jsonb_build_object('kind', 'diploma', 'label', '디플로마', 'typed', true));
+  end if;
+  if not ('club' = any (v_used)) then
+    out := out || jsonb_build_array(jsonb_build_object('kind', 'club', 'label', '동아리', 'typed', true));
+  end if;
+  return out || jsonb_build_array(jsonb_build_object('kind', 'question', 'label', '랜덤 질문', 'typed', true,
+                                                     'question', private.round_question(p_room, p_round)));
+end
+$fn$;
+revoke all on function private.hint_options(uuid, smallint, int) from public, anon, authenticated;
+
+-- ── 3) 운영진이 닉네임 변경권 주기 ──
+create or replace function public.admin_nickname_tickets(p_staff uuid, p_user uuid)
+returns int language plpgsql stable security definer set search_path = public, private as $fn$
+begin
+  perform private.require_staff(p_staff);
+  return private.nickname_tickets(p_user);
+end
+$fn$;
+
+create or replace function public.admin_grant_nickname_tickets(p_staff uuid, p_user uuid, p_n int)
+returns int language plpgsql security definer set search_path = public, private as $fn$
+begin
+  perform private.require_staff(p_staff);
+  if p_n is null or p_n not between 1 and 20 then raise exception 'bad_count'; end if;
+  update public.profiles set nickname_tickets_granted = nickname_tickets_granted + p_n where id = p_user;
+  if not found then raise exception 'user_not_found'; end if;
+  insert into private.audit_log (staff_id, action, target_user, detail)
+  values (p_staff, 'grant_nickname_tickets', p_user, jsonb_build_object('n', p_n));
+  return private.nickname_tickets(p_user);
+end
+$fn$;
+
+do $do$
+declare f text;
+begin
+  foreach f in array array['admin_nickname_tickets(uuid, uuid)', 'admin_grant_nickname_tickets(uuid, uuid, int)']
+  loop
+    execute format('revoke all on function public.%s from public, anon, authenticated', f);
+    execute format('grant execute on function public.%s to service_role', f);
+  end loop;
+end
+$do$;
 notify pgrst, 'reload schema';

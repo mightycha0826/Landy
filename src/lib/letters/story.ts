@@ -29,10 +29,11 @@ const MIN_FONT = 30; // 이보다 작으면 스토리에서 읽히지 않는다 
 const PAPER = '#fffaf0';
 const INK = '#2b2620';
 const EDGE = '#efe4cf';
+// 줄 · 여백선 · 테이프는 편지지(.letter-paper)처럼 테마 색(--primary #d6246e), 바탕은 앱의 그라디언트(--primary-fill)
 const RULE = 'rgba(147, 59, 69, 0.2)';
-const MARGIN = 'rgba(207, 47, 90, 0.38)';
-const BRAND = ['#dc9cfb', '#b96cf5', '#9a52eb'];
-const TAPE = ['#b56cf3', '#a35bee', '#8c46e2'];
+const MARGIN = 'rgba(214, 36, 110, 0.38)';
+const BRAND = ['#d33b27', '#d6246e', '#8134af'];
+const TAPE = ['#d6246e', '#d6246e', '#d6246e'];
 const SIZE_MUL: Record<string, number> = { sm: 0.85, lg: 1.25, xl: 1.6 };
 
 type StoryLetter = {

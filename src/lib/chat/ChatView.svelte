@@ -8,7 +8,7 @@
 	import { tick, untrack } from 'svelte';
 	import { S, errMsg, toast } from '$lib/state.svelte';
 	import type { ChatRoom } from './room.svelte';
-	import type { Msg, PartnerProfile, ReactionKey } from './types';
+	import type { Hint, HintKind, Msg, PartnerProfile, ReactionKey } from './types';
 	import ChatIntro from './ChatIntro.svelte';
 	import PartnerCard from './PartnerCard.svelte';
 	import ReactionBadge from './ReactionBadge.svelte';
@@ -18,7 +18,8 @@
 	import MatchScreen from './MatchScreen.svelte';
 	import ChatHeader from './ChatHeader.svelte';
 	import Banner from './Banner.svelte';
-	import VoteBanner, { isQuestion } from './VoteBanner.svelte';
+	import VoteBanner from './VoteBanner.svelte';
+	import SlotReel from './SlotReel.svelte';
 	import RateForm from './RateForm.svelte';
 	import type { Reason, Score } from '$lib/manner';
 	import { replaceState } from '$app/navigation';
@@ -101,6 +102,10 @@
 				: Math.max(0, Date.parse(room.snap.expires_at) - room.serverNow(S.now))
 	);
 	const timeUp = $derived(!!room?.snap && room.snap.status !== 'closed' && !paused && !pinned && remainMs <= 0);
+	// 시간이 다 된 뒤에도 vote_grace_sec 동안은 연장을 고를 수 있다 (Phase 103) — 그동안 "연장할까요?" 화면, 끝나면 서버가 닫는다
+	const graceLeftMs = $derived(
+		!timeUp || !room?.snap ? 0 : Math.max(0, Date.parse(room.snap.expires_at) + (room.snap.vote_grace_sec ?? 0) * 1000 - room.serverNow(S.now))
+	);
 	// 상대가 들어오기 전(pending)의 expires_at 은 대화 시간이 아니라 "들어올 때까지"의 기한이다. 매칭은 1분쯤(join_grace_sec)이라 그대로 세지만,
 	// 연락해보기(Phase 95)는 하루를 기다려 줘서 머리글에 "1440:00"이 떴다 — 그렇게 오래 기다리는 방은 시작하면 받을 대화 시간을 보인다
 	const longWait = $derived(room?.snap?.status === 'pending' && remainMs > (S.settings?.join_grace_sec ?? 60) * 1000);
@@ -124,7 +129,7 @@
 	// 카운트다운이 0 이 되면 서버에 "끝났나요?"를 묻는다. 판정은 서버가 한다.
 	// (throttle 은 ChatRoom.checkExpiry 안에 있다 — S.now 가 매초 이 effect 를 깨운다)
 	$effect(() => {
-		if (timeUp && room) void room.checkExpiry();
+		if (timeUp && graceLeftMs <= 0 && room) void room.checkExpiry();
 	});
 
 	// ── 연장 투표 ────────────────────────────────────────────────
@@ -140,32 +145,65 @@
 			remainMs <= snap.vote_window_sec * 1000 &&
 			canExtendMore
 	);
+	// 시간이 다 됐다 — 평가 전에 화면 가운데서 "연장할까요?" (Phase 103)
+	const deciding = $derived(!!snap && snap.status === 'active' && graceLeftMs > 0 && canExtendMore && (!!snap.next_hint || !!snap.pin_next));
 
-	// 연장할 때마다 서로 하나씩 공개 (Phase 29): 10분 째 학년 → 20분 공통 질문 → 30분 디플로마 → 40분 공통 질문 → 50분 동아리.
-	// 학년은 명단에서, 나머지는 연장하면서 직접 적는다 (공통 질문은 그 방의 같은 질문에 각자 답).
-	// 동아리까지 연장한 다음 차례(60분 째)는 연장 대신 "이 채팅을 고정하시겠습니까?" — 둘 다 고정하면 시간 제한 없이 맨 위에.
-	const nextHint = $derived(snap?.next_hint ?? null);
-	const nextKind = $derived(nextHint?.kind ?? null);
+	// 연장할 때마다 서로 하나씩 공개 — 각자 고른다 (Phase 103): 학년 · 디플로마 · 동아리(한 번씩) · 랜덤 질문(매번, 둘이 고르면 같은 질문).
+	// 학년은 명단에서, 나머지는 연장하면서 직접 적는다. 다섯 번 공개한 다음 차례는 연장 대신 "이 채팅을 고정하시겠습니까?".
 	const pinNext = $derived(!!snap?.pin_next);
 	const partnerHints = $derived(snap?.partner_hints ?? []);
 	let hintDraft = $state('');
-	// 적는 차례가 바뀌면 칸을 비운다 (디플로마로 적은 글이 다음 공통 질문 칸에 남지 않게)
+	let pick = $state<HintKind | null>(null);
+	// 라운드가 바뀌면 고른 것 · 적은 칸을 비운다
 	$effect(() => {
-		void nextKind;
+		void snap?.round;
+		pick = null;
 		hintDraft = '';
 	});
+	const WHAT: Record<HintKind, string> = { grade: '학년을', diploma: '디플로마를', club: '동아리를', question: '답을' };
 	async function vote(agree: boolean) {
-		if (!room) return;
-		const typed = agree && !!nextHint?.typed && !pinNext;
-		const what = isQuestion(nextKind) ? '답' : (nextHint?.label ?? '힌트');
-		if (typed && nextKind === 'diploma' && !isDiploma(hintDraft)) return toast('디플로마를 검색해서 골라 주세요');
-		if (typed && !hintDraft.trim()) return toast(`${what}을(를) 적어 주세요`);
-		const r = await room.vote(agree, typed ? hintDraft.trim() : null);
-		if (r === 'need_hint') toast(`${what}을(를) 다시 적어 주세요`);
+		if (!room || !snap) return;
+		const choosing = agree && !pinNext && !!snap.next_options?.length;
+		const opt = choosing ? snap.next_options!.find((o) => o.kind === pick) : undefined;
+		if (choosing && !opt) return toast('연장하면 공개할 것을 하나 골라 주세요');
+		if (opt?.kind === 'diploma' && !isDiploma(hintDraft)) return toast('디플로마를 검색해서 골라 주세요');
+		if (opt?.typed && !hintDraft.trim()) return toast(`${WHAT[opt.kind]} 적어 주세요`);
+		const r = await room.vote(agree, opt?.typed ? hintDraft.trim() : null, opt?.kind ?? null);
+		if (r === 'need_hint') toast(opt ? `${WHAT[opt.kind]} 다시 적어 주세요` : '공개할 것을 다시 골라 주세요');
 		else if (r === 'too_early') toast('연장은 마감 직전부터 가능해요');
 		else if (r === 'max_rounds') toast('더 이상 연장할 수 없어요');
 		else if (r === null) toast('연결을 확인해 주세요');
 	}
+
+	// 연장되면 상대가 고른 공개를 슬롯 칸에 — "상대는 2학년!" (Phase 103). 방을 열 때 이미 있던 것은 다시 보이지 않는다
+	let seenHints: number | null = null;
+	let seenRoom: ChatRoom | null = null;
+	let reveal = $state<Hint | null>(null);
+	$effect(() => {
+		const n = partnerHints.length;
+		if (!snap) return;
+		if (room !== seenRoom) {
+			seenRoom = room;
+			seenHints = null;
+			reveal = null;
+		}
+		if (seenHints !== null && n > seenHints) reveal = partnerHints[n - 1];
+		seenHints = n;
+	});
+	$effect(() => {
+		if (!reveal) return;
+		const t = setTimeout(() => (reveal = null), 7000);
+		return () => clearTimeout(t);
+	});
+	const isQ = (k: string) => k === 'question' || k === 'q1' || k === 'q2';
+	const revealText = (h: Hint) =>
+		h.value === '비공개' ? '상대는 비공개!'
+		: h.kind === 'grade' ? `상대는 ${h.value}!`
+		: h.kind === 'diploma' ? `상대는 ${h.value} 디플로마!`
+		: h.kind === 'club' ? `상대의 동아리는 ${h.value}!`
+		: `"${h.value}"`;
+	const revealDecoys = (h: Hint) =>
+		h.kind === 'grade' ? ['상대는 1학년!', '상대는 2학년!', '상대는 3학년!'] : h.kind === 'diploma' ? ['상대는 수학 디플로마!', '상대는 IT 디플로마!', '상대는 화학 디플로마!', '상대는 예술 디플로마!'] : ['두구두구…', '과연…'];
 
 	// ── 매너 온도 평가 (Phase 30) ────────────────────────────────
 	// 끝난 대화는 종료 안내 아래에서 바로, 고정한 대화는 위쪽 막대 → 시트로. 고정이 이 화면에서 성사되면 시트를 한 번 띄운다.
@@ -572,7 +610,7 @@
 
 	{#if partnerHints.length && !closed}
 		<div class="hints" aria-label="공개된 힌트">
-			{#each partnerHints as h (h.kind)}<span class="hint-chip"><small>{h.label}</small>{h.value}</span>{/each}
+			{#each partnerHints as h, i (i)}<span class="hint-chip"><small>{h.label}</small>{h.value}</span>{/each}
 		</div>
 	{/if}
 	{#if pinned && canRate && !rateSent}
@@ -592,7 +630,23 @@
 	{/if}
 
 	{#if voteOpen && snap}
-		<VoteBanner {snap} {pinNext} voting={!!room?.voting} bind:hintDraft onvote={vote} />
+		<VoteBanner {snap} {pinNext} voting={!!room?.voting} bind:hintDraft bind:pick onvote={vote} />
+	{/if}
+	{#if reveal && !closed}
+		<Banner title={isQ(reveal.kind) ? `Q. ${reveal.label}` : `${snap?.extend_minutes ?? 10}분 연장됐어요`} sub={isQ(reveal.kind) ? '상대의 답' : '상대가 고른 공개'}>
+			<SlotReel items={revealDecoys(reveal)} final={revealText(reveal)} />
+			{#snippet actions()}<button class="no" onclick={() => (reveal = null)}>닫기</button>{/snippet}
+		</Banner>
+	{/if}
+
+	{#if deciding && snap}
+		<!-- 시간이 다 됐다 — 대화는 막히고, 평가 전에 가운데서 연장을 고른다 (Phase 103) -->
+		<div class="decide" role="dialog" aria-modal="true" aria-label="연장할까요?">
+			<div class="decide-card">
+				<p class="time-up">시간이 다 됐어요 · <b>{Math.ceil(graceLeftMs / 1000)}초</b> 안에 골라 주세요</p>
+				<VoteBanner {snap} {pinNext} voting={!!room?.voting} bind:hintDraft bind:pick onvote={vote} />
+			</div>
+		</div>
 	{/if}
 
 	{#if showConn}
@@ -869,6 +923,51 @@
 		font-size: 11px;
 		font-weight: 500;
 		color: var(--text-2);
+	}
+	/* 시간이 다 된 뒤의 "연장할까요?" — 대화 위를 덮는다 (Phase 103) */
+	.decide {
+		position: absolute;
+		inset: 0;
+		z-index: 30;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: var(--pad);
+		background: color-mix(in srgb, var(--bg) 55%, transparent);
+		backdrop-filter: blur(6px);
+		-webkit-backdrop-filter: blur(6px);
+		animation: decide-in 0.24s ease-out;
+	}
+	@keyframes decide-in {
+		from {
+			opacity: 0;
+		}
+	}
+	.decide-card {
+		width: 100%;
+		max-width: 420px;
+		overflow: hidden;
+		border-radius: 20px;
+		background: var(--surface);
+		box-shadow: 0 18px 48px -12px rgb(0 0 0 / 0.35), 0 0 0 1px var(--line);
+	}
+	.decide-card :global(.extend) {
+		border-bottom: 0;
+		padding: 6px 16px 16px;
+	}
+	/* 카드 안에서는 버튼이 맨 아래 */
+	.decide-card :global(.acts) {
+		order: 4;
+	}
+	.time-up {
+		margin: 0;
+		padding: 16px 16px 4px;
+		font-size: 13px;
+		color: var(--text-2);
+	}
+	.time-up b {
+		color: var(--accent);
+		font-variant-numeric: tabular-nums;
 	}
 	.paused-bar {
 		padding: 6px var(--pad);

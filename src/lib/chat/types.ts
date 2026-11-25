@@ -37,10 +37,14 @@ export type RoomRow = {
 };
 
 /**
- * 연장할 때마다 서로 하나씩 공개되는 힌트 (Phase 28 · 29) — 학년 → 공통 질문(q1) → 디플로마 → 공통 질문(q2) → 동아리.
- * 공통 질문은 label 이 그 방의 질문 자체. (surname 은 Phase 28 때 순서 — 지금은 나오지 않는다)
+ * 연장할 때마다 서로 하나씩 공개되는 힌트 — Phase 103 부터 각자 고른다: 학년 · 디플로마 · 동아리(한 번씩) · 랜덤 질문(매번).
+ * 질문은 label 이 그 질문 자체. q1 · q2 는 Phase 29 의 정해진 순서 때 질문, surname 은 Phase 28 때 — 예전 대화에만 있다
  */
-export type Hint = { kind: 'grade' | 'surname' | 'club' | 'diploma' | 'q1' | 'q2'; label: string; value: string };
+export type Hint = { kind: 'grade' | 'surname' | 'club' | 'diploma' | 'question' | 'q1' | 'q2'; label: string; value: string };
+/** 연장할 때 고를 수 있는 공개 (Phase 103) */
+export type HintKind = 'grade' | 'diploma' | 'club' | 'question';
+/** value = 학년 (명단 값, 적지 않는다), question = 랜덤 질문이면 이번 라운드의 질문 */
+export type HintOption = { kind: HintKind; label: string; typed: boolean; value?: string; question?: string };
 
 /** room_snapshot() RPC 응답 — 클라가 방에 대해 아는 모든 것. */
 export type RoomSnap = {
@@ -78,6 +82,10 @@ export type RoomSnap = {
 	can_rate?: boolean;
 	rated?: boolean;
 	next_hint?: { kind: Hint['kind']; label: string; typed: boolean } | null;
+	/** 이번 연장 때 고를 수 있는 공개 (Phase 103) — 공개 차례가 아니면 null */
+	next_options?: HintOption[] | null;
+	/** 시간이 다 된 뒤에도 이만큼(초) 연장을 고를 수 있다 — 그동안 대화는 막히고 "연장할까요?" 화면 (Phase 103) */
+	vote_grace_sec?: number;
 };
 
 /** extension_votes 행 — seat 만 있고 사용자 식별자는 없다 */

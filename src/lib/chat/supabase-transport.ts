@@ -7,6 +7,7 @@ import { ratePartner, type Reason, type Score } from '../manner';
 import { noClubs } from '../achievements';
 import type { ChatTransport, TransportHandlers } from './transport';
 import type {
+	HintKind,
 	MsgRow,
 	PartnerProfile,
 	ReactResult,
@@ -222,9 +223,9 @@ export class SupabaseTransport implements ChatTransport {
 		return rpc<RoomSnap>('leave_room', { p_room: roomId, p_skip: skip });
 	}
 
-	vote(roomId: string, agree: boolean, hint: string | null = null) {
-		// 힌트는 적을 차례일 때만 보낸다 (Phase 28 전 DB 에는 p_hint 가 없다)
-		const args = hint ? { p_room: roomId, p_agree: agree, p_hint: hint } : { p_room: roomId, p_agree: agree };
+	vote(roomId: string, agree: boolean, hint: string | null = null, kind: HintKind | null = null) {
+		// 공개할 것(kind, Phase 103) · 적은 값(hint)은 있을 때만 보낸다
+		const args = { p_room: roomId, p_agree: agree, ...(hint ? { p_hint: hint } : {}), ...(kind ? { p_kind: kind } : {}) };
 		return rpc<{ result: VoteResult; snap: RoomSnap }>('vote_extension', args);
 	}
 
