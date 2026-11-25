@@ -226,9 +226,10 @@ try {
 		&& (await page.locator('.archive .stack .item').first().evaluate((e) => e.getBoundingClientRect().width)) > 280, JSON.stringify(recvRows));
 	check('★ 모르는 사람은 "익명의 여학생" (성별만) · 내 편지의 답장은 이름', recvRows.includes('익명의 여학생에게서 온 편지, 안 읽음') && recvRows.includes('박받음에게서 온 답장, 안 읽음'), JSON.stringify(recvRows));
 	check('봉투 뒷면에 손글씨 From.', (await page.locator('.archive .stack .item').first().locator('.back .back-from').innerText()).includes('익명의 여학생'));
-	check('보관함 봉투도 보낸 사람 성별 색', (await page.locator('.archive .stack .env.b-f').count()) === 1 && (await page.locator('.archive .stack .env.b-m').count()) === 1);
+	check('보관함 봉투도 보낸 사람 성별 색 — 이름으로 온 답장도', (await page.locator('.archive .stack .env.b-f').count()) === 2 && (await page.locator('.archive .stack .env.b-m').count()) === 1);
 	await page.screenshot({ path: `${SP}/letters-2-archive.png`, fullPage: true });
 	await page.getByRole('tab', { name: '보낸 편지' }).click(); await page.waitForTimeout(700);
+	check('★ 보낸 편지 봉투는 내 성별 색 (남학생 파랑)', (await page.locator('.archive .stack .env.b-m').count()) >= 1 && (await page.locator('.archive .stack .env.b-brand').count()) === 0);
 	const sentRow = await page.locator('.archive .stack .item').first().innerText();
 	check('★ 보관함 보낸 편지: 주소 쪽 큰 봉투 — To. 이름 · 학년 · "답장 옴" 스티커', (await page.locator('.archive .stack .item').first().getAttribute('aria-label')) === '박받음에게 보낸 편지, 답장 옴'
 		&& sentRow.includes('박받음') && sentRow.includes('2학년') && (await page.locator('.archive .stack .front .sticker').first().innerText()) === '답장 옴', sentRow);

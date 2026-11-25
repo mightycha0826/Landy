@@ -80,7 +80,7 @@ export type SendResult =
 	| { status: 'ok'; thread_id: number; msg_id: number }
 	| { status: 'rate_limited'; retry_after_ms: number }
 	| { status: 'wait_reply'; thread_id?: number }
-	| { status: 'not_available' | 'restricted' | 'no_name' | 'bad_text' | 'bad_nick' | 'closed' | 'not_found' | 'letters_locked' | 'service_closed' };
+	| { status: 'not_available' | 'restricted' | 'no_name' | 'bad_text' | 'bad_nick' | 'gender_word' | 'closed' | 'not_found' | 'letters_locked' | 'service_closed' };
 
 // ── 이름표 ──
 const genderWord = (g: Gender | null | undefined) => (g === 'm' ? '남학생' : g === 'f' ? '여학생' : '학생');
@@ -100,9 +100,13 @@ export const myLabel = (l: Pick<MailItem, 'from_name' | 'to_name' | 'my_nick'>, 
 	(box === 'received' ? l.from_name : l.to_name) ? (l.my_nick ?? anonName(me.gender)) : (me.name ?? '나');
 /** 상대가 나를 이름으로 찾아 보낸 쪽인가 (그 편지를 버리면 상대는 다시 못 보낸다) */
 export const iAmRecipient = (l: Pick<MailItem, 'from_name' | 'to_name'>, box: Box) => !(box === 'received' ? l.from_name : l.to_name);
-/** 봉투 테두리 — 받은 편지는 보낸 사람 성별 색(여학생 붉은색 · 남학생 푸른색), 이름으로 온 답장 · 보낸 편지는 테마 색 */
-export const borderOf = (l: Pick<MailItem, 'from_name' | 'from_gender'>, box: Box) =>
-	box === 'received' && !l.from_name ? (l.from_gender === 'f' ? 'f' : l.from_gender === 'm' ? 'm' : 'x') : 'brand';
+const genderBorder = (g: Gender | null | undefined) => (g === 'f' ? 'f' : g === 'm' ? 'm' : 'x');
+/**
+ * 봉투 테두리 = 쓴 사람의 성별 색 (여학생 붉은색 · 남학생 푸른색) — 받은 편지는 보낸 사람, 보낸 편지는 나.
+ * 남학생이 "익명의 여학생"인 척해도 봉투 색은 속일 수 없다 (2026-11-25, 그 전엔 이름으로 온 답장 · 보낸 편지는 테마 색)
+ */
+export const borderOf = (l: Pick<MailItem, 'from_gender'>, box: Box, myGender?: Gender | null) =>
+	genderBorder(box === 'received' ? l.from_gender : myGender);
 /** 받침에 맞는 조사 — josa('익명의 여학생', '과', '와') → '익명의 여학생과'. 한글이 아니면 받침 없는 쪽 */
 export function josa(word: string, withFinal: string, withoutFinal: string) {
 	const c = (word.trim().at(-1) ?? '').charCodeAt(0) - 0xac00;
@@ -227,6 +231,8 @@ export function sendError(r: SendResult): string | null {
 			return '1~1000자로 적어 주세요';
 		case 'bad_nick':
 			return '이 서명은 쓸 수 없어요 · 12자 안에서, 연락처나 운영자처럼 보이는 이름은 빼 주세요';
+		case 'gender_word':
+			return '내 성별과 다른 "익명의 ○학생"은 적을 수 없어요 · 봉투 색으로 성별이 보여요';
 		case 'closed':
 			return '끝난 편지예요';
 		case 'letters_locked':

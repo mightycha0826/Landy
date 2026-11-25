@@ -3761,6 +3761,7 @@ begin
     return jsonb_build_object('status', 'bad_text');
   end if;
   if private.dm_nick_bad(v_nick) then return jsonb_build_object('status', 'bad_nick'); end if;
+  if private.dm_fake_gender(me, v_nick) or private.dm_fake_gender(me, v_body) then return jsonb_build_object('status', 'gender_word'); end if;
 
   select * into p from public.profiles where id = p_to;
   if not found or not p.letters_open or not p.onboarded then
@@ -3877,6 +3878,9 @@ begin
                      where x.sender_id = me and x.recipient_id = v_other and x.recipient_refused);
   if role <> 'sender' then v_nick := null; end if;
   if private.dm_nick_bad(v_nick) then return jsonb_build_object('status', 'bad_nick'); end if;
+  if role = 'sender' and (private.dm_fake_gender(me, v_nick) or private.dm_fake_gender(me, v_body)) then
+    return jsonb_build_object('status', 'gender_word');
+  end if;
   if private.dm_streak(p_thread, role = 'sender') >= 3 then return jsonb_build_object('status', 'wait_reply'); end if;
   b := private.letter_bucket_take(me, 'comment');
   if not (b->>'ok')::boolean then
@@ -8068,4 +8072,21 @@ begin
   end loop;
 end
 $do$;
+notify pgrst, 'reload schema';
+-- ════════════════════════════════════════════════════════════════════
+--  Phase 105 — 익명편지: 다른 성별인 척 못 하게
+--
+--  익명 쪽(처음 보낸 사람)은 서명 · 본문에 자기와 다른 성별의 "익명의 ○학생"을 적지 못한다
+--  (남학생 → "익명의 여학생", 여학생 → "익명의 남학생", 성별 미정 → 둘 다). 띄어쓰기 · 문장부호를 끼워도 한글만 남겨 본다.
+--  막히면 dm_send · dm_letter 가 'gender_word'. 이름으로 받은 쪽의 답장은 상대를 "익명의 ○학생"이라 부를 수 있어 보지 않는다.
+--  봉투 색(쓴 사람 성별)은 화면에서 — 받은 편지는 보낸 사람, 보낸 편지는 내 성별 색.
+--  실DB 는 supabase/migrations/20261125140000_letter_gender_word_phase105.sql 을 실행한다.
+-- ════════════════════════════════════════════════════════════════════
+create or replace function private.dm_fake_gender(p_me uuid, p_text text)
+returns boolean language sql stable set search_path = '' as $fn$
+  select coalesce(regexp_replace(p_text, '[^가-힣]', '', 'g')
+           ~ ('익명의' || case p.gender when 'm' then '여' when 'f' then '남' else '[남여]' end || '학생'), false)
+    from public.profiles p where p.id = p_me;
+$fn$;
+revoke all on function private.dm_fake_gender(uuid, text) from public, anon, authenticated;
 notify pgrst, 'reload schema';

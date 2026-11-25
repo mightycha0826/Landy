@@ -4054,12 +4054,36 @@ console.log('\n[Phase 103] 운영진이 닉네임 변경권 주기');
 	check('쓰면 줄어든다', (await rpcAs(u, 'reroll_nickname')).status === 'ok' && (await left()) === n0 + 2);
 }
 
+console.log('\n[Phase 105] 익명편지: 다른 성별의 "익명의 ○학생"은 못 쓴다');
+{
+	let no = 31900;
+	const named = async (name, gender) => {
+		const n = ++no;
+		await db.query('insert into private.student_roster (student_no, grade, name) values ($1, 2, $2) on conflict (student_no) do update set name = excluded.name', [n, name]);
+		const id = await signUp(`${n}@cnsa.hs.kr`, true);
+		await db.query('update public.profiles set onboarded = true, gender = $2 where id = $1', [id, gender]);
+		await rpcAs(id, 'ensure_self');
+		return id;
+	};
+	const M = await named('성별남', 'm'), F = await named('성별여', 'f');
+	check('★ 남학생은 서명에 "익명의 여학생"을 못 쓴다', (await rpcAs(M, 'dm_send', F, '안녕', null, '익명의 여학생')).status === 'gender_word');
+	check('★ 띄어쓰기 · 문장부호를 끼워도 막힌다 (본문)', (await rpcAs(M, 'dm_send', F, '저는 익명의.여 학생이에요')).status === 'gender_word');
+	check('★ 여학생은 "익명의 남학생"을 못 쓴다', (await rpcAs(F, 'dm_send', M, '익명의남학생 올림')).status === 'gender_word');
+	check('막히면 편지도 가지 않는다', (await one('select count(*)::int n from private.dm_threads where sender_id in ($1, $2)', [M, F])).n === 0);
+	const ok = await rpcAs(M, 'dm_send', F, '익명의 남학생이 보내요', null, '익명의 남학생');
+	check('내 성별의 말은 괜찮다', ok.status === 'ok', JSON.stringify(ok));
+	const back = await rpcAs(F, 'dm_reply_to', ok.msg_id, '익명의 남학생님 안녕');
+	check('받은 쪽 답장은 상대를 부르는 말이라 막지 않는다', back.status === 'ok', JSON.stringify(back));
+	check('★ 익명 쪽의 답장도 막힌다', (await rpcAs(M, 'dm_reply_to', back.msg_id, '사실 익명의 여학생이야')).status === 'gender_word');
+	check('성별 미정이면 둘 다 막힌다', (await one(`select private.dm_fake_gender($1, '익명의 남학생') a, private.dm_fake_gender($1, '익명의 여학생') b`, [await person('x', 'f')])).a === true);
+}
+
 console.log('\n[100] 마이그레이션과 스키마 snapshot 일치');
 {
 	const defs = async () => (await db.query("select n.nspname || '.' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' name, pg_get_functiondef(p.oid) body from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.prokind='f' order by 1")).rows;
 	const before = JSON.stringify(await defs());
 	// 운영에 적용한 순서대로 다시 실행하면 snapshot과 같아야 한다 (뒤 마이그레이션이 앞의 함수를 고쳐 쓴다)
-	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql', '20261102130000_anon_friends_phase93.sql', '20261102150000_friend_contact_phase95.sql', '20261110120000_admin_overview_phase96.sql', '20261123130000_seek_hint_letters_open_phase99.sql', '20261123140000_match_nudge_phase100.sql', '20261124120000_disk_io_phase101.sql', '20261124130000_nickname_ticket_phase102.sql', '20261125120000_extend_choice_phase103.sql', '20261125130000_cnsa_badge_ctn_phase104.sql'])
+	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql', '20261102130000_anon_friends_phase93.sql', '20261102150000_friend_contact_phase95.sql', '20261110120000_admin_overview_phase96.sql', '20261123130000_seek_hint_letters_open_phase99.sql', '20261123140000_match_nudge_phase100.sql', '20261124120000_disk_io_phase101.sql', '20261124130000_nickname_ticket_phase102.sql', '20261125120000_extend_choice_phase103.sql', '20261125130000_cnsa_badge_ctn_phase104.sql', '20261125140000_letter_gender_word_phase105.sql'])
 		await db.exec(readFileSync(here + 'migrations/' + file, 'utf8'));
 	check('업그레이드 마이그레이션의 함수가 snapshot과 같음', JSON.stringify(await defs()) === before);
 }

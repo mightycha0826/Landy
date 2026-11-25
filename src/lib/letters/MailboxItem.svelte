@@ -2,7 +2,7 @@
 	/**
 	 * 편지함의 봉투 한 장 (Phase 32).
 	 *   받은 편지 — 덮개 쪽(뒷면): 안 연 편지는 밀랍 봉인이 그대로 · 은은히 빛난다 / 연 편지는 봉인이 없다. From. · 날짜
-	 *              테두리 줄무늬 = 보낸 사람 성별 (여학생 붉은색 · 남학생 푸른색, Phase 35)
+	 *              테두리 줄무늬 = 보낸 사람 성별 (여학생 붉은색 · 남학생 푸른색, Phase 35) — 보낸 편지는 내 성별 색
 	 *   보낸 편지 — 주소 쪽(앞면): To. · 우표 · 소인(날짜) · 스티커(읽음 · 답장 옴)
 	 * 누르면 그 편지를 연다. 길게 누르면(마우스는 오른쪽 클릭) 봉투 메뉴 (LetterMenu).
 	 * 고르는 중(selecting, Phase 47)이면 누르기 · 길게 누르기 모두 고르기/풀기 — 오른쪽 위에 동그라미 체크. 안 연 받은 편지는 못 고른다(흐리게).
@@ -12,6 +12,7 @@
 	import Envelope from './Envelope.svelte';
 	import { borderOf, fromLabel, stampDate, toLabel, type Box, type MailItem } from './api';
 	import { longpress } from '../longpress';
+	import { S } from '$lib/state.svelte';
 
 	let {
 		item,
@@ -70,7 +71,7 @@
 		date={stampDate(item.created_at)}
 		side={received ? 'back' : 'front'}
 		sealed={received && !item.opened}
-		border={borderOf(item, box)}
+		border={borderOf(item, box, S.profile?.gender)}
 		glow={received && !item.opened}
 		{sticker}
 		{w}

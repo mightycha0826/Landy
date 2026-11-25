@@ -4,7 +4,7 @@
 	 * 화면에 없는 규칙은 그림 카드로. 세 가지:
 	 *   홈 — 새 대화 찾기 · 익명편지 탭 · 프로필 탭 · 알림 · 설정, 규칙(시간 · 연장 · 공개 · 고정 · 말풍선 · 매너 온도 · 지킬 것)
 	 *   프로필 — 이름 카드 · 교복(대표 업적) · 전체 업적 · 소개 · 이야기하고 싶은 상대 → 끝까지 보면 CNSA 뱃지 안내(CnsaBadgeTour)가 이어진다
-	 *   익명편지 — 우체통 · 편지 보관함 · 편지 쓰기 · 버리기 · 차단 · 신고 (편지가 열려 있을 때만)
+	 *   익명편지 — 봉투 색(쓴 사람 성별) · 우체통 · 편지 보관함 · 편지 쓰기 · 버리기 · 차단 · 신고 (편지가 열려 있을 때만)
 	 * 언제든 "건너뛰기". 끝까지 보거나 건너뛰면 이 기기에 "봤음" (lib/tour.svelte.ts), 설정 › 앱 › "사용법 다시 보기"로 다시.
 	 * 저절로 뜨는 창은 한 번에 하나 — 안내가 뜰 차례면(due) 뜨기 전부터 다른 창(업적 축하 · 매너 평가 · 알림 권한)이 기다린다 (lib/tour.svelte.ts 의 touring).
 	 * 예전엔 떠 있는 동안만 기다리게 해서, 홈이 그려지고 안내가 뜨기까지 0.6초 사이에 축하 · 알림 안내가 먼저 떠 한꺼번에 겹쳤다.
@@ -17,8 +17,9 @@
 	import { BADGE_TOUR, badgeTourSeen, claimWelcomeBadges, openBadgeTour } from '$lib/badgeTour.svelte';
 	import { gateMin, gateOn, lettersState } from '$lib/letters/gate.svelte';
 	import MannerTemp from './MannerTemp.svelte';
+	import Envelope from '$lib/letters/Envelope.svelte';
 
-	type Art = 'hello' | 'timer' | 'reveal' | 'bubbles' | 'temp' | 'rules' | 'letter';
+	type Art = 'hello' | 'timer' | 'reveal' | 'bubbles' | 'temp' | 'rules' | 'letter' | 'colors';
 	/** next = 다음 단추 글 (없으면 "다음", 마지막은 "확인") · badges = 끝까지 보면 CNSA 뱃지 안내로 이어진다 */
 	type Step = { target?: string; round?: boolean; title: string; body: string; art?: Art; next?: string; badges?: boolean };
 
@@ -117,6 +118,11 @@
 			art: 'letter',
 			title: '익명편지',
 			body: '학생 이름을 찾아 익명으로 편지를 보내요. 받는 사람에게 나는 성별이나 내가 적은 서명으로만 보여요.'
+		},
+		{
+			art: 'colors',
+			title: '봉투 색은 쓴 사람의 성별',
+			body: '남학생이 보낸 편지는 파란 봉투, 여학생이 보낸 편지는 빨간 봉투로 와요. 서명은 바꿀 수 있어도 봉투 색은 바꿀 수 없어요.'
 		},
 		{
 			target: '.wall .post',
@@ -258,6 +264,11 @@
 									<rect x="2" y="2" width="92" height="64" rx="10" />
 									<path d="M6 10l42 32 42-32" />
 								</svg>
+							{:else if cur.art === 'colors'}
+								<div class="pair">
+									<figure><Envelope to="나" from="남학생" date="" side="back" sealed border="m" w={112} /><figcaption>남학생</figcaption></figure>
+									<figure><Envelope to="나" from="여학생" date="" side="back" sealed border="f" w={112} /><figcaption>여학생</figcaption></figure>
+								</div>
 							{:else if cur.art === 'timer'}
 								<svg viewBox="0 0 100 100" class="ring">
 									<circle cx="50" cy="50" r="42" class="track" />
@@ -469,6 +480,23 @@
 		stroke-linecap: round;
 		stroke-linejoin: round;
 		animation: pop 0.6s cubic-bezier(0.3, 1.5, 0.5, 1);
+	}
+	/* 봉투 색 — 남학생 파랑 · 여학생 빨강 */
+	.pair {
+		display: flex;
+		gap: 14px;
+		animation: pop 0.6s cubic-bezier(0.3, 1.5, 0.5, 1);
+	}
+	.pair figure {
+		margin: 0;
+		display: grid;
+		justify-items: center;
+		gap: 6px;
+	}
+	.pair figcaption {
+		font-size: 13px;
+		font-weight: 700;
+		color: var(--muted);
 	}
 	/* 시간 — 줄어드는 고리 */
 	.art-timer {

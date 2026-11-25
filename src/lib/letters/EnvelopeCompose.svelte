@@ -21,7 +21,8 @@
 	import { envWidth, play, slotTarget } from './stage';
 	import { KB } from '../keyboard.svelte';
 	import * as haptic from '../haptics';
-	import { NICK_MAX, paperDate, stampDate } from './api';
+	import { NICK_MAX, borderOf, paperDate, stampDate } from './api';
+	import { S } from '$lib/state.svelte';
 	// 계정이 바뀌면 루트 레이아웃이 화면을 통째로 다시 만든다 — 떠 있는지만 보면 된다
 	let alive = true;
 	const current = () => alive;
@@ -259,6 +260,7 @@
 				{sealed}
 				stamping={phase === 'seal'}
 				postmark="보냄"
+				border={borderOf({}, 'sent', S.profile?.gender)}
 				{body}
 				{w}
 			/>

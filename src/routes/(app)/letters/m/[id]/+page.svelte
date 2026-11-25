@@ -221,7 +221,7 @@
 						from={names.from}
 						date={stampDate(letter.created_at)}
 						side={arriving ? 'front' : 'back'}
-						border={borderOf(letter, letter.role)}
+						border={borderOf(letter, letter.role, S.profile?.gender)}
 						sealed
 						cracked={!arriving && phase !== 'back'}
 						open={phase === 'open' || phase === 'out' || phase === 'unfold'}

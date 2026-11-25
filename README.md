@@ -954,4 +954,7 @@ node scripts/dev-user.mjs simbun-test3@cnsa.hs.kr 비밀번호 m      # 성별�
       코드 `club_ctn` — 동아리라 기장 제출 · "동아리 뱃지 출시"를 켜기 전엔 학생 화면에서 숨김 (Beatus · 극작소와 같다). CNSA 탭은 Beatus 와 극작소 사이 (sort 59).
       DB 는 `achievement_defs` 한 줄 (`schema.sql` Phase 70 의 insert · 실DB 는 `supabase/migrations/20261125130000_cnsa_badge_ctn_phase104.sql`, 여러 번 실행해도 같다).
       스키마 테스트 카탈로그 36종 · [94] 순서 · [100] 마이그레이션, 화면 achievements.
+- [ ] **Phase 105 — 익명편지: 봉투 색 = 쓴 사람 성별 · 다른 성별인 척 막기** —
+      받은 편지는 보낸 사람, 보낸 편지는 내 성별 색(남학생 파랑 · 여학생 빨강, 이름으로 온 답장 · 쓰는 중인 봉투도). 익명편지 안내에 봉투 색 장 추가.
+      익명 쪽은 서명 · 본문에 다른 성별의 "익명의 ○학생"을 못 쓴다 (띄어쓰기 · 문장부호를 끼워도, `gender_word`). 실DB 미반영 (`supabase/migrations/20261125140000_letter_gender_word_phase105.sql`).
 - [ ] Phase 7 — (보류) Durable Object 전송 계층. 학술탐구 큐 · 벤치는 별도 저장소(serverless-log-queue)에서 진행하고, 앱 적용 여부는 실험 결과를 본 뒤 따로 정한다.
