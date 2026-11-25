@@ -37,14 +37,14 @@ export type RoomRow = {
 };
 
 /**
- * 연장할 때마다 서로 하나씩 공개되는 힌트 — Phase 103 부터 각자 고른다: 학년 · 디플로마 · 동아리(한 번씩) · 랜덤 질문(매번).
- * 질문은 label 이 그 질문 자체. q1 · q2 는 Phase 29 의 정해진 순서 때 질문, surname 은 Phase 28 때 — 예전 대화에만 있다
+ * 연장할 때마다 서로 하나씩 공개되는 힌트 — Phase 103 부터 각자 고른다: 학년 · 남자/여자(gender, Phase 106) · 디플로마 · 동아리, 한 번씩.
+ * question(Phase 103 ~ 105 의 랜덤 질문)은 label 이 그 질문 자체. q1 · q2 는 Phase 29 의 정해진 순서 때 질문, surname 은 Phase 28 때 — 예전 대화에만 있다
  */
-export type Hint = { kind: 'grade' | 'surname' | 'club' | 'diploma' | 'question' | 'q1' | 'q2'; label: string; value: string };
+export type Hint = { kind: 'grade' | 'surname' | 'club' | 'diploma' | 'gender' | 'question' | 'q1' | 'q2'; label: string; value: string };
 /** 연장할 때 고를 수 있는 공개 (Phase 103) */
-export type HintKind = 'grade' | 'diploma' | 'club' | 'question';
-/** value = 학년 (명단 값, 적지 않는다), question = 랜덤 질문이면 이번 라운드의 질문 */
-export type HintOption = { kind: HintKind; label: string; typed: boolean; value?: string; question?: string };
+export type HintKind = 'grade' | 'gender' | 'diploma' | 'club';
+/** value = 학년 · 성별 (적지 않는다) */
+export type HintOption = { kind: HintKind; label: string; typed: boolean; value?: string };
 
 /** room_snapshot() RPC 응답 — 클라가 방에 대해 아는 모든 것. */
 export type RoomSnap = {

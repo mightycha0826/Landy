@@ -1,13 +1,12 @@
 <script lang="ts">
 	/**
 	 * 연장 · 고정 투표 띠 (마감 직전, 그리고 시간이 다 된 뒤의 "연장할까요?" 화면).
-	 *   연장 차례: "10분 더 얘기할까요?" — 연장하면 공개할 것을 하나 고른다 (Phase 103): 학년 · 디플로마 · 동아리 · 랜덤 질문.
-	 *     랜덤 질문을 고르면 슬롯이 돌아 이번 질문에 멈추고(둘이 고르면 같은 질문), 답을 적는다.
+	 *   연장 차례: "10분 더 얘기할까요?" — 연장하면 공개할 것을 하나 고른다 (Phase 103 · 106): 학년 · 남자/여자 · 디플로마 · 동아리, 한 번씩.
+	 *     다 공개했으면 고를 것 없이 연장만.
 	 *   고정 차례(공개를 다섯 번 한 다음, Phase 29): "이 채팅을 고정하시겠습니까?"
 	 * 표를 던지는 일 · 고른 것 · 적은 값 확인은 ChatView(vote) 가 한다.
 	 */
 	import Banner from './Banner.svelte';
-	import SlotReel, { QUESTION_POOL } from './SlotReel.svelte';
 	import { isDiploma, searchDiplomas } from './diplomas';
 	import type { HintKind, RoomSnap } from './types';
 
@@ -41,7 +40,7 @@
 		return { title: `${snap.extend_minutes}분 더 얘기할까요?`, sub, want };
 	});
 	const disclosure = $derived(
-		!chosen ? null : chosen.kind === 'grade' ? (chosen.value ?? null) : chosen.kind === 'question' ? (hintDraft.trim() ? `"${hintDraft.trim()}"` : null) : hintDraft.trim() || null
+		!chosen ? null : !chosen.typed ? (chosen.value ?? null) : hintDraft.trim() || null
 	);
 
 	function choose(k: HintKind) {
@@ -55,8 +54,6 @@
 	let dq = $state('');
 	const matches = $derived(searchDiplomas(dq));
 	const picked = $derived(isDiploma(dq));
-	// 슬롯 — 질문 목록을 섞어 굴리다 이번 질문에 멈춘다
-	const decoys = $derived([...QUESTION_POOL].sort(() => Math.random() - 0.5));
 </script>
 
 <Banner title={view.title} sub={view.sub} want={view.want}>
@@ -69,10 +66,7 @@
 			{/each}
 		</div>
 	{/if}
-	{#if asking && chosen?.kind === 'question' && chosen.question}
-		<SlotReel items={decoys} final={chosen.question} label="이번 질문 " />
-		<input class="hint-in" bind:value={hintDraft} maxlength="30" placeholder="내 답" aria-label={`랜덤 질문 ${chosen.question} — 내 답`} />
-	{:else if asking && chosen?.kind === 'diploma'}
+	{#if asking && chosen?.kind === 'diploma'}
 		<!-- 디플로마 — 학교 목록에서만: 적으면 맞는 것이 아래에 뜨고, 눌러서 고른다 (Phase 35) -->
 		<div class="dip">
 			<input
@@ -111,7 +105,7 @@
 		<input class="hint-in" bind:value={hintDraft} maxlength="20" placeholder="내 동아리" aria-label="내 동아리" />
 	{/if}
 	{#if asking && chosen}
-		<p class="disclosure"><b>둘 다 동의하면 공개:</b> {chosen.kind === 'question' ? '질문 답' : chosen.label}{disclosure ? ` · ${disclosure}` : ''}<br /><span>공개한 정보로 나를 짐작할 수 있어요. 원하지 않으면 그만해도 괜찮아요.</span></p>
+		<p class="disclosure"><b>둘 다 동의하면 공개:</b> {chosen.kind === 'gender' ? '성별' : chosen.label}{disclosure ? ` · ${disclosure}` : ''}<br /><span>공개한 정보로 나를 짐작할 수 있어요. 원하지 않으면 그만해도 괜찮아요.</span></p>
 	{/if}
 	{#snippet actions()}
 		{#if asking}

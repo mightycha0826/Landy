@@ -3,7 +3,7 @@
 	 * 개발 전용 — 대화방 화면 미리보기. Supabase 없이 가짜 전송 계층으로 상태를 재현한다.
 	 * 연장 배너처럼 실계정으로는 8분 넘게 기다려야 보이는 화면을 바로 확인하기 위한 것.
 	 *
-	 *   /dev/chat?s=chat | fresh | vote | waiting | pending | ended | paused | hints | question | decide | pin | pinned | rate | pinrate   (&sheet=menu|report|block|profile 로 시트 열기, &matched 로 연결 화면, &incoming 으로 상대 새 메시지)
+	 *   /dev/chat?s=chat | fresh | vote | waiting | pending | ended | paused | hints | decide | pin | pinned | rate | pinrate   (&sheet=menu|report|block|profile 로 시트 열기, &matched 로 연결 화면, &incoming 으로 상대 새 메시지)
 	 *   vote · decide 는 상대가 이미 동의한 상태 — 고르고 "더 얘기하기"를 누르면 연장되고 상대가 고른 공개가 슬롯 칸에 나온다 (Phase 103)
 	 *
 	 * 배포 빌드에서는 dev/+layout.ts 가 404 로 막는다.
@@ -46,57 +46,48 @@
 	const HINTS2 = {
 		partner: [
 			{ kind: 'grade', label: '학년', value: '2학년' },
-			{ kind: 'question', label: '요즘 빠져 있는 것', value: '밴드 음악' }
+			{ kind: 'gender', label: '성별', value: '여자' }
 		],
 		mine: [
-			{ kind: 'question', label: '요즘 빠져 있는 것', value: '러닝' },
+			{ kind: 'gender', label: '성별', value: '남자' },
 			{ kind: 'grade', label: '학년', value: '1학년' }
 		]
 	} satisfies Record<string, Hint[]>;
 	const HINTS5: Hint[] = [
 		...HINTS2.partner,
 		{ kind: 'diploma', label: '디플로마', value: 'IB' },
-		{ kind: 'question', label: '좋아하는 계절', value: '가을' },
 		{ kind: 'club', label: '동아리', value: '밴드부' }
 	];
-	// 연장할 때 고를 수 있는 것 (Phase 103) — 처음엔 넷 다, 학년을 공개한 뒤엔 셋
-	const OPT = (q: string, grade = true): HintOption[] => [
-		...(grade ? [{ kind: 'grade' as const, label: '학년', typed: false, value: '1학년' }] : []),
+	// 연장할 때 고를 수 있는 것 (Phase 103 · 106) — 처음엔 넷 다, 공개한 것은 빠진다
+	const ALL: HintOption[] = [
+		{ kind: 'grade', label: '학년', typed: false, value: '1학년' },
+		{ kind: 'gender', label: '남자/여자', typed: false, value: '남자' },
 		{ kind: 'diploma', label: '디플로마', typed: true },
-		{ kind: 'club', label: '동아리', typed: true },
-		{ kind: 'question', label: '랜덤 질문', typed: true, question: q }
+		{ kind: 'club', label: '동아리', typed: true }
 	];
-	const NEXT = { kind: 'question' as const, label: '좋아하는 계절', typed: true };
+	const OPT = (...used: HintKind[]) => ALL.filter((o) => !used.includes(o.kind));
+	const NEXT = { kind: 'diploma' as const, label: '디플로마', typed: true };
 	// 상대가 고른 공개 — vote · decide 에서 연장되면 이것이 슬롯 칸에 나온다
 	const PARTNER_PICK: Hint = { kind: 'grade', label: '학년', value: '2학년' };
 	const SNAPS: Record<string, Partial<RoomSnap>> = {
 		chat: {},
 		fresh: { their_read_id: null },
-		vote: { expires_at: sec(72), partner_vote: true, next_hint: NEXT, next_options: OPT('좋아하는 급식 메뉴') },
+		vote: { expires_at: sec(72), partner_vote: true, next_hint: NEXT, next_options: OPT() },
 		// 시간이 다 됐다 — 평가 전에 가운데서 "연장할까요?" (Phase 103, 남은 고르는 시간 45초)
-		decide: { expires_at: sec(-15), partner_vote: true, next_hint: NEXT, next_options: OPT('좋아하는 급식 메뉴') },
+		decide: { expires_at: sec(-15), partner_vote: true, next_hint: NEXT, next_options: OPT() },
 		waiting: { expires_at: sec(48), my_vote: true },
 		pending: { status: 'pending', expires_at: sec(47), partner_joined: false, their_read_id: null },
 		ended: { status: 'closed', close_reason: 'expired', expires_at: sec(-1) },
 		// 상대가 화면을 안 보고 있어 시간이 멈춤 (Phase 28) — 남은 5:00 그대로
 		paused: { paused: true, expires_at: sec(300) },
-		// 두 번 연장해 학년 · 질문 답이 공개됐고, 다음엔 남은 디플로마 · 동아리 · 랜덤 질문 중 고르는 차례 (Phase 103)
+		// 두 번 연장해 학년 · 성별이 공개됐고, 다음엔 남은 디플로마 · 동아리 중 고르는 차례 (Phase 103 · 106)
 		hints: {
 			round: 3,
 			expires_at: sec(70),
 			partner_hints: HINTS2.partner,
 			my_hints: HINTS2.mine,
 			next_hint: NEXT,
-			next_options: OPT('좋아하는 계절', false)
-		},
-		// 20분 째 — 학년은 공개했고, 랜덤 질문을 고르면 슬롯이 "요즘 빠져 있는 것"에 멈춘다
-		question: {
-			round: 2,
-			expires_at: sec(70),
-			partner_hints: HINTS2.partner.slice(0, 1),
-			my_hints: HINTS2.mine.slice(0, 1),
-			next_hint: NEXT,
-			next_options: OPT('요즘 빠져 있는 것', false)
+			next_options: OPT('grade', 'gender')
 		},
 		// 60분 째 — 동아리까지 다 공개됐고, 연장 대신 "이 채팅을 고정하시겠습니까?"
 		pin: { round: 6, expires_at: sec(70), partner_vote: true, partner_hints: HINTS5, my_hints: HINTS5, next_hint: null, pin_next: true },
@@ -206,11 +197,11 @@
 			}
 			// 상대가 이미 동의했으면 연장 — 상대가 고른 공개가 하나 늘어난다
 			if (this.snap.partner_vote && opt) {
-				const mine: Hint = { kind: opt.kind, label: opt.kind === 'question' ? opt.question! : opt.label, value: opt.kind === 'grade' ? opt.value! : hint!.trim() };
+				const mine: Hint = { kind: opt.kind, label: opt.label, value: opt.typed ? hint!.trim() : opt.value! };
 				this.snap = {
 					...this.snap, round: this.snap.round + 1, my_vote: null, partner_vote: null, expires_at: sec(600),
 					partner_hints: [...(this.snap.partner_hints ?? []), PARTNER_PICK], my_hints: [...(this.snap.my_hints ?? []), mine],
-					next_options: OPT('주말에 주로 하는 일', opt.kind !== 'grade')
+					next_options: OPT(opt.kind)
 				};
 				const sys = m(0, '10분 연장됨. 서로 고른 정보 공개!');
 				this.rows.push(sys);

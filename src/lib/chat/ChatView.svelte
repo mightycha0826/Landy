@@ -148,8 +148,8 @@
 	// 시간이 다 됐다 — 평가 전에 화면 가운데서 "연장할까요?" (Phase 103)
 	const deciding = $derived(!!snap && snap.status === 'active' && graceLeftMs > 0 && canExtendMore && (!!snap.next_hint || !!snap.pin_next));
 
-	// 연장할 때마다 서로 하나씩 공개 — 각자 고른다 (Phase 103): 학년 · 디플로마 · 동아리(한 번씩) · 랜덤 질문(매번, 둘이 고르면 같은 질문).
-	// 학년은 명단에서, 나머지는 연장하면서 직접 적는다. 다섯 번 공개한 다음 차례는 연장 대신 "이 채팅을 고정하시겠습니까?".
+	// 연장할 때마다 서로 하나씩 공개 — 각자 고른다 (Phase 103 · 106): 학년 · 남자/여자 · 디플로마 · 동아리, 한 번씩 (다 쓰면 공개 없이 연장).
+	// 학년은 명단에서, 성별은 프로필에서, 디플로마 · 동아리는 연장하면서 직접 적는다. 다섯 번 공개한 다음 차례는 연장 대신 "이 채팅을 고정하시겠습니까?".
 	const pinNext = $derived(!!snap?.pin_next);
 	const partnerHints = $derived(snap?.partner_hints ?? []);
 	let hintDraft = $state('');
@@ -160,7 +160,7 @@
 		pick = null;
 		hintDraft = '';
 	});
-	const WHAT: Record<HintKind, string> = { grade: '학년을', diploma: '디플로마를', club: '동아리를', question: '답을' };
+	const WHAT: Record<HintKind, string> = { grade: '학년을', gender: '성별을', diploma: '디플로마를', club: '동아리를' };
 	async function vote(agree: boolean) {
 		if (!room || !snap) return;
 		const choosing = agree && !pinNext && !!snap.next_options?.length;
@@ -198,12 +198,12 @@
 	const isQ = (k: string) => k === 'question' || k === 'q1' || k === 'q2';
 	const revealText = (h: Hint) =>
 		h.value === '비공개' ? '상대는 비공개!'
-		: h.kind === 'grade' ? `상대는 ${h.value}!`
+		: h.kind === 'grade' || h.kind === 'gender' ? `상대는 ${h.value}!`
 		: h.kind === 'diploma' ? `상대는 ${h.value} 디플로마!`
 		: h.kind === 'club' ? `상대의 동아리는 ${h.value}!`
 		: `"${h.value}"`;
 	const revealDecoys = (h: Hint) =>
-		h.kind === 'grade' ? ['상대는 1학년!', '상대는 2학년!', '상대는 3학년!'] : h.kind === 'diploma' ? ['상대는 수학 디플로마!', '상대는 IT 디플로마!', '상대는 화학 디플로마!', '상대는 예술 디플로마!'] : ['두구두구…', '과연…'];
+		h.kind === 'grade' ? ['상대는 1학년!', '상대는 2학년!', '상대는 3학년!'] : h.kind === 'gender' ? ['상대는 남자!', '상대는 여자!'] : h.kind === 'diploma' ? ['상대는 수학 디플로마!', '상대는 IT 디플로마!', '상대는 화학 디플로마!', '상대는 예술 디플로마!'] : ['두구두구…', '과연…'];
 
 	// ── 매너 온도 평가 (Phase 30) ────────────────────────────────
 	// 끝난 대화는 종료 안내 아래에서 바로, 고정한 대화는 위쪽 막대 → 시트로. 고정이 이 화면에서 성사되면 시트를 한 번 띄운다.

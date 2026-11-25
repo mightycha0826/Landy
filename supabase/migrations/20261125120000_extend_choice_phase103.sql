@@ -19,7 +19,7 @@ revoke all on function private.vote_grace(int) from public, anon, authenticated;
 alter table private.room_hints add column if not exists round smallint;
 alter table private.room_hints add column if not exists label text;
 alter table private.room_hints drop constraint if exists room_hints_kind_check;
-alter table private.room_hints add  constraint room_hints_kind_check check (kind in ('grade', 'club', 'diploma', 'question', 'q1', 'q2'));
+alter table private.room_hints add  constraint room_hints_kind_check check (kind in ('grade', 'club', 'diploma', 'question', 'q1', 'q2', 'gender'));   -- gender: Phase 106 (다시 실행해도 깨지지 않게)
 -- 예전 줄은 예전 순서의 라운드 (학년 1 · 질문 2 · 디플로마 3 · 질문 4 · 동아리 5)
 update private.room_hints set round = case kind when 'q1' then 2 when 'diploma' then 3 when 'q2' then 4 when 'club' then 5 end
  where round is null;

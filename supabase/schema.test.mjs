@@ -2259,7 +2259,7 @@ console.log('\n[76] 랜덤 채팅 — 메시지 삭제 · 둘 다 볼 때만 흐
 	check('하루 넘게 멈춰 있던 대화는 닫힌다', (await one(`select status from public.rooms where id = $1`, [room])).status === 'closed');
 	void left0;
 
-	console.log('  [연장 공개 — Phase 103: 학년 · 디플로마 · 동아리 · 랜덤 질문 중 각자 하나씩 고른다]');
+	console.log('  [연장 공개 — Phase 103 · 106: 학년 · 남자/여자 · 디플로마 · 동아리 중 각자 하나씩 고른다]');
 	const toWindow = (id = room) => db.query(`update public.rooms set expires_at = now() + interval '20 seconds' where id = $1`, [id]);
 	const lastSys = async () => (await one(`select body from public.messages where room_id = $1 and sender_seat = 0 order by id desc limit 1`, [room])).body;
 	const kinds = (o) => (o ?? []).map((x) => x.kind).join(',');
@@ -2272,49 +2272,50 @@ console.log('\n[76] 랜덤 채팅 — 메시지 삭제 · 둘 다 볼 때만 흐
 
 	room = await open();
 	await rpcAs(A.id, 'room_view', room, true); await rpcAs(B.id, 'room_view', room, true);
+	await db.query(`update public.profiles set gender = (case when id = $1 then 'm' else 'f' end) where id in ($1, $2)`, [A.id, B.id]);
 	await toWindow();
 	snap = await rpcAs(A.id, 'room_snapshot', room);
-	const bSnap1 = await rpcAs(B.id, 'room_snapshot', room);
-	const q1 = snap.next_options?.find((o) => o.kind === 'question')?.question;
-	check('처음엔 공개된 힌트 없음 · 고를 것 = 학년 · 디플로마 · 동아리 · 랜덤 질문', snap.partner_hints.length === 0 && kinds(snap.next_options) === 'grade,diploma,club,question' && snap.pin_next === false && snap.pinned === false, JSON.stringify(snap.next_options));
+	check('처음엔 공개된 힌트 없음 · 고를 것 = 학년 · 남자/여자 · 디플로마 · 동아리', snap.partner_hints.length === 0 && kinds(snap.next_options) === 'grade,gender,diploma,club' && snap.pin_next === false && snap.pinned === false, JSON.stringify(snap.next_options));
 	check('학년은 명단 값을 미리 보여 준다 · 적지 않는다', snap.next_options[0].value === '2학년' && snap.next_options[0].typed === false);
-	check('★ 랜덤 질문은 둘에게 같은 질문', !!q1 && q1 === bSnap1.next_options.find((o) => o.kind === 'question').question);
+	check('★ 성별은 프로필 값 · 적지 않는다 (Phase 106)', snap.next_options[1].label === '남자/여자' && snap.next_options[1].value === '남자' && snap.next_options[1].typed === false
+		&& (await rpcAs(B.id, 'room_snapshot', room)).next_options[1].value === '여자');
 	check('공개할 것을 안 고르면(이상한 값) 연장할 수 없다', (await rpcAs(A.id, 'vote_extension', room, true, null, 'surname')).result === 'need_hint');
+	check('★ 랜덤 질문은 이제 없다', (await rpcAs(A.id, 'vote_extension', room, true, '러닝', 'question')).result === 'need_hint');
 	await rpcAs(A.id, 'vote_extension', room, true, null, 'grade');
-	v = await rpcAs(B.id, 'vote_extension', room, true, '러닝', 'question');
-	check('★ A 는 학년, B 는 질문 답 — 서로 고른 것이 공개', v.result === 'extended' && JSON.stringify(v.snap.partner_hints) === JSON.stringify([{ kind: 'grade', label: '학년', value: '2학년' }]), JSON.stringify(v.snap.partner_hints));
-	check('A 쪽: 상대의 질문 답 (이름표 = 그 질문)', JSON.stringify((await rpcAs(A.id, 'room_snapshot', room)).partner_hints) === JSON.stringify([{ kind: 'question', label: q1, value: '러닝' }]));
+	v = await rpcAs(B.id, 'vote_extension', room, true, '아무거나', 'gender');
+	check('★ A 는 학년, B 는 성별 — 서로 고른 것이 공개', v.result === 'extended' && JSON.stringify(v.snap.partner_hints) === JSON.stringify([{ kind: 'grade', label: '학년', value: '2학년' }]), JSON.stringify(v.snap.partner_hints));
+	check('★ A 쪽: 상대는 여자 (적은 글이 아니라 프로필 값)', JSON.stringify((await rpcAs(A.id, 'room_snapshot', room)).partner_hints) === JSON.stringify([{ kind: 'gender', label: '성별', value: '여자' }]));
 	check('안내: 서로 고른 정보 공개', (await lastSys()).includes('서로 고른 정보 공개'), await lastSys());
 
 	await toWindow();
 	snap = await rpcAs(A.id, 'room_snapshot', room);
-	const q2 = snap.next_options?.find((o) => o.kind === 'question')?.question;
-	check('★ 한 번 공개한 학년은 다시 고를 수 없다', kinds(snap.next_options) === 'diploma,club,question' && (await rpcAs(A.id, 'vote_extension', room, true, null, 'grade')).result === 'need_hint');
-	check('★ 다음 라운드의 질문은 다르다', !!q2 && q2 !== q1);
-	check('B 는 학년을 아직 안 골랐다', kinds((await rpcAs(B.id, 'room_snapshot', room)).next_options) === 'grade,diploma,club,question');
-	check('★ 답을 안 적으면 연장할 수 없다', (await rpcAs(A.id, 'vote_extension', room, true, null, 'question')).result === 'need_hint');
-	check('신상정보가 들어간 답은 안 된다', (await rpcAs(A.id, 'vote_extension', room, true, '010-1234-5678', 'question')).result === 'need_hint');
-	check('30자 넘는 답은 안 된다', (await rpcAs(A.id, 'vote_extension', room, true, '가'.repeat(31), 'question')).result === 'need_hint');
-	await rpcAs(A.id, 'vote_extension', room, true, '밴드 음악 듣기 요즘 완전 빠졌어요', 'question'); v = await rpcAs(B.id, 'vote_extension', room, true, '가을', 'question');
-	check('★ 둘 다 질문 — 같은 질문의 답이 서로 공개', v.result === 'extended' && v.snap.partner_hints[1]?.label === q2 && v.snap.partner_hints[1].value === '밴드 음악 듣기 요즘 완전 빠졌어요' && (await rpcAs(A.id, 'room_snapshot', room)).partner_hints[1].value === '가을', JSON.stringify(v.snap.partner_hints));
-	check('안내: 질문 답 공개', (await lastSys()).includes('질문 답 공개'));
+	check('★ 한 번 공개한 학년은 다시 고를 수 없다', kinds(snap.next_options) === 'gender,diploma,club' && (await rpcAs(A.id, 'vote_extension', room, true, null, 'grade')).result === 'need_hint');
+	check('★ 한 번 공개한 성별도 다시 고를 수 없다', kinds((await rpcAs(B.id, 'room_snapshot', room)).next_options) === 'grade,diploma,club' && (await rpcAs(B.id, 'vote_extension', room, true, null, 'gender')).result === 'need_hint');
+	await rpcAs(A.id, 'vote_extension', room, true, null, 'gender'); v = await rpcAs(B.id, 'vote_extension', room, true, null, 'grade');
+	check('연장 → 두 번째 공개', v.result === 'extended' && v.snap.partner_hints[1]?.value === '남자' && (await rpcAs(A.id, 'room_snapshot', room)).partner_hints[1].value === '1학년');
 
 	await toWindow();
 	check('디플로마를 안 적으면 연장할 수 없다', (await rpcAs(A.id, 'vote_extension', room, true, null, 'diploma')).result === 'need_hint');
 	check('★ 학교에 없는 디플로마는 안 된다 (목록에서만, Phase 35)', (await rpcAs(A.id, 'vote_extension', room, true, '과학', 'diploma')).result === 'need_hint');
+	check('신상정보가 들어간 값은 안 된다', (await rpcAs(A.id, 'vote_extension', room, true, '010-1234-5678', 'club')).result === 'need_hint');
 	await rpcAs(A.id, 'vote_extension', room, true, 'IB', 'diploma'); v = await rpcAs(B.id, 'vote_extension', room, true, '물리학', 'diploma');
 	check('★ 연장 → 서로가 고른 디플로마', v.result === 'extended' && v.snap.partner_hints[2]?.kind === 'diploma' && v.snap.partner_hints[2].value === 'IB' && (await rpcAs(A.id, 'room_snapshot', room)).partner_hints[2].value === '물리학');
 	check('안내: 같은 걸 고르면 그 이름', (await lastSys()).includes('서로의 디플로마 공개'));
 
 	await toWindow();
-	await rpcAs(A.id, 'vote_extension', room, true, '밴드부', 'club'); v = await rpcAs(B.id, 'vote_extension', room, true, null, 'grade');
+	check('20자 넘는 동아리는 안 된다', (await rpcAs(A.id, 'vote_extension', room, true, '가'.repeat(21), 'club')).result === 'need_hint');
+	await rpcAs(A.id, 'vote_extension', room, true, '밴드부', 'club'); v = await rpcAs(B.id, 'vote_extension', room, true, '방송부', 'club');
 	check('연장 → 네 번째 공개', v.result === 'extended' && v.snap.partner_hints[3]?.value === '밴드부');
 
 	await toWindow();
 	snap = await rpcAs(A.id, 'room_snapshot', room);
-	check('★ 다섯 번째 차례 — A 는 질문만 남았다', kinds(snap.next_options) === 'question' && snap.pin_next === false, JSON.stringify(snap.next_options));
-	await rpcAs(A.id, 'vote_extension', room, true, '산책', 'question'); v = await rpcAs(B.id, 'vote_extension', room, true, '방송부', 'club');
-	check('★ 다섯 번 공개하면 끝 (다음은 고정 여부)', v.result === 'extended' && v.snap.partner_hints.length === 5 && v.snap.partner_hints[4].value === '산책' && v.snap.next_hint === null && v.snap.next_options === null, JSON.stringify(v.snap.partner_hints));
+	check('★ 다섯 번째 차례 — 다 공개해서 고를 것이 없다 (Phase 106)', kinds(snap.next_options) === '' && Array.isArray(snap.next_options) && snap.pin_next === false, JSON.stringify(snap.next_options));
+	await rpcAs(A.id, 'vote_extension', room, true); v = await rpcAs(B.id, 'vote_extension', room, true);
+	check('★ 고를 것 없이 연장 — 공개는 그대로 넷 (다음은 고정 여부)', v.result === 'extended' && v.snap.partner_hints.length === 4 && v.snap.next_hint === null && v.snap.next_options === null, JSON.stringify(v.snap.partner_hints));
+	check('안내: 공개 없이 연장됨', (await lastSys()).endsWith('분 연장됨.'), await lastSys());
+	await db.query(`update public.profiles set gender = 'x' where id = $1`, [B.id]);
+	check('성별이 정해지지 않은 사람에겐 남자/여자가 없다', !(await one(`select private.hint_options($1, 2::smallint, 1)::text t`, [room])).t.includes('gender'));
+	await db.query(`update public.profiles set gender = 'm' where id = $1`, [B.id]);
 	await expectError('힌트 보관함은 학생이 못 읽는다', () => rowsAs(A.id, 'select * from private.room_hints'), 'permission denied');
 
 	console.log('  [대화 고정 — Phase 29]');
@@ -2328,7 +2329,7 @@ console.log('\n[76] 랜덤 채팅 — 메시지 삭제 · 둘 다 볼 때만 흐
 	const pr = await one(`select pinned, pinned_at is not null as at, expires_at = 'infinity' as inf, paused_left is null as np from public.rooms where id = $1`, [room]);
 	check('★ 둘 다 고정 → 고정됨 · 시간 제한 없음', v.result === 'pinned' && v.snap.pinned === true && v.snap.pin_next === false && pr.pinned && pr.at && pr.inf && pr.np, JSON.stringify(pr));
 	check('안내: 둘 다 고정했어요', (await lastSys()).includes('고정'));
-	check('고정 뒤에도 공개된 힌트는 그대로', v.snap.partner_hints.length === 5 && v.snap.next_hint === null);
+	check('고정 뒤에도 공개된 힌트는 그대로', v.snap.partner_hints.length === 4 && v.snap.next_hint === null);
 	check('고정한 대화에 또 투표할 수 없다', (await rpcAs(A.id, 'vote_extension', room, true)).result === 'pinned');
 	check('고정한 대화는 쓸 수 있다', (await rowsAs(A.id, `select public.room_is_writable($1) w`, [room]))[0].w === true);
 	snap = await rpcAs(B.id, 'room_view', room, false);
@@ -4041,6 +4042,7 @@ console.log('\n[Phase 102] 닉네임 랜덤 변경권 — 가입 1장 · 처음 
 console.log('\n[Phase 103] 운영진이 닉네임 변경권 주기');
 {
 	await db.exec(readFileSync(here + 'migrations/20261125120000_extend_choice_phase103.sql', 'utf8')); // 위 Phase 102 검사가 nickname_tickets 를 그 판으로 되돌렸다
+	await db.exec(readFileSync(here + 'migrations/20261125150000_extend_gender_phase106.sql', 'utf8')); // 바로 위가 연장 공개를 Phase 103 판으로 되돌렸다
 	const u = await person('m', 'f');
 	const adm = (await one("select user_id from private.staff where role='admin' limit 1")).user_id;
 	const left = async () => (await rpcAs(u, 'my_achievements')).nickname_tickets;
@@ -4083,7 +4085,7 @@ console.log('\n[100] 마이그레이션과 스키마 snapshot 일치');
 	const defs = async () => (await db.query("select n.nspname || '.' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' name, pg_get_functiondef(p.oid) body from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.prokind='f' order by 1")).rows;
 	const before = JSON.stringify(await defs());
 	// 운영에 적용한 순서대로 다시 실행하면 snapshot과 같아야 한다 (뒤 마이그레이션이 앞의 함수를 고쳐 쓴다)
-	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql', '20261102130000_anon_friends_phase93.sql', '20261102150000_friend_contact_phase95.sql', '20261110120000_admin_overview_phase96.sql', '20261123130000_seek_hint_letters_open_phase99.sql', '20261123140000_match_nudge_phase100.sql', '20261124120000_disk_io_phase101.sql', '20261124130000_nickname_ticket_phase102.sql', '20261125120000_extend_choice_phase103.sql', '20261125130000_cnsa_badge_ctn_phase104.sql', '20261125140000_letter_gender_word_phase105.sql'])
+	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql', '20261102130000_anon_friends_phase93.sql', '20261102150000_friend_contact_phase95.sql', '20261110120000_admin_overview_phase96.sql', '20261123130000_seek_hint_letters_open_phase99.sql', '20261123140000_match_nudge_phase100.sql', '20261124120000_disk_io_phase101.sql', '20261124130000_nickname_ticket_phase102.sql', '20261125120000_extend_choice_phase103.sql', '20261125130000_cnsa_badge_ctn_phase104.sql', '20261125140000_letter_gender_word_phase105.sql', '20261125150000_extend_gender_phase106.sql'])
 		await db.exec(readFileSync(here + 'migrations/' + file, 'utf8'));
 	check('업그레이드 마이그레이션의 함수가 snapshot과 같음', JSON.stringify(await defs()) === before);
 }

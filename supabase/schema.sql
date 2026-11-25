@@ -4051,7 +4051,7 @@ $fn$;
 create or replace function private.hint_label(p_kind text)
 returns text language sql immutable set search_path = '' as $fn$
   select case p_kind when 'grade' then '학년' when 'surname' then '성씨' when 'club' then '동아리'
-                     when 'diploma' then '디플로마' when 'q1' then '공통 질문' when 'q2' then '공통 질문' end;
+                     when 'diploma' then '디플로마' when 'q1' then '공통 질문' when 'q2' then '공통 질문' when 'gender' then '성별' end;
 $fn$;
 
 -- 한 사람의 공개된 힌트들 (연장한 만큼) — 라운드마다 그 사람이 고른 것 (Phase 103: 순서가 정해져 있지 않다)
@@ -4068,8 +4068,8 @@ $fn$;
 revoke all on function private.room_hints_of(uuid, smallint, int) from public, anon, authenticated;
 
 
--- 연장 투표 — 공개 차례면 공개할 것(p_kind: grade · diploma · club · question)을 골라서, 적는 것이면 내 값(p_hint)도 같이.
--- p_kind 가 없으면(옛 앱) 예전 순서의 차례 (Phase 103)
+-- 연장 투표 — 공개 차례면 공개할 것(p_kind: grade · gender · diploma · club)을 골라서, 적는 것이면 내 값(p_hint)도 같이.
+-- p_kind 가 없으면(옛 앱) 예전 순서의 차례 (Phase 103). 공개할 게 남지 않았으면 공개 없이 연장 (Phase 106)
 drop function if exists public.vote_extension(uuid, boolean);
 drop function if exists public.vote_extension(uuid, boolean, text);
 create or replace function public.vote_extension(p_room uuid, p_agree boolean, p_hint text default null, p_kind text default null)
@@ -4078,7 +4078,7 @@ declare
   r   public.rooms%rowtype;
   cfg public.app_settings%rowtype;
   s   smallint;
-  v_yes int; v_no int; v_kind text; v_hint text; v_pin boolean; v_label text; v_opt jsonb; v_msg text;
+  v_yes int; v_no int; v_kind text; v_hint text; v_pin boolean; v_opts jsonb; v_opt jsonb; v_msg text;
 begin
   s := public.my_seat(p_room);
   if s is null then raise exception 'not_member'; end if;
@@ -4106,28 +4106,30 @@ begin
   v_kind := private.hint_kind(r.round);
   v_pin  := private.pin_round(r);
   if p_agree and v_kind is not null then
-    v_kind := coalesce(p_kind, case when v_kind in ('q1', 'q2') then 'question' else v_kind end);
-    -- 고를 수 있는 것만 (학년은 명단에 있을 때, 학년 · 디플로마 · 동아리는 한 번씩, 질문은 매번)
-    select o into v_opt from jsonb_array_elements(private.hint_options(p_room, s, r.round)) o where o->>'kind' = v_kind;
-    if v_opt is null and p_kind is null and v_kind = 'grade' then
-      v_kind := null;   -- 옛 앱의 학년 차례인데 명단에 학년이 없다 — 예전처럼 공개 없이 ("비공개")
+    v_opts := private.hint_options(p_room, s, r.round);
+    v_kind := coalesce(p_kind, v_kind);
+    -- 고를 수 있는 것만 (학년은 명단에 있을 때, 성별은 남 · 여일 때, 넷 다 한 번씩)
+    select o into v_opt from jsonb_array_elements(v_opts) o where o->>'kind' = v_kind;
+    if jsonb_array_length(v_opts) = 0 then
+      v_kind := null;   -- 다 공개했다 — 공개 없이 연장 (Phase 106)
+    elsif v_opt is null and p_kind is null then
+      v_kind := null;   -- 옛 앱(고를 줄 모른다)의 차례가 고를 수 없는 것 — 공개 없이 (명단에 학년이 없을 때 · 예전 질문 차례)
     elsif v_opt is null then
       return jsonb_build_object('result', 'need_hint', 'snap', public.room_snapshot(p_room));
     end if;
   end if;
   if p_agree and v_kind is not null and v_opt is not null then
-    if v_kind = 'grade' then
-      v_hint := v_opt->>'value';
+    if not (v_opt->>'typed')::boolean then
+      v_hint := v_opt->>'value';   -- 학년 · 성별은 적지 않는다
     else
       v_hint := btrim(coalesce(p_hint, ''));
-      if char_length(v_hint) not between 1 and (case when v_kind = 'question' then 30 else 20 end)
+      if char_length(v_hint) not between 1 and 20
          or private.rule_violation(v_hint) is not null
          or (v_kind = 'diploma' and not (v_hint = any (private.diplomas()))) then
         return jsonb_build_object('result', 'need_hint', 'snap', public.room_snapshot(p_room));
       end if;
     end if;
-    v_label := case when v_kind = 'question' then private.round_question(p_room, r.round) end;
-    insert into private.room_hints (room_id, seat, round, kind, label, value) values (p_room, s, r.round, v_kind, v_label, v_hint)
+    insert into private.room_hints (room_id, seat, round, kind, label, value) values (p_room, s, r.round, v_kind, null, v_hint)
     on conflict (room_id, seat, round) do update set kind = excluded.kind, label = excluded.label, value = excluded.value;
   end if;
 
@@ -4159,8 +4161,7 @@ begin
            round      = r.round + 1
      where id = p_room;
     -- 둘이 같은 걸 골랐으면 그 이름으로, 다르면 "고른 정보"
-    select case when count(distinct kind) = 1 and min(kind) = 'question' then ' 질문 답 공개!'
-                when count(distinct kind) = 1 then ' 서로의 ' || private.hint_label(min(kind)) || ' 공개!'
+    select case when count(distinct kind) = 1 then ' 서로의 ' || private.hint_label(min(kind)) || ' 공개!'
                 when count(*) > 0 then ' 서로 고른 정보 공개!' else '' end
       into v_msg
       from private.room_hints where room_id = p_room and round = r.round;
@@ -4202,7 +4203,7 @@ $do$;
 
 -- ── 1) 공개 순서 · 공통 질문 ──
 alter table private.room_hints drop constraint if exists room_hints_kind_check;
-alter table private.room_hints add  constraint room_hints_kind_check check (kind in ('grade', 'club', 'diploma', 'question', 'q1', 'q2'));   -- grade · question: Phase 103
+alter table private.room_hints add  constraint room_hints_kind_check check (kind in ('grade', 'club', 'diploma', 'question', 'q1', 'q2', 'gender'));   -- grade · question: Phase 103, gender: Phase 106
 alter table private.room_hints drop constraint if exists room_hints_value_check;
 alter table private.room_hints add  constraint room_hints_value_check check (char_length(value) between 1 and 30);
 
@@ -7982,7 +7983,7 @@ revoke all on function private.vote_grace(int) from public, anon, authenticated;
 alter table private.room_hints add column if not exists round smallint;
 alter table private.room_hints add column if not exists label text;
 alter table private.room_hints drop constraint if exists room_hints_kind_check;
-alter table private.room_hints add  constraint room_hints_kind_check check (kind in ('grade', 'club', 'diploma', 'question', 'q1', 'q2'));
+alter table private.room_hints add  constraint room_hints_kind_check check (kind in ('grade', 'club', 'diploma', 'question', 'q1', 'q2', 'gender'));
 -- 예전 줄은 예전 순서의 라운드 (학년 1 · 질문 2 · 디플로마 3 · 질문 4 · 동아리 5)
 update private.room_hints set round = case kind when 'q1' then 2 when 'diploma' then 3 when 'q2' then 4 when 'club' then 5 end
  where round is null;
@@ -8016,17 +8017,21 @@ returns text language sql immutable set search_path = '' as $fn$
 $fn$;
 revoke all on function private.round_question(uuid, int) from public, anon, authenticated;
 
--- 이번 라운드에 내가 고를 수 있는 것 — [{kind, label, typed, value?(학년), question?(랜덤 질문)}]
+-- 이번 라운드에 내가 고를 수 있는 것 — [{kind, label, typed, value?(학년 · 성별)}]. 넷 다 한 번씩 — 다 쓰면 [] (Phase 106: 랜덤 질문 → 남자/여자)
 create or replace function private.hint_options(p_room uuid, p_seat smallint, p_round int)
 returns jsonb language plpgsql stable security definer set search_path = public, private as $fn$
-declare v_user uuid; v_grade smallint; v_used text[]; out jsonb := '[]'::jsonb;
+declare v_user uuid; v_grade smallint; v_gender text; v_used text[]; out jsonb := '[]'::jsonb;
 begin
   select user_id into v_user from public.room_members where room_id = p_room and seat = p_seat;
   select p.grade into v_grade from private.person(v_user) p;
+  select case gender when 'm' then '남자' when 'f' then '여자' end into v_gender from public.profiles where id = v_user;
   select coalesce(array_agg(kind), '{}') into v_used from private.room_hints
    where room_id = p_room and seat = p_seat and round < p_round;
   if v_grade is not null and not ('grade' = any (v_used)) then
     out := out || jsonb_build_array(jsonb_build_object('kind', 'grade', 'label', '학년', 'typed', false, 'value', v_grade || '학년'));
+  end if;
+  if v_gender is not null and not ('gender' = any (v_used)) then
+    out := out || jsonb_build_array(jsonb_build_object('kind', 'gender', 'label', '남자/여자', 'typed', false, 'value', v_gender));
   end if;
   if not ('diploma' = any (v_used)) then
     out := out || jsonb_build_array(jsonb_build_object('kind', 'diploma', 'label', '디플로마', 'typed', true));
@@ -8034,8 +8039,7 @@ begin
   if not ('club' = any (v_used)) then
     out := out || jsonb_build_array(jsonb_build_object('kind', 'club', 'label', '동아리', 'typed', true));
   end if;
-  return out || jsonb_build_array(jsonb_build_object('kind', 'question', 'label', '랜덤 질문', 'typed', true,
-                                                     'question', private.round_question(p_room, p_round)));
+  return out;
 end
 $fn$;
 revoke all on function private.hint_options(uuid, smallint, int) from public, anon, authenticated;

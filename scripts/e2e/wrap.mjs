@@ -195,7 +195,6 @@ const SCREENS = [
 	['chat-menu', '/dev/chat?s=chat&sheet=menu'],
 	['chat-vote', '/dev/chat?s=vote'],
 	['chat-hints', '/dev/chat?s=hints'],
-	['chat-question', '/dev/chat?s=question'],
 	['chat-pin', '/dev/chat?s=pin'],
 	['chat-pending', '/dev/chat?s=pending'],
 	['chat-ended', '/dev/chat?s=ended'],

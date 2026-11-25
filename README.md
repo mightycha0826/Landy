@@ -957,4 +957,7 @@ node scripts/dev-user.mjs simbun-test3@cnsa.hs.kr 비밀번호 m      # 성별�
 - [ ] **Phase 105 — 익명편지: 봉투 색 = 쓴 사람 성별 · 다른 성별인 척 막기** —
       받은 편지는 보낸 사람, 보낸 편지는 내 성별 색(남학생 파랑 · 여학생 빨강, 이름으로 온 답장 · 쓰는 중인 봉투도). 익명편지 안내에 봉투 색 장 추가.
       익명 쪽은 서명 · 본문에 다른 성별의 "익명의 ○학생"을 못 쓴다 (띄어쓰기 · 문장부호를 끼워도, `gender_word`). 실DB 미반영 (`supabase/migrations/20261125140000_letter_gender_word_phase105.sql`).
+- [ ] **Phase 106 — 연장 공개: 랜덤 질문 대신 남자/여자** —
+      연장할 때 고르는 것: 학년 · 남자/여자(프로필 성별, 적지 않음) · 디플로마 · 동아리 — 넷 다 한 번씩. 다 공개한 뒤(다섯 번째 연장)는 고를 것 없이 연장.
+      예전에 공개한 질문 답은 그대로 보인다. 실DB 미반영 (`supabase/migrations/20261125150000_extend_gender_phase106.sql`).
 - [ ] Phase 7 — (보류) Durable Object 전송 계층. 학술탐구 큐 · 벤치는 별도 저장소(serverless-log-queue)에서 진행하고, 앱 적용 여부는 실험 결과를 본 뒤 따로 정한다.

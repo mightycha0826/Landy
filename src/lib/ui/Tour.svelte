@@ -47,7 +47,7 @@
 		{
 			art: 'reveal',
 			title: '연장할 때마다 하나씩',
-			body: '연장할 때마다 학년 · 디플로마 · 동아리 · 랜덤 질문 중 공개할 것을 하나씩 골라 서로를 조금씩 알게 돼요. 다섯 번 연장하면 둘 다 "고정"해서 시간 제한 없이 이어갈 수 있어요.'
+			body: '연장할 때마다 학년 · 남자/여자 · 디플로마 · 동아리 중 공개할 것을 하나씩 골라 서로를 조금씩 알게 돼요. 다섯 번 연장하면 둘 다 "고정"해서 시간 제한 없이 이어갈 수 있어요.'
 		},
 		{
 			art: 'bubbles',
@@ -277,7 +277,7 @@
 								<span class="ring-text"><b class="num">{room}</b>분<small class="num">+{extend}분씩</small></span>
 							{:else if cur.art === 'reveal'}
 								<ol class="path">
-									{#each ['학년', '질문', '디플로마', '질문', '동아리'] as t, i (i)}<li style:--i={i}>{t}</li>{/each}
+									{#each ['학년', '남자/여자', '디플로마', '동아리', '연장'] as t, i (i)}<li style:--i={i}>{t}</li>{/each}
 									<li class="pin" style:--i={5}>고정</li>
 								</ol>
 							{:else if cur.art === 'bubbles'}
