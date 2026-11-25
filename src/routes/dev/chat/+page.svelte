@@ -89,14 +89,14 @@
 			next_hint: NEXT,
 			next_options: OPT('grade', 'gender')
 		},
-		// 60분 째 — 동아리까지 다 공개됐고, 연장 대신 "이 채팅을 고정하시겠습니까?"
-		pin: { round: 6, expires_at: sec(70), partner_vote: true, partner_hints: HINTS5, my_hints: HINTS5, next_hint: null, pin_next: true },
+		// 50분 째 — 넷 다 공개됐고, 연장 대신 "이 채팅을 고정하시겠습니까?" (Phase 107)
+		pin: { round: 5, expires_at: sec(70), partner_vote: true, partner_hints: HINTS5, my_hints: HINTS5, next_hint: null, pin_next: true },
 		// 둘 다 고정한 대화 — 타이머 없이 "고정됨"
-		pinned: { round: 7, expires_at: 'infinity', partner_hints: HINTS5, my_hints: HINTS5, next_hint: null, pinned: true },
+		pinned: { round: 6, expires_at: 'infinity', partner_hints: HINTS5, my_hints: HINTS5, next_hint: null, pinned: true },
 		// 끝난 대화 — 매너 평가 카드 (Phase 30)
 		rate: { status: 'closed', close_reason: 'expired', expires_at: sec(-1), can_rate: true, rated: false },
 		// 고정한 대화 — 위쪽 "평가하기" 막대
-		pinrate: { round: 7, expires_at: 'infinity', partner_hints: HINTS5, my_hints: HINTS5, next_hint: null, pinned: true, can_rate: true, rated: false }
+		pinrate: { round: 6, expires_at: 'infinity', partner_hints: HINTS5, my_hints: HINTS5, next_hint: null, pinned: true, can_rate: true, rated: false }
 	};
 
 	let id = 0;

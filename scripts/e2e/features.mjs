@@ -227,7 +227,7 @@ try {
 	console.log('[대화 고정]');
 	await page.goto(U('/dev/chat?s=pin')); await bubble('안녕하세요!').waitFor(); await page.waitForTimeout(300);
 	const pinBar = await page.locator('.extend').innerText();
-	check('★ 60분 째: "이 채팅을 고정하시겠습니까?" · 상대가 원함 · 적는 칸 없음', pinBar.includes('이 채팅을 고정하시겠습니까?') && pinBar.includes('상대가 고정을 원해요') && (await page.locator('.extend input').count()) === 0, pinBar);
+	check('★ 50분 째(넷 다 공개): "이 채팅을 고정하시겠습니까?" · 상대가 원함 · 적는 칸 없음', pinBar.includes('이 채팅을 고정하시겠습니까?') && pinBar.includes('상대가 고정을 원해요') && (await page.locator('.extend input').count()) === 0, pinBar);
 	check('공개된 힌트 네 가지', (await page.locator('.hint-chip').count()) === 4);
 	await page.screenshot({ path: `${SP}/feat-11-pin.png` });
 	await page.getByRole('button', { name: '고정하기' }).click(); await page.waitForTimeout(300);

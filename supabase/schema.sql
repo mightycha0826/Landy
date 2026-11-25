@@ -4043,10 +4043,10 @@ create table if not exists private.room_hints (
 );
 alter table private.room_hints enable row level security;
 
--- 연장 1번째 → 학년, 2번째 → 성씨, 3번째 → 동아리, 4번째 → 디플로마
+-- 공개 차례 — 네 번 (Phase 107). 그다음 차례는 고정 여부 (pin_round). 옛 앱(고를 줄 모름)은 이 순서로 공개한다
 create or replace function private.hint_kind(p_n int)
 returns text language sql immutable set search_path = '' as $fn$
-  select (array['grade', 'q1', 'diploma', 'q2', 'club'])[p_n];
+  select (array['grade', 'gender', 'diploma', 'club'])[p_n];
 $fn$;
 create or replace function private.hint_label(p_kind text)
 returns text language sql immutable set search_path = '' as $fn$
@@ -4481,12 +4481,11 @@ insert into private.achievement_defs (code, title, description, icon, category, 
   ('rater',       '성실한 평가자', '대화 상대 평가 남기기',       '📝', 'manner',  'rated',       '번',    10,   50,   200,   false, 17),
   ('chats',       '대화 여행자',   '끝까지 이어간 대화',          '💬', 'chat',    'chats',       '번',     5,   25,   100,   false, 20),
   ('extend',      '연장의 달인',   '둘 다 원해서 연장한 횟수',    '⏳', 'chat',    'extends',     '번',     5,   20,    50,   false, 21),
-  ('deep',        '속 깊은 대화',  '동아리까지 공개한 대화',      '🌊', 'chat',    'deep',        '번',     1,    5,    15,   false, 22),
+  ('deep',        '속 깊은 대화',  '넷 다 공개한 대화',           '🌊', 'chat',    'deep',        '번',     1,    5,    15,   false, 22),
   ('pin',         '고정 친구',     '둘 다 고정한 채팅',           '📌', 'chat',    'pins',        '명',     1,    3,    10,   false, 23),
   ('hello',       '먼저 인사하기', '대화의 첫마디를 건넨 횟수',   '👋', 'chat',    'hello',       '번',    10,   50,   200,   false, 24),
   ('talk',        '수다쟁이',      '보낸 메시지',                 '🗣️', 'chat',    'msgs',        '개',   300, 2000, 10000,   false, 25),
   ('heart',       '공감 부자',     '내 메시지에 받은 공감',       '❤️', 'chat',    'hearts',      '개',    30,  150,   500,   false, 26),
-  ('question',    '솔직한 대답',   '공통 질문에 답한 횟수',       '❓', 'chat',    'answers',     '번',     5,   20,    50,   false, 27),
   ('owl',         '밤 올빼미',     '밤 10시~12시에 시작한 대화',  '🦉', 'chat',    'owl',         '번',     5,   20,    50,   false, 28),
   ('letter_got',  '인기 편지함',   '받은 편지',                   '💌', 'letter',  'letters_got', '통',     5,   20,    50,   false, 30),
   ('letter_sent', '편지 쓰는 사람', '보낸 편지',                  '✉️', 'letter',  'letters_sent','통',     5,   20,    50,   false, 31),
@@ -4624,7 +4623,7 @@ begin
     end if;
     if new.round > old.round and not new.pinned then
       perform private.bump(u, 'extends');
-      if new.round >= 6 and old.round < 6 then perform private.bump(u, 'deep'); end if;
+      if new.round >= 5 and old.round < 5 then perform private.bump(u, 'deep'); end if;   -- 넷 다 공개 (Phase 107)
     end if;
     if new.pinned and not old.pinned then
       perform private.bump(u, 'pins');
@@ -4644,17 +4643,6 @@ create trigger rooms_stats after update on public.rooms
   when (old.status is distinct from new.status or old.round is distinct from new.round or old.pinned is distinct from new.pinned)
   execute function private.stats_on_room();
 
--- 공통 질문에 답함
-create or replace function private.stats_on_hint()
-returns trigger language plpgsql security definer set search_path = public, private as $fn$
-begin
-  if new.kind in ('q1', 'q2', 'question') then perform private.bump(private.seat_user(new.room_id, new.seat), 'answers'); end if;
-  return null;
-end
-$fn$;
-drop trigger if exists room_hints_stats on private.room_hints;
-create trigger room_hints_stats after insert on private.room_hints
-  for each row execute function private.stats_on_hint();
 
 -- 편지: 보냄 · 받음 · 꾸밈 · 답장 받음 (편지만 — 예전 채팅 줄은 세지 않는다)
 create or replace function private.stats_on_dm()
@@ -4824,7 +4812,7 @@ begin
   end loop;
   foreach f in array array['ach_tier(private.achievement_defs, numeric)', 'award_stat(uuid, text, numeric)', 'bump(uuid, text, int)',
                            'set_stat(uuid, text, numeric)', 'seat_user(uuid, smallint)', 'bump_chat_done(uuid)', 'touch_streak(uuid)',
-                           'stats_on_message()', 'stats_on_reaction()', 'stats_on_room()', 'stats_on_hint()',
+                           'stats_on_message()', 'stats_on_reaction()', 'stats_on_room()',
                            'stats_on_dm()', 'stats_on_rating()', 'stats_on_profile()']
   loop
     execute format('revoke all on function private.%s from public, anon, authenticated', f);
@@ -4845,7 +4833,7 @@ begin
       'extends', (select coalesce(sum(greatest(case when r.pinned then r.round - 2 else r.round - 1 end, 0)), 0)
                     from public.room_members rm join public.rooms r on r.id = rm.room_id where rm.user_id = u.id),
       'deep',    (select count(*) from public.room_members rm join public.rooms r on r.id = rm.room_id
-                   where rm.user_id = u.id and r.round >= 6),
+                   where rm.user_id = u.id and r.round >= 5),
       'pins',    (select count(*) from public.room_members rm join public.rooms r on r.id = rm.room_id
                    where rm.user_id = u.id and r.pinned),
       'owl',     (select count(*) from public.room_members rm join public.rooms r on r.id = rm.room_id
@@ -4853,8 +4841,6 @@ begin
                      and extract(hour from r.armed_at at time zone 'Asia/Seoul') >= 22),
       'msgs',    (select count(*) from public.room_members rm join public.messages m on m.room_id = rm.room_id and m.sender_seat = rm.seat
                    where rm.user_id = u.id),
-      'answers', (select count(*) from private.room_hints h join public.room_members rm on rm.room_id = h.room_id and rm.seat = h.seat
-                   where rm.user_id = u.id and h.kind in ('q1', 'q2', 'question')),
       'letters_sent', (select count(*) from private.dm_msgs m join private.dm_threads t on t.id = m.thread_id
                         where m.is_letter and ((m.from_sender and t.sender_id = u.id) or (not m.from_sender and t.recipient_id = u.id))),
       'letters_got',  (select count(*) from private.dm_msgs m join private.dm_threads t on t.id = m.thread_id
@@ -8093,4 +8079,20 @@ returns boolean language sql stable set search_path = '' as $fn$
     from public.profiles p where p.id = p_me;
 $fn$;
 revoke all on function private.dm_fake_gender(uuid, text) from public, anon, authenticated;
+notify pgrst, 'reload schema';
+-- ════════════════════════════════════════════════════════════════════
+--  Phase 107 — 연장은 네 번까지 공개 · "솔직한 대답" 업적 없애기
+--
+--  1) 공개 차례는 네 번(학년 · 남자/여자 · 디플로마 · 동아리, 각자 고르는 순서). 다섯 번째 차례는 연장 대신 고정 여부.
+--     옛 앱(p_kind 없음)은 hint_kind 순서로 공개한다.
+--  2) "속 깊은 대화"는 넷 다 공개한 대화 (round 5 가 되면).
+--  3) 랜덤 질문이 없어져 "솔직한 대답"(공통 질문 답) 업적을 없앤다 — 딴 기록 · 대표 뱃지 · 랜덤채팅 표시에서도.
+-- ════════════════════════════════════════════════════════════════════
+drop trigger if exists room_hints_stats on private.room_hints;
+drop function if exists private.stats_on_hint();
+update public.profiles set featured_badges = array_remove(featured_badges, 'question') where 'question' = any(featured_badges);
+update public.profiles set badge_chat = badge_chat - 'question' where badge_chat ? 'question';
+update private.user_stats set counts = counts - 'answers' where counts ? 'answers';
+delete from private.achievement_defs where code = 'question';
+update private.achievement_defs set description = '넷 다 공개한 대화' where code = 'deep';
 notify pgrst, 'reload schema';

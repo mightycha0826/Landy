@@ -148,8 +148,8 @@
 	// 시간이 다 됐다 — 평가 전에 화면 가운데서 "연장할까요?" (Phase 103)
 	const deciding = $derived(!!snap && snap.status === 'active' && graceLeftMs > 0 && canExtendMore && (!!snap.next_hint || !!snap.pin_next));
 
-	// 연장할 때마다 서로 하나씩 공개 — 각자 고른다 (Phase 103 · 106): 학년 · 남자/여자 · 디플로마 · 동아리, 한 번씩 (다 쓰면 공개 없이 연장).
-	// 학년은 명단에서, 성별은 프로필에서, 디플로마 · 동아리는 연장하면서 직접 적는다. 다섯 번 공개한 다음 차례는 연장 대신 "이 채팅을 고정하시겠습니까?".
+	// 연장할 때마다 서로 하나씩 공개 — 각자 고른다 (Phase 103 · 106): 학년 · 남자/여자 · 디플로마 · 동아리, 한 번씩.
+	// 학년은 명단에서, 성별은 프로필에서, 디플로마 · 동아리는 연장하면서 직접 적는다. 네 번 공개한 다음 차례는 연장 대신 (Phase 107) "이 채팅을 고정하시겠습니까?".
 	const pinNext = $derived(!!snap?.pin_next);
 	const partnerHints = $derived(snap?.partner_hints ?? []);
 	let hintDraft = $state('');

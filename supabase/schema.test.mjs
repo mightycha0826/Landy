@@ -2307,14 +2307,10 @@ console.log('\n[76] 랜덤 채팅 — 메시지 삭제 · 둘 다 볼 때만 흐
 	await rpcAs(A.id, 'vote_extension', room, true, '밴드부', 'club'); v = await rpcAs(B.id, 'vote_extension', room, true, '방송부', 'club');
 	check('연장 → 네 번째 공개', v.result === 'extended' && v.snap.partner_hints[3]?.value === '밴드부');
 
-	await toWindow();
-	snap = await rpcAs(A.id, 'room_snapshot', room);
-	check('★ 다섯 번째 차례 — 다 공개해서 고를 것이 없다 (Phase 106)', kinds(snap.next_options) === '' && Array.isArray(snap.next_options) && snap.pin_next === false, JSON.stringify(snap.next_options));
-	await rpcAs(A.id, 'vote_extension', room, true); v = await rpcAs(B.id, 'vote_extension', room, true);
-	check('★ 고를 것 없이 연장 — 공개는 그대로 넷 (다음은 고정 여부)', v.result === 'extended' && v.snap.partner_hints.length === 4 && v.snap.next_hint === null && v.snap.next_options === null, JSON.stringify(v.snap.partner_hints));
-	check('안내: 공개 없이 연장됨', (await lastSys()).endsWith('분 연장됨.'), await lastSys());
+	check('★ 넷 다 공개하면 끝 — 다섯 번째 차례는 고정 여부 (Phase 107)', v.snap.partner_hints.length === 4 && v.snap.next_hint === null && v.snap.next_options === null && v.snap.pin_next === true, JSON.stringify(v.snap));
 	await db.query(`update public.profiles set gender = 'x' where id = $1`, [B.id]);
 	check('성별이 정해지지 않은 사람에겐 남자/여자가 없다', !(await one(`select private.hint_options($1, 2::smallint, 1)::text t`, [room])).t.includes('gender'));
+	check('다 공개했으면 고를 것이 없다', (await one(`select private.hint_options($1, 1::smallint, 5)::text t`, [room])).t === '[]');
 	await db.query(`update public.profiles set gender = 'm' where id = $1`, [B.id]);
 	await expectError('힌트 보관함은 학생이 못 읽는다', () => rowsAs(A.id, 'select * from private.room_hints'), 'permission denied');
 
@@ -2475,7 +2471,7 @@ console.log('\n[78] 업적 — 카운터 · 동/은/금 · 대표 업적 (Phase 
 	const openRoom = async (x, y) => (await one(`select private.dev_open_room($1, $2, 10) as id`, [x.email, y.email])).id;
 	const say = async (room, seat) => (await one(`insert into public.messages (room_id, sender_seat, body, client_msg_id) values ($1, $2, '안녕', gen_random_uuid()) returning id`, [room, seat])).id;
 
-	check('카탈로그 36종 (Phase 44 베타 테스터 · Phase 70 극작소 · Phase 71 · 90 · 91 CNSA 뱃지 셋씩 · Phase 104 CTN 포함)', Number((await one('select count(*) n from private.achievement_defs')).n) === 36);
+	check('카탈로그 35종 (Phase 44 베타 테스터 · Phase 70 극작소 · Phase 71 · 90 · 91 CNSA 뱃지 셋씩 · Phase 104 CTN 포함, Phase 107 솔직한 대답 뺌)', Number((await one('select count(*) n from private.achievement_defs')).n) === 35);
 
 	console.log('  [대화]');
 	let room = await openRoom(A, B);
@@ -2491,10 +2487,9 @@ console.log('\n[78] 업적 — 카운터 · 동/은/금 · 대표 업적 (Phase 
 	check('내 메시지에 내가 단 공감은 세지 않는다', (await stat(A, 'hearts')) === 1);
 	await db.query(`update public.rooms set round = 2 where id = $1`, [room]);
 	check('★ 연장', (await stat(A, 'extends')) === 1 && (await stat(B, 'extends')) === 1);
-	await db.query(`update public.rooms set round = 6 where id = $1`, [room]);
-	check('★ 동아리까지 공개 (50분)', (await stat(A, 'deep')) === 1);
-	await db.query(`insert into private.room_hints (room_id, seat, round, kind, label, value) values ($1, 1, 2, 'question', '좋아하는 계절', '러닝')`, [room]);
-	check('공통 질문 답', (await stat(A, 'answers')) === 1 && (await stat(B, 'answers')) === 0);
+	await db.query(`update public.rooms set round = 5 where id = $1`, [room]);
+	check('★ 넷 다 공개 (네 번 연장, Phase 107)', (await stat(A, 'deep')) === 1);
+	check('★ "솔직한 대답" 업적은 없다 (Phase 107)', Number((await one(`select count(*) n from private.achievement_defs where code = 'question'`)).n) === 0);
 	await db.query(`update public.rooms set pinned = true, round = 7, expires_at = 'infinity' where id = $1`, [room]);
 	check('★ 고정 → 고정 친구 · 끝까지 이어간 대화 (연장으로는 안 셈)', (await stat(A, 'pins')) === 1 && (await stat(A, 'chats')) === 1 && (await stat(A, 'extends')) === 2);
 	check('★ 동 등급: 고정 친구 1명 · 속 깊은 대화 1번', (await tier(A, 'pin')) === 1 && (await tier(A, 'deep')) === 1);
@@ -2563,7 +2558,7 @@ console.log('\n[78] 업적 — 카운터 · 동/은/금 · 대표 업적 (Phase 
 	console.log('  [보이는 곳]');
 	const mine = await rpcAs(A.id, 'my_achievements');
 	const ext = mine.items.find((x) => x.code === 'extend');
-	check('★ 내 업적: 36종 · 진행도 · 등급 · 새로 딴 것', mine.items.length === 36 && ext.tier === 2 && ext.value === 0 && JSON.stringify(ext.tiers) === '[5,20,50]' && ext.new === true, JSON.stringify(ext));
+	check('★ 내 업적: 36종 · 진행도 · 등급 · 새로 딴 것', mine.items.length === 35 && ext.tier === 2 && ext.value === 0 && JSON.stringify(ext.tiers) === '[5,20,50]' && ext.new === true, JSON.stringify(ext));
 	check('개척자는 가입 순서 (작을수록 좋음)', mine.items.find((x) => x.code === 'pioneer').lower_better === true);
 	check('대표 업적은 자동으로 높은 등급부터 3개', mine.featured.length === 3 && mine.featured.every((x, i, a) => i === 0 || a[i - 1].tier >= x.tier), JSON.stringify(mine.featured));
 	check('새 업적 목록', (await rpcAs(A.id, 'new_achievements')).length > 0);
@@ -2870,7 +2865,7 @@ console.log('\n[84] 특별 업적(베타 테스터) · 업적 카탈로그 · �
 	// 카탈로그 — 누구나(로그인한 학생) 설명 · 기준을 본다
 	const cat = await rpcAs(X, 'achievement_catalog');
 	const beta = cat.find((d) => d.code === 'beta');
-	check('★ 카탈로그: 36종 · 설명 · 등급 기준 · 베타 테스터는 운영진이 주는 업적', cat.length === 36 && beta?.granted === true && beta.title === '베타 테스터'
+	check('★ 카탈로그: 36종 · 설명 · 등급 기준 · 베타 테스터는 운영진이 주는 업적', cat.length === 35 && beta?.granted === true && beta.title === '베타 테스터'
 		&& JSON.stringify(cat.find((d) => d.code === 'extend').tiers) === '[5,20,50]' && cat.find((d) => d.code === 'extend').granted === false, JSON.stringify(beta));
 	await expectError('비로그인은 카탈로그를 못 본다', () => rowsAs(null, 'select public.achievement_catalog()'), 'permission denied');
 	check('내 업적에도 granted 가 온다 (아직 없음)', (await rpcAs(X, 'my_achievements')).items.find((a) => a.code === 'beta')?.granted === true
@@ -3455,10 +3450,10 @@ console.log('\n[96] CNSA 뱃지 — 기본 뱃지 열림 · 5칸 · 랜덤채팅
 	await db.query(`select private.badge_apply((select user_id from private.staff where role = 'admin' limit 1), 'beta', array[$1]::uuid[], true)`, [U]);
 	check('특별 업적(베타)은 금 뱃지로 세지 않는다', (await rpcAs(U, 'my_achievements')).golds === 1);
 	check('3칸일 때 4개는 too_many', (await rpcAs(U, 'set_featured_badges', ['chats', 'cnsa_student', 'beta', 'talk'])).status === 'too_many');
-	for (const [st, v] of [['msgs', 10000], ['hearts', 500], ['answers', 50], ['owl', 50]]) await db.query('select private.set_stat($1, $2, $3)', [U, st, v]);
+	for (const [st, v] of [['msgs', 10000], ['hearts', 500], ['deep', 15], ['owl', 50]]) await db.query('select private.set_stat($1, $2, $3)', [U, st, v]);
 	const my5 = await rpcAs(U, 'my_achievements');
 	check('★ 금 뱃지 5개면 5칸', my5.golds === 5 && my5.slots === 5, JSON.stringify({ slots: my5.slots, golds: my5.golds }));
-	const five = ['cnsa_student', 'chats', 'talk', 'heart', 'question'];
+	const five = ['cnsa_student', 'chats', 'talk', 'heart', 'deep'];
 	const set5 = await rpcAs(U, 'set_featured_badges', five);
 	check('★ 5칸이면 대표 뱃지 5개까지 — 고른 순서대로', set5.status === 'ok' && set5.featured.map((b) => b.code).join() === five.join(), JSON.stringify(set5));
 	check('6개는 too_many', (await rpcAs(U, 'set_featured_badges', [...five, 'owl'])).status === 'too_many');
@@ -4043,6 +4038,7 @@ console.log('\n[Phase 103] 운영진이 닉네임 변경권 주기');
 {
 	await db.exec(readFileSync(here + 'migrations/20261125120000_extend_choice_phase103.sql', 'utf8')); // 위 Phase 102 검사가 nickname_tickets 를 그 판으로 되돌렸다
 	await db.exec(readFileSync(here + 'migrations/20261125150000_extend_gender_phase106.sql', 'utf8')); // 바로 위가 연장 공개를 Phase 103 판으로 되돌렸다
+	await db.exec(readFileSync(here + 'migrations/20261125160000_four_reveals_phase107.sql', 'utf8'));
 	const u = await person('m', 'f');
 	const adm = (await one("select user_id from private.staff where role='admin' limit 1")).user_id;
 	const left = async () => (await rpcAs(u, 'my_achievements')).nickname_tickets;
@@ -4085,7 +4081,7 @@ console.log('\n[100] 마이그레이션과 스키마 snapshot 일치');
 	const defs = async () => (await db.query("select n.nspname || '.' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' name, pg_get_functiondef(p.oid) body from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.prokind='f' order by 1")).rows;
 	const before = JSON.stringify(await defs());
 	// 운영에 적용한 순서대로 다시 실행하면 snapshot과 같아야 한다 (뒤 마이그레이션이 앞의 함수를 고쳐 쓴다)
-	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql', '20261102130000_anon_friends_phase93.sql', '20261102150000_friend_contact_phase95.sql', '20261110120000_admin_overview_phase96.sql', '20261123130000_seek_hint_letters_open_phase99.sql', '20261123140000_match_nudge_phase100.sql', '20261124120000_disk_io_phase101.sql', '20261124130000_nickname_ticket_phase102.sql', '20261125120000_extend_choice_phase103.sql', '20261125130000_cnsa_badge_ctn_phase104.sql', '20261125140000_letter_gender_word_phase105.sql', '20261125150000_extend_gender_phase106.sql'])
+	for (const file of ['20261004020721_project_review_upgrade.sql', '20261004141539_admin_account_deletion.sql', '20261004150534_review_fixes_20261004.sql', '20261006120000_dm_folder_rules.sql', '20261012120000_cnsa_badges_phase90.sql', '20261101120000_cnsa_badges_phase91.sql', '20261102120000_crowd_push_phase92.sql', '20261102130000_anon_friends_phase93.sql', '20261102150000_friend_contact_phase95.sql', '20261110120000_admin_overview_phase96.sql', '20261123130000_seek_hint_letters_open_phase99.sql', '20261123140000_match_nudge_phase100.sql', '20261124120000_disk_io_phase101.sql', '20261124130000_nickname_ticket_phase102.sql', '20261125120000_extend_choice_phase103.sql', '20261125130000_cnsa_badge_ctn_phase104.sql', '20261125140000_letter_gender_word_phase105.sql', '20261125150000_extend_gender_phase106.sql', '20261125160000_four_reveals_phase107.sql'])
 		await db.exec(readFileSync(here + 'migrations/' + file, 'utf8'));
 	check('업그레이드 마이그레이션의 함수가 snapshot과 같음', JSON.stringify(await defs()) === before);
 }
