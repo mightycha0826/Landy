@@ -6146,6 +6146,8 @@ alter table private.achievement_defs add constraint achievement_defs_category_ch
 
 insert into private.achievement_defs (code, title, description, icon, category, stat, unit, bronze, silver, gold, lower_better, sort, granted) values
   ('club_geukjakso', '극작소', '연극 동아리 극작소 부원', '🎬', 'cnsa', 'club_geukjakso', '', 1, 1, 1, false, 60, true),
+  -- Phase 104 — 영상 제작 동아리 CTN (동아리라 club_ · 기장 제출 · 동아리 뱃지 출시 전엔 학생 화면에서 숨김), 동아리끼리 Beatus 와 극작소 사이
+  ('club_ctn',       'CTN',    '영상 제작 동아리 CTN 부원', '🎥', 'cnsa', 'club_ctn',       '', 1, 1, 1, false, 59, true),
   -- Phase 90 — 1500m 인증제 · 품격위원 (도서부는 Phase 91 에서 코드 library 로 — 거기서 만든다)
   ('cert_1500m',   '1500m 인증제', '1500m 인증제를 통과한 학생에게 주는 뱃지',   '🏃', 'cnsa', 'cert_1500m',   '', 1, 1, 1, false, 62, true),
   ('pumgyeok',     '품격위원',     '품격위원으로 활동하는 학생에게 주는 뱃지',   '🎖️', 'cnsa', 'pumgyeok',     '', 1, 1, 1, false, 63, true)

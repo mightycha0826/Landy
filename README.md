@@ -949,4 +949,9 @@ node scripts/dev-user.mjs simbun-test3@cnsa.hs.kr 비밀번호 m      # 성별�
       시간이 다 되면 바로 닫지 않고 60초 동안 가운데 "연장할까요?" 화면 (대화는 막힘, 평가는 그 뒤). 연장할 때 공개할 것을 각자 하나씩 고른다 —
       학년 · 디플로마 · 동아리(한 번씩) · 랜덤 질문(매번, 슬롯이 돌아 질문을 준다 · 둘이 고르면 같은 질문). 연장되면 상대가 고른 공개가 같은 크기의 슬롯 칸에("상대는 2학년!").
       관리자 › 사용자에서 닉네임 랜덤 변경권 주기(1~20장, 기록에 남음). 실DB 반영 완료 (`supabase/migrations/20261125120000_extend_choice_phase103.sql`).
+- [x] **Phase 104 — CNSA 뱃지: 영상 제작 동아리 CTN** — 실제 은 핀 사진을 격자에 대고 잰 그림 (`lib/ui/pins/Ctn.svelte`):
+      동아리 로고처럼 앞 원(하늘색 에나멜) 뒤로 은 원이 오른쪽 아래로 비켜 겹치고, 글자 판에 검은 에나멜 "CTN"(글꼴 대신 도형, 은 테).
+      코드 `club_ctn` — 동아리라 기장 제출 · "동아리 뱃지 출시"를 켜기 전엔 학생 화면에서 숨김 (Beatus · 극작소와 같다). CNSA 탭은 Beatus 와 극작소 사이 (sort 59).
+      DB 는 `achievement_defs` 한 줄 (`schema.sql` Phase 70 의 insert · 실DB 는 `supabase/migrations/20261125130000_cnsa_badge_ctn_phase104.sql`, 여러 번 실행해도 같다).
+      스키마 테스트 카탈로그 36종 · [94] 순서 · [100] 마이그레이션, 화면 achievements.
 - [ ] Phase 7 — (보류) Durable Object 전송 계층. 학술탐구 큐 · 벤치는 별도 저장소(serverless-log-queue)에서 진행하고, 앱 적용 여부는 실험 결과를 본 뒤 따로 정한다.
